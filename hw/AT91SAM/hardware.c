@@ -1,4 +1,4 @@
- /*
+/*
 Copyright 2008, 2009 Jakub Bednarski
 
 This file is part of Minimig
