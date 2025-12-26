@@ -104,9 +104,9 @@ char DirEntryInfo[MAXDIRENTRIES][5]; // disk number info of dir entries
 char DiskInfo[5]; // disk number info of selected entry
 static char *SelectedName;
 
-const char *config_cpu_msg[] = {"68000", "68010", "68EC020","68020"};
+const char *config_cpu_msg[] = { "68000", "68010", "68EC020", "68020" };
 const char *config_autofire_msg[] = {"\n\n        AUTOFIRE OFF", "\n\n        AUTOFIRE FAST", "\n\n       AUTOFIRE MEDIUM", "\n\n        AUTOFIRE SLOW"};
-const char *days[] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+static const char *days[] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
 const char *helptexts[]={
 	0,
@@ -143,7 +143,7 @@ unsigned char fs_MenuSelect;
 
 static uint8_t setup_phase = 0;
 static joymapping_t mapping;
-static char *buttons [16] = {
+static const char *buttons [16] = {
   "RIGHT",
   "LEFT",
   "DOWN",
@@ -1040,7 +1040,7 @@ void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect,
 	{ // if different from the current one go to the root directory and init entry buffer
 		ChangeDirectoryName("/");
 
-		// for 8 bit cores try to 
+		// for 8 bit cores try to
 		if(((user_io_core_type() == CORE_TYPE_8BIT) || (user_io_core_type() == CORE_TYPE_ARCHIE)) && chdir)
 			user_io_change_into_core_dir();
 		ScanDirectory(SCAN_INIT, pFileExt, Options);
@@ -1132,7 +1132,7 @@ void HandleUI(void)
 
 		// Within the menu the esc key acts as the menu key. problem:
 		// if the menu is left with a press of ESC, then the follwing
-		// break code for the ESC key when the key is released will 
+		// break code for the ESC key when the key is released will
 		// reach the core which never saw the make code. Simple solution:
 		// react on break code instead of make code
 		case KEY_ESC | KEY_UPSTROKE :
@@ -1500,7 +1500,7 @@ void HandleUI(void)
 		case MENU_8BIT_ABOUT1:
 			menumask=0;
 			helptext = helptexts[HELPTEXT_NONE];
-			OsdSetTitle("About", 0); 
+			OsdSetTitle("About", 0);
 			menustate = MENU_8BIT_ABOUT2;
 			parentstate=MENU_8BIT_ABOUT1;
 			for (int i=0; i<osdlines-2; i++) {
@@ -1544,7 +1544,7 @@ void HandleUI(void)
 			for(i=0; i<24; i++) usb_id[i] = i+24;
 			OsdWrite(1, usb_id, 0, 0);
 			for(i=0; i<24; i++) usb_id[i] = i+(24*2);
-			OsdWrite(2, usb_id, 0, 0);	
+			OsdWrite(2, usb_id, 0, 0);
 			for(i=0; i<24; i++) usb_id[i] = i+(24*3);
 			OsdWrite(3, usb_id, 0, 0);
 			for(i=0; i<24; i++) usb_id[i] = i+(24*4);
@@ -1730,7 +1730,7 @@ void HandleUI(void)
 			s[0]=0;
 			while (l<firstline) OsdWrite(l++, s, 0, 0);
 			do {
- 
+
 				// line full or line break
 				if((i == 29) || (*message == '\n') || !*message) {
 					s[i] = 0;

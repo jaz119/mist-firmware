@@ -44,7 +44,7 @@ This file defines how to handle mapping in the MiST controllers in various ways:
 
 static joymapping_t joystick_mappers[MAX_VIRTUAL_JOYSTICK_REMAP];
 
-static uint16_t default_joystick_mapping [16] = {
+static const uint16_t default_joystick_mapping [16] = {
 	JOY_RIGHT,
 	JOY_LEFT,
 	JOY_DOWN,
