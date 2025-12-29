@@ -95,7 +95,7 @@ static struct {
     union {
       struct {
 	unsigned char code;    // cmd code
-	
+
 	// command specific structures
 	union {
 	  unsigned char mouse_button_action;
@@ -112,7 +112,7 @@ static struct {
       unsigned char byte[0];
     };
   } buffer;
- 
+
 } ikbd;
 
 // read a 16 bit word in big endian
@@ -144,7 +144,7 @@ static unsigned char joystick_map2ikbd(unsigned char in) {
 void ikbd_handler_mouse_button_action(void) {
   unsigned char action = ikbd.buffer.command.mouse_button_action;
   ikbd_debugf("mouse button action = %d", action);
-      
+
   // bit 2: Mouse buttons act like keys (LEFT=0x74 & RIGHT=0x75)
   if(action & 0x04) ikbd.state |=  IKBD_STATE_MOUSE_BUTTON_AS_KEY;
   else              ikbd.state &= ~IKBD_STATE_MOUSE_BUTTON_AS_KEY;
@@ -162,7 +162,7 @@ void ikbd_handler_set_abs_mouse_pos(void) {
   ikbd.mouse.abs.max.x = be16(ikbd.buffer.command.abs_mouse_pos.max_x);
   ikbd.mouse.abs.max.y = be16(ikbd.buffer.command.abs_mouse_pos.max_y);
 
-  ikbd_debugf("Set absolute mouse positioning, max = %u/%u", 
+  ikbd_debugf("Set absolute mouse positioning, max = %u/%u",
 	      ikbd.mouse.abs.max.x, ikbd.mouse.abs.max.y);
 
   ikbd.state &= ~IKBD_STATE_MOUSE_DISABLED;
@@ -172,7 +172,7 @@ void ikbd_handler_set_abs_mouse_pos(void) {
 }
 
 void ikbd_handler_set_mouse_keycode_mode(void) {
-  ikbd_debugf("Set mouse keycode mode dist %u/%u", 
+  ikbd_debugf("Set mouse keycode mode dist %u/%u",
 	      ikbd.buffer.command.mouse_keycode.dist_x,
 	      ikbd.buffer.command.mouse_keycode.dist_y);
   ikbd.state |= IKBD_STATE_MOUSE_KEYCODE;
@@ -204,7 +204,7 @@ void ikbd_handler_interrogate_mouse_pos(void) {
     enqueue(ikbd.mouse.abs.pos.x & 0xff);
     enqueue(ikbd.mouse.abs.pos.y >> 8);
     enqueue(ikbd.mouse.abs.pos.y & 0xff);
-    
+
     ikbd.mouse.abs.buttons = 0;
   }
 }
@@ -266,7 +266,7 @@ void ikbd_handler_disable_joysticks(void) {
 
 void ikbd_handler_time_set(void) {
   unsigned char c;
-  for(c=0;c<6;c++) 
+  for(c=0;c<6;c++)
     ikbd.date[c] = bcd2bin(ikbd.buffer.command.date[c]);
 
   // release SPI since it will be used by usb when
@@ -377,9 +377,9 @@ void ikbd_handle_input(unsigned char cmd) {
 
   // check if there's a known command in the buffer
   char c;
-  for(c=0;ikbd_command_handler[c].length && 
+  for(c=0;ikbd_command_handler[c].length &&
 	(ikbd_command_handler[c].code != ikbd.buffer.command.code);c++);
-  
+
   // not a valid command? -> flush buffer
   if(!ikbd_command_handler[c].length) {
     ikbd_debugf("Unhandled command: %02x", ikbd.buffer.command.code);
@@ -412,17 +412,17 @@ void ikbd_poll(void) {
 
     if(!(ikbd.state & IKBD_STATE_WAIT4RESET) &&
        !(ikbd.state & IKBD_STATE_PAUSED)) {
-    
+
       /* --------- joystick ---------- */
       if(ikbd.state & IKBD_STATE_JOYSTICK_EVENT_REPORTING) {
 	char i;
 	for(i=0;i<2;i++) {
 	  unsigned char state = ikbd.joy[i].state;
-	  
+
 	  // left mouse button 1 is also joystick 0 fire button
 	  // right mouse button 0 is also joystick 1 fire button
-	  if(ikbd.mouse.but & (2>>i)) state |= 0x80; 
-	  
+	  if(ikbd.mouse.but & (2>>i)) state |= 0x80;
+
 	  if(state != ikbd.joy[i].prev) {
 	    //	    iprintf("JOY%d: %x\n", i, state);
 	    enqueue(0xfe + i);
@@ -480,7 +480,7 @@ void ikbd_poll(void) {
 	  !(ikbd.state & IKBD_STATE_MOUSE_ABSOLUTE) &&
 	  !(ikbd.state & IKBD_STATE_MOUSE_KEYCODE)) {
 	unsigned char b = ikbd.mouse.but;
-	
+
 	// include joystick buttons into mouse state
 	if(ikbd.joy[0].state & 0x80) b |= 2;
 	if(ikbd.joy[1].state & 0x80) b |= 1;
@@ -491,28 +491,28 @@ void ikbd_poll(void) {
 	    if(ikbd.mouse.x < -128)      x = -128;
 	    else if(ikbd.mouse.x >  127) x =  127;
 	    else                         x =  ikbd.mouse.x;
-	    
+
 	    if(ikbd.mouse.y < -128)      y = -128;
 	    else if(ikbd.mouse.y >  127) y =  127;
 	    else                         y =  ikbd.mouse.y;
-	    
+
 	    //	    iprintf("RMOUSE: %x %x %x\n", b, x&0xff, y&0xff);
 	    enqueue(0xf8|b);
 	    enqueue(x & 0xff);
 	    enqueue(y & 0xff);
-	    
+
 	    ikbd.mouse.x -= x;
 	    ikbd.mouse.y -= y;
-	    
+
 	  } while(ikbd.mouse.x || ikbd.mouse.y);
-	  
+
 	  // check if mouse buttons are supposed to be treated like keys
 	  if(ikbd.state & IKBD_STATE_MOUSE_BUTTON_AS_KEY) {
-	    
+
 	    // check if mouse button state has changed
 	    if(b != ikbd.mouse.but_prev) {
 	      // Mouse buttons act like keys (LEFT=0x74 & RIGHT=0x75)
-	      
+
 	      // handle left mouse button
 	      if((b ^ ikbd.mouse.but_prev) & 2) ikbd_keyboard(0x74 | ((b&2)?0x00:0x80));
 	      // handle right mouse button
@@ -529,13 +529,13 @@ void ikbd_poll(void) {
   static unsigned long mtimer = 0;
   if(CheckTimer(mtimer)) {
     mtimer = GetTimer(10);
-    
+
     // check for incoming ikbd data
     spi_uio_cmd_cont(UIO_IKBD_IN);
-    
+
     while(spi_in())
       ikbd_handle_input(spi_in());
-    
+
     DisableIO();
   }
 
@@ -558,23 +558,23 @@ void ikbd_poll(void) {
   if(rptr == wptr) return;
 
   if(tx_queue[rptr] & 0x8000) {
-    
+
     // request to start timer?
-    if(tx_queue[rptr] & 0x8000) 
+    if(tx_queue[rptr] & 0x8000)
       ikbd_timer = GetTimer(tx_queue[rptr] & 0x3fff);
-    
+
     rptr = (rptr+1)&(QUEUE_LEN-1);
     return;
   }
-  
+
   // transmit data from queue
   spi_uio_cmd_cont(UIO_IKBD_OUT);
   spi8(tx_queue[rptr]);
   DisableIO();
-  
+
   ikbd.tx_cnt++;
-  
-  rptr = (rptr+1)&(QUEUE_LEN-1);  
+
+  rptr = (rptr+1)&(QUEUE_LEN-1);
 }
 
 // called from external parts to report joystick states
@@ -612,7 +612,7 @@ void ikbd_mouse(unsigned char b, char x, char y) {
     else      ikbd.mouse.abs.buttons |= 2;
     if(b & 1) ikbd.mouse.abs.buttons |= 4;
     else      ikbd.mouse.abs.buttons |= 8;
-    
+
     if(ikbd.mouse.abs.scale.x > 1) x *= ikbd.mouse.abs.scale.x;
     if(ikbd.mouse.abs.scale.y > 1) y *= ikbd.mouse.abs.scale.y;
 

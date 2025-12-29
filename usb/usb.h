@@ -7,10 +7,10 @@
 /* NAK powers. To save space in endpoint data structure, amount of retries */
 /* before giving up and returning 0x4 is stored in bmNakPower as a power of 2.*/
 /* The actual nak_limit is then calculated as nak_limit = ( 2^bmNakPower - 1) */
-#define USB_NAK_MAX_POWER 16	//NAK binary order maximum value
-#define USB_NAK_DEFAULT	  14	//default 16K-1 NAKs before giving up
-#define USB_NAK_NOWAIT	  1	//Single NAK stops transfer
-#define USB_NAK_NONAK	  0	//Do not count NAKs, stop retrying after USB Timeout
+#define USB_NAK_MAX_POWER 16 // NAK binary order maximum value
+#define USB_NAK_DEFAULT   14 // default 16K-1 NAKs before giving up
+#define USB_NAK_NOWAIT    1  // Single NAK stops transfer
+#define USB_NAK_NONAK     0  // Do not count NAKs, stop retrying after USB Timeout
 
 #define EP_TYPE_CTRL                           0U
 #define EP_TYPE_ISOC                           1U
@@ -19,13 +19,13 @@
 #define EP_TYPE_MSK                            3U
 
 typedef struct {
-  uint8_t epAddr;	// Endpoint address 
-  uint8_t maxPktSize;	// Maximum packet size
+  uint8_t epAddr;     // Endpoint address
+  uint8_t maxPktSize; // Maximum packet size
   uint8_t epType;
-  
+
   union {
     uint8_t epAttribs;
-    
+
     struct {
       // Send toggle, when zero bmSNDTOG0, bmSNDTOG1 otherwise
       uint8_t bmSndToggle: 1;
@@ -47,17 +47,17 @@ typedef struct {
 
 #define USB_SETTLE_DELAY 200   // settle delay in milliseconds
 #define USB_XFER_TIMEOUT 5000  // USB transfer timeout in milliseconds, per section 9.2.6.1 of USB 2.0 spec
-#define USB_RETRY_LIMIT	3      // retry limit for a transfer
+#define USB_RETRY_LIMIT  3     // retry limit for a transfer
 
 /* USB state machine states */
 #define USB_STATE_MASK                                      0xf0
 
 #define USB_STATE_DETACHED                                  0x10
-#define USB_DETACHED_SUBSTATE_INITIALIZE                    0x11        
+#define USB_DETACHED_SUBSTATE_INITIALIZE                    0x11
 #define USB_DETACHED_SUBSTATE_WAIT_FOR_DEVICE               0x12
 #define USB_DETACHED_SUBSTATE_ILLEGAL                       0x13
 #define USB_ATTACHED_SUBSTATE_SETTLE                        0x20
-#define USB_ATTACHED_SUBSTATE_RESET_DEVICE                  0x30    
+#define USB_ATTACHED_SUBSTATE_RESET_DEVICE                  0x30
 #define USB_ATTACHED_SUBSTATE_WAIT_RESET_COMPLETE           0x40
 #define USB_ATTACHED_SUBSTATE_WAIT_SOF                      0x50
 #define USB_ATTACHED_SUBSTATE_GET_DEVICE_DESCRIPTOR_SIZE    0x60
