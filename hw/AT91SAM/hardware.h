@@ -119,7 +119,7 @@ void inline MCUReset() {*AT91C_RSTC_RCR = 0xA5 << 24 | AT91C_RSTC_PERRST | AT91C
 
 void InitRTTC();
 
-int inline GetRTTC() {return (int)(AT91C_BASE_RTTC->RTTC_RTVR);}
+uint32_t inline GetRTTC() { return AT91C_BASE_RTTC->RTTC_RTVR; }
 
 int GetSPICLK();
 
@@ -145,8 +145,8 @@ void EnableIO(void);
 void DisableIO(void);
 #endif
 
-#define DEBUG_FUNC_IN() 
-#define DEBUG_FUNC_OUT() 
+#define DEBUG_FUNC_IN()
+#define DEBUG_FUNC_OUT()
 
 #ifdef __GNUC__
 void __init_hardware(void);
