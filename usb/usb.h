@@ -19,13 +19,13 @@
 #define EP_TYPE_MSK                            3U
 
 typedef struct {
-  uint8_t epAddr;	// Endpoint address 
+  uint8_t epAddr;	// Endpoint address
   uint8_t maxPktSize;	// Maximum packet size
   uint8_t epType;
-  
+
   union {
     uint8_t epAttribs;
-    
+
     struct {
       // Send toggle, when zero bmSNDTOG0, bmSNDTOG1 otherwise
       uint8_t bmSndToggle: 1;
@@ -53,11 +53,11 @@ typedef struct {
 #define USB_STATE_MASK                                      0xf0
 
 #define USB_STATE_DETACHED                                  0x10
-#define USB_DETACHED_SUBSTATE_INITIALIZE                    0x11        
+#define USB_DETACHED_SUBSTATE_INITIALIZE                    0x11
 #define USB_DETACHED_SUBSTATE_WAIT_FOR_DEVICE               0x12
 #define USB_DETACHED_SUBSTATE_ILLEGAL                       0x13
 #define USB_ATTACHED_SUBSTATE_SETTLE                        0x20
-#define USB_ATTACHED_SUBSTATE_RESET_DEVICE                  0x30    
+#define USB_ATTACHED_SUBSTATE_RESET_DEVICE                  0x30
 #define USB_ATTACHED_SUBSTATE_WAIT_RESET_COMPLETE           0x40
 #define USB_ATTACHED_SUBSTATE_WAIT_SOF                      0x50
 #define USB_ATTACHED_SUBSTATE_GET_DEVICE_DESCRIPTOR_SIZE    0x60
@@ -97,7 +97,20 @@ typedef struct {
 struct usb_device_entry;
 struct usb_device_descriptor;
 
+// usb device type
+typedef enum
+{
+    USB_HUB = 0,
+    USB_NET,
+    USB_STOR,
+    USB_HID,
+    USB_UART,
+    USB_RTC,
+} usb_dev_type_t;
+
+// generic usb device driver struct
 typedef struct {
+  usb_dev_type_t type;
   uint8_t (*init)(struct usb_device_entry *, struct usb_device_descriptor *);
   uint8_t (*release)(struct usb_device_entry *);
   uint8_t (*poll)(struct usb_device_entry *);
@@ -110,8 +123,6 @@ typedef struct {
 #ifdef USB_STORAGE
 #include "storage.h"
 #endif
-#include "usbrtc.h"
-#include "usbrtc.h"
 #include "pl2303.h"
 
 // entry used for list of connected devices
@@ -133,7 +144,6 @@ typedef struct usb_device_entry {
 #ifdef USB_STORAGE
     usb_storage_info_t storage_info;
 #endif
-    usb_usbrtc_info_t usbrtc_info;
     usb_pl2303_info_t pl2303_info;
   };
 } usb_device_t;
@@ -293,8 +303,10 @@ uint8_t usb_get_string_descr( usb_device_t *dev, uint16_t nbytes, uint8_t index,
 uint8_t usb_get_conf( usb_device_t *dev, uint8_t *conf_value );
 uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value );
 uint8_t usb_release_device(uint8_t parent, uint8_t port);
-usb_device_t *usb_get_devices();
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed);
+usb_device_t *usb_get_device(const usb_device_class_config_t *);
+usb_device_t *usb_get_device_type(const usb_dev_type_t);
+usb_device_t *usb_get_devices();
 
 // device-specific functions
 uint8_t usb_in_transfer( usb_device_t *, ep_t *ep, uint16_t *nbytesptr, uint8_t* data);
