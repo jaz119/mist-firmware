@@ -276,6 +276,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 			default:
 				hid_debugf("unsupported descriptor type %d size %d", p->raw[1], p->raw[0]);
+				break;
 			}
 
 		// advance to next descriptor
@@ -503,7 +504,6 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 			}
 			mice--;
 		}
-
 	}
 
 	return 0;

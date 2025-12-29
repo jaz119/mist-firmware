@@ -6,9 +6,7 @@
  * for i2c-tiny-usb by Till Harbaum
  */
 
-#include <stdbool.h>
-#include <inttypes.h>
-#include "rtc.h"
+#include "usb/rtc.h"
 
 // interface to usb core
 extern const usb_rtc_class_config_t i2c_tiny_rtc_class;

@@ -6,10 +6,10 @@
 
 #include "usb/rtc.h"
 
-uint8_t usb_rtc_get_time(uint8_t *date)
+uint8_t usb_rtc_get_time(timestamp_t date)
 {
-    // find first RTC device
-    usb_device_t *dev = usb_get_device_type(USB_RTC);
+    // find last connected RTC device
+    usb_device_t *dev = usb_get_last_device(USB_RTC);
 
     if (dev)
     {
@@ -20,10 +20,10 @@ uint8_t usb_rtc_get_time(uint8_t *date)
     return 0;
 }
 
-uint8_t usb_rtc_set_time(uint8_t *date)
+uint8_t usb_rtc_set_time(timestamp_t date)
 {
-    // find first RTC device
-    usb_device_t *dev = usb_get_device_type(USB_RTC);
+    // find last connected RTC device
+    usb_device_t *dev = usb_get_last_device(USB_RTC);
 
     if (dev)
     {

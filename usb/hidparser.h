@@ -45,7 +45,7 @@ typedef struct {
       } hat;                   // 1 hat (joystick only)
 
 			uint8_t button_count;
-      
+
     } joystick_mouse;
   };
 } hid_report_t;

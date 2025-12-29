@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 // ------------ generic debugging -----------
-
 #if 0
 #define menu_debugf(...) iprintf(__VA_ARGS__)
 #else
@@ -27,7 +26,6 @@
 #endif
 
 // -------------- TOS debugging --------------
-
 #if 0
 #define tos_debugf(a, ...) iprintf("\033[1;32mTOS: " a "\033[0m\n", ##__VA_ARGS__)
 #else
@@ -112,7 +110,7 @@
 #define storage_debugf(...)
 #endif
 
-#if 0
+#if 1
 // usb rtc debug output in blue
 #define usbrtc_debugf(a, ...) iprintf("\033[1;34mUSBRTC: " a "\033[0m\n", ##__VA_ARGS__)
 #else

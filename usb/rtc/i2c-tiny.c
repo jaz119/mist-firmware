@@ -9,7 +9,6 @@
 
 #include "rtc/i2c-tiny.h"
 #include "debug.h"
-#include "utils.h"
 
 #define I2C_M_RD                0x01
 
@@ -191,7 +190,7 @@ static uint8_t tiny_rtc_release(usb_device_t *dev) {
   return 0;
 }
 
-static uint8_t tiny_rtc_get_time(struct usb_device_entry *dev, uint8_t *d) {
+static uint8_t tiny_rtc_get_time(struct usb_device_entry *dev, timestamp_t d) {
   usbrtc_debugf("%s()", __FUNCTION__);
 
   struct timeS time;
@@ -215,7 +214,7 @@ static uint8_t tiny_rtc_get_time(struct usb_device_entry *dev, uint8_t *d) {
   return 1;
 }
 
-static uint8_t tiny_rtc_set_time(struct usb_device_entry *dev, uint8_t *d) {
+static uint8_t tiny_rtc_set_time(struct usb_device_entry *dev, timestamp_t d) {
   usbrtc_debugf("%s()", __FUNCTION__);
 
   // fill DS1307 time structure
@@ -234,7 +233,6 @@ static uint8_t tiny_rtc_set_time(struct usb_device_entry *dev, uint8_t *d) {
     usbrtc_debugf("Error writing DS1307 time");
     return 0;
   }
-
   return 1;
 }
 

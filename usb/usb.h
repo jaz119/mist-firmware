@@ -305,7 +305,7 @@ uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value );
 uint8_t usb_release_device(uint8_t parent, uint8_t port);
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed);
 usb_device_t *usb_get_device(const usb_device_class_config_t *);
-usb_device_t *usb_get_device_type(const usb_dev_type_t);
+usb_device_t *usb_get_last_device(const usb_dev_type_t);
 usb_device_t *usb_get_devices();
 
 // device-specific functions

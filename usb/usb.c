@@ -22,10 +22,11 @@ usb_device_t *usb_get_device(const usb_device_class_config_t *class) {
 	return NULL;
 }
 
-usb_device_t *usb_get_device_type(const usb_dev_type_t type) {
+/* get last connected device by type */
+usb_device_t *usb_get_last_device(const usb_dev_type_t type) {
 	usb_device_t *devs = usb_get_devices();
 
-	for (uint8_t i=0; i<USB_NUMDEVICES; i++)
+	for (uint8_t i=USB_NUMDEVICES-1; i>=0; i--)
 		if(devs[i].bAddress && devs[i].class && devs[i].class->type == type)
 			return devs+i;
 
