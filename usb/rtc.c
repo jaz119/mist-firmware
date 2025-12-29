@@ -4,7 +4,7 @@
 // interface for RTC device drivers
 //
 
-#include "rtc.h"
+#include "usb/rtc.h"
 
 uint8_t usb_rtc_get_time(uint8_t *date)
 {
@@ -13,7 +13,7 @@ uint8_t usb_rtc_get_time(uint8_t *date)
 
     if (dev)
     {
-        usb_rtc_class_config_t *rtc = (usb_rtc_class_config_t *) dev;
+        usb_rtc_class_config_t *rtc = (usb_rtc_class_config_t *) dev->class;
         return rtc->get_time(dev, date);
     }
 
@@ -27,7 +27,7 @@ uint8_t usb_rtc_set_time(uint8_t *date)
 
     if (dev)
     {
-        usb_rtc_class_config_t *rtc = (usb_rtc_class_config_t *) dev;
+        usb_rtc_class_config_t *rtc = (usb_rtc_class_config_t *) dev->class;
         return rtc->set_time(dev, date);
     }
 
