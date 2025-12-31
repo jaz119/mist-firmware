@@ -4,6 +4,7 @@
 // driver for DS1307/37/38/39/40/41, ST M41T00, EPSON RX-8025, ISL12057 RTC chip(s)
 //
 
+#include "usb.h"
 #include "usb/rtc.h"
 #include "rtc/ds1307.h"
 
@@ -28,7 +29,7 @@ static uint8_t ds1307_probe(usb_device_t *dev, const i2c_bus_t *i2c)
         && (ctrl & 3) == 3;
 }
 
-static uint8_t ds1307_get_time(usb_device_t *dev, const i2c_bus_t *i2c, timestamp_t date)
+static uint8_t ds1307_get_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
 {
     uint8_t regs[7];
 
@@ -47,7 +48,7 @@ static uint8_t ds1307_get_time(usb_device_t *dev, const i2c_bus_t *i2c, timestam
     return 1;
 }
 
-static uint8_t ds1307_set_time(usb_device_t *dev, const i2c_bus_t *i2c, timestamp_t date)
+static uint8_t ds1307_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
 {
     uint8_t regs[7];
 

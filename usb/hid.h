@@ -79,7 +79,6 @@ typedef struct {
 typedef struct {
   bool     bPollEnable;       // poll enable flag
   uint8_t  bNumIfaces;
-  uint8_t  reserved1;         // driver specific storage
 
   usb_hid_iface_info_t iface[MAX_IFACES];
 } usb_hid_info_t;

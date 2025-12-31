@@ -4,6 +4,7 @@
 // driver for PCF85263/PCF85363 RTC chip(s)
 //
 
+#include "usb.h"
 #include "usb/rtc.h"
 #include "rtc/pcf85x63.h"
 
@@ -41,7 +42,7 @@ static uint8_t pcf85x63_probe(usb_device_t *dev, const i2c_bus_t *i2c)
         && rst == 0;
 }
 
-static uint8_t pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, timestamp_t date)
+static uint8_t pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
 {
     uint8_t regs[REG_YEARS + 1];
 
@@ -60,7 +61,7 @@ static uint8_t pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, timest
     return 1;
 }
 
-static uint8_t pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, timestamp_t date)
+static uint8_t pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
 {
     uint8_t buf[10];
     uint8_t *regs = &buf[2];
@@ -77,7 +78,7 @@ static uint8_t pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, timest
     regs[REG_SECS]    = bin2bcd(date[5]);
     regs[REG_WEEKDAY] = date[6];
 
-    // STOP and Clear prescaler
+    // STOP and clear prescaler
     if (i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_STOP_EN, buf, 2))
     {
         // Set TIME

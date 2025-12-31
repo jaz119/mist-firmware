@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "user_io.h"
 #include "xmodem.h"
 #include "ikbd.h"
+#include "usb.h"
 #include "usb/rtc.h"
 
 void __init_hardware(void)

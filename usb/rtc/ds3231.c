@@ -4,6 +4,7 @@
 // driver for Maxim DS3231 RTC chip
 //
 
+#include "usb.h"
 #include "usb/rtc.h"
 #include "rtc/ds3231.h"
 
@@ -31,7 +32,7 @@ static uint8_t ds3231_probe(usb_device_t *dev, const i2c_bus_t *i2c)
     return 0;
 }
 
-static uint8_t ds3231_get_time(usb_device_t *dev, const i2c_bus_t *i2c, timestamp_t date)
+static uint8_t ds3231_get_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
 {
     uint8_t regs[7];
 
@@ -55,7 +56,7 @@ static uint8_t ds3231_get_time(usb_device_t *dev, const i2c_bus_t *i2c, timestam
     return 1;
 }
 
-static uint8_t ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, timestamp_t date)
+static uint8_t ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
 {
     uint8_t regs[7];
 

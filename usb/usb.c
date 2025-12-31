@@ -4,22 +4,13 @@
 #include "usb.h"
 #include "timer.h"
 #include "rtc/i2c-tiny.h"
+#include "rtc/i2c-mcp2221.h"
 #include "debug.h"
 
 static usb_device_t usb_devices[USB_NUMDEVICES];
 
 usb_device_t *usb_get_devices() {
 	return usb_devices;
-}
-
-usb_device_t *usb_get_device(const usb_device_class_config_t *class) {
-	usb_device_t *devs = usb_get_devices();
-
-	for (uint8_t i=0; i<USB_NUMDEVICES; i++)
-		if(devs[i].bAddress && devs[i].class == class)
-			return devs+i;
-
-	return NULL;
 }
 
 /* get last connected device by type */
@@ -51,7 +42,8 @@ static const usb_device_class_config_t *class_list[] = {
 #ifdef USB_STORAGE
   &usb_storage_class,
 #endif
-  &i2c_tiny_rtc_class.class,
+  &usb_rtc_i2c_tiny_class.entry,
+  &usb_rtc_i2c_mcp2221_class.entry,
   &usb_pl2303_class,
   NULL
 };

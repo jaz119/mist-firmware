@@ -7,10 +7,10 @@
 /* NAK powers. To save space in endpoint data structure, amount of retries */
 /* before giving up and returning 0x4 is stored in bmNakPower as a power of 2.*/
 /* The actual nak_limit is then calculated as nak_limit = ( 2^bmNakPower - 1) */
-#define USB_NAK_MAX_POWER 16	//NAK binary order maximum value
-#define USB_NAK_DEFAULT	  14	//default 16K-1 NAKs before giving up
-#define USB_NAK_NOWAIT	  1	//Single NAK stops transfer
-#define USB_NAK_NONAK	  0	//Do not count NAKs, stop retrying after USB Timeout
+#define USB_NAK_MAX_POWER 16 // NAK binary order maximum value
+#define USB_NAK_DEFAULT   14 // default 16K-1 NAKs before giving up
+#define USB_NAK_NOWAIT    1  // Single NAK stops transfer
+#define USB_NAK_NONAK     0  // Do not count NAKs, stop retrying after USB Timeout
 
 #define EP_TYPE_CTRL                           0U
 #define EP_TYPE_ISOC                           1U
@@ -19,8 +19,8 @@
 #define EP_TYPE_MSK                            3U
 
 typedef struct {
-  uint8_t epAddr;	// Endpoint address
-  uint8_t maxPktSize;	// Maximum packet size
+  uint8_t epAddr;     // Endpoint address
+  uint8_t maxPktSize; // Maximum packet size
   uint8_t epType;
 
   union {
@@ -47,7 +47,7 @@ typedef struct {
 
 #define USB_SETTLE_DELAY 200   // settle delay in milliseconds
 #define USB_XFER_TIMEOUT 5000  // USB transfer timeout in milliseconds, per section 9.2.6.1 of USB 2.0 spec
-#define USB_RETRY_LIMIT	3      // retry limit for a transfer
+#define USB_RETRY_LIMIT  3     // retry limit for a transfer
 
 /* USB state machine states */
 #define USB_STATE_MASK                                      0xf0
@@ -123,6 +123,7 @@ typedef struct {
 #ifdef USB_STORAGE
 #include "storage.h"
 #endif
+#include "usb/rtc.h"
 #include "pl2303.h"
 
 // entry used for list of connected devices
@@ -144,6 +145,7 @@ typedef struct usb_device_entry {
 #ifdef USB_STORAGE
     usb_storage_info_t storage_info;
 #endif
+    usb_rtc_info_t rtc_info;
     usb_pl2303_info_t pl2303_info;
   };
 } usb_device_t;
@@ -304,7 +306,6 @@ uint8_t usb_get_conf( usb_device_t *dev, uint8_t *conf_value );
 uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value );
 uint8_t usb_release_device(uint8_t parent, uint8_t port);
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed);
-usb_device_t *usb_get_device(const usb_device_class_config_t *);
 usb_device_t *usb_get_last_device(const usb_dev_type_t);
 usb_device_t *usb_get_devices();
 

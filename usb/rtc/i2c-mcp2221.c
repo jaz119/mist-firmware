@@ -4,6 +4,7 @@
 // driver for I2C connected RTC via MCP2221 chip
 //
 
+#include "usb.h"
 #include "rtc/i2c-mcp2221.h"
 #include "rtc/pcf85x63.h"
 #include "rtc/ds3231.h"
@@ -81,21 +82,20 @@ typedef struct {
     uint8_t  unused[];              // Don’t care
 } __attribute__ ((packed)) mcp_i2c_response_t;
 
+// All of supported RTC chips list
 static const rtc_chip_t *rtc_chips[] = {
     &rtc_pcf85x63_chip,
     &rtc_ds3231_chip,
     &rtc_ds1307_chip,
+    NULL
 };
-
-#define MCP_REQ_OUT (USB_SETUP_HOST_TO_DEVICE|USB_SETUP_TYPE_VENDOR|USB_SETUP_RECIPIENT_DEVICE)
-#define MCP_REQ_IN  (USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_VENDOR|USB_SETUP_RECIPIENT_DEVICE)
 
 static uint8_t usb_hid_parse_conf(
     usb_device_t *dev, uint8_t conf, uint16_t len)
 {
-    usb_hid_info_t *info = &(dev->hid_info);
+    usb_rtc_info_t *info = &(dev->rtc_info);
     bool isHID = false;
-    uint8_t rcode;
+    uint8_t rcode, i;
 
     union buf_u {
         usb_configuration_descriptor_t conf_desc;
@@ -113,8 +113,6 @@ static uint8_t usb_hid_parse_conf(
     /* scan through all descriptors */
     while (len > 0)
     {
-        uint8_t i = info->bNumIfaces;
-
         switch (p->conf_desc.bDescriptorType)
         {
             default:
@@ -123,25 +121,25 @@ static uint8_t usb_hid_parse_conf(
                 break;
 
             case USB_DESCRIPTOR_INTERFACE:
-                isHID = (p->iface_desc.bInterfaceClass == USB_CLASS_HID && i < MAX_IFACES);
-                if (isHID)
-                {
-                    info->iface[i].iface_idx = p->iface_desc.bInterfaceNumber;
-                    info->iface[i].device_type = HID_DEVICE_UNKNOWN;
-                    info->iface[i].conf.type = REPORT_TYPE_NONE;
-                }
+                isHID = (p->iface_desc.bInterfaceClass == USB_CLASS_HID && i < 2);
                 break;
 
             case USB_DESCRIPTOR_ENDPOINT:
                 if (isHID)
                 {
-                    info->iface[i].interval      = p->ep_desc.bInterval;
-                    info->iface[i].ep.epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
-                    info->iface[i].ep.epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
-                    info->iface[i].ep.maxPktSize = p->ep_desc.wMaxPacketSize[0];
-                    info->iface[i].ep.epAttribs  = 0;
-                    info->iface[i].ep.bmNakPower = USB_NAK_NOWAIT;
-                    info->bNumIfaces++;
+                    if (p->ep_desc.bEndpointAddress & 0x80)
+                    {
+                        info->in_idx = i;
+                    } else {
+                        info->out_idx = i;
+                    }
+
+                    info->ep[i].epAddr = (p->ep_desc.bEndpointAddress & 0x0f);
+                    info->ep[i].epType = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
+                    info->ep[i].maxPktSize = p->ep_desc.wMaxPacketSize[0];
+                    info->ep[i].bmNakPower = USB_NAK_NOWAIT;
+                    info->ep[i].epAttribs  = 0;
+                    i++;
                 }
                 break;
         }
@@ -154,7 +152,7 @@ static uint8_t usb_hid_parse_conf(
         p = (union buf_u*)(p->raw + p->conf_desc.bLength);
     }
 
-    return 0;
+    return (i == 2);
 }
 
 static uint8_t mcp_init(
@@ -178,18 +176,18 @@ static uint8_t mcp_init(
     }
 
     // Reset state
-    usb_hid_info_t *info = &(dev->hid_info);
-    info->bPollEnable = false;
-    info->bNumIfaces = 0;
+    usb_rtc_info_t *info = &(dev->rtc_info);
+    info->chip_type = 0;
+    info->out_idx = 0;
+    info->in_idx = 0;
 
-    for (uint8_t i = 0; i < MAX_IFACES; i++)
+    for (uint8_t i = 0; i < (sizeof(info->ep) / sizeof(info->ep[0])); i++)
     {
-        info->iface[i].qLastPollTime = 0;
-        info->iface[i].ep.epAddr     = i;
-        info->iface[i].ep.epType     = 0;
-        info->iface[i].ep.maxPktSize = 8;
-        info->iface[i].ep.epAttribs  = 0;
-        info->iface[i].ep.bmNakPower = USB_NAK_MAX_POWER;
+        info->ep[i].epAddr = i;
+        info->ep[i].epType = 0;
+        info->ep[i].maxPktSize = 8;
+        info->ep[i].epAttribs  = 0;
+        info->ep[i].bmNakPower = USB_NAK_MAX_POWER;
     }
 
     // Parse HID descriptor
@@ -197,13 +195,6 @@ static uint8_t mcp_init(
     {
         usbrtc_debugf("parse HID conf failed");
         return rcode;
-    }
-
-    // Check if we found valid HID interfaces
-    if (!info->bNumIfaces)
-    {
-        usbrtc_debugf("no HID interfaces found");
-        return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
     }
 
     // Set Configuration Value
@@ -248,20 +239,20 @@ const i2c_bus_t mcp_i2c_bus = {
   .bulk_write = mcp_i2c_bulk_write
 };
 
-static uint8_t mcp_get_time(struct usb_device_entry *dev, timestamp_t date)
+static uint8_t mcp_get_time(struct usb_device_entry *dev, mtime_t date)
 {
-    usb_hid_info_t *info = &(dev->hid_info);
-    const rtc_chip_t *rtc = rtc_chips[info->reserved1];
+    usb_rtc_info_t *info = &(dev->rtc_info);
+    const rtc_chip_t *rtc = rtc_chips[info->chip_type];
 
     usbrtc_debugf("%s: using %s rtc", __FUNCTION__, rtc->name);
 
     return rtc->get_time(dev, &mcp_i2c_bus, date);
 }
 
-static uint8_t mcp_set_time(struct usb_device_entry *dev, timestamp_t date)
+static uint8_t mcp_set_time(struct usb_device_entry *dev, mtime_t date)
 {
-    usb_hid_info_t *info = &(dev->hid_info);
-    const rtc_chip_t *rtc = rtc_chips[info->reserved1];
+    usb_rtc_info_t *info = &(dev->rtc_info);
+    const rtc_chip_t *rtc = rtc_chips[info->chip_type];
 
     usbrtc_debugf("%s: using %s rtc", __FUNCTION__, rtc->name);
 
@@ -269,7 +260,7 @@ static uint8_t mcp_set_time(struct usb_device_entry *dev, timestamp_t date)
 }
 
 const usb_rtc_class_config_t usb_rtc_i2c_mcp2221_class = {
-    .class = { USB_RTC, mcp_init, mcp_release, NULL },
+    .entry = { USB_RTC, mcp_init, mcp_release, NULL },
     .get_time = mcp_get_time,
     .set_time = mcp_set_time,
 };

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>  // for memcpy
 
+#include "usb.h"
 #include "rtc/i2c-tiny.h"
 #include "debug.h"
 
@@ -190,7 +191,7 @@ static uint8_t tiny_rtc_release(usb_device_t *dev) {
   return 0;
 }
 
-static uint8_t tiny_rtc_get_time(struct usb_device_entry *dev, timestamp_t d) {
+static uint8_t tiny_rtc_get_time(struct usb_device_entry *dev, mtime_t d) {
   usbrtc_debugf("%s()", __FUNCTION__);
 
   struct timeS time;
@@ -214,7 +215,7 @@ static uint8_t tiny_rtc_get_time(struct usb_device_entry *dev, timestamp_t d) {
   return 1;
 }
 
-static uint8_t tiny_rtc_set_time(struct usb_device_entry *dev, timestamp_t d) {
+static uint8_t tiny_rtc_set_time(struct usb_device_entry *dev, mtime_t d) {
   usbrtc_debugf("%s()", __FUNCTION__);
 
   // fill DS1307 time structure
@@ -236,8 +237,8 @@ static uint8_t tiny_rtc_set_time(struct usb_device_entry *dev, timestamp_t d) {
   return 1;
 }
 
-const usb_rtc_class_config_t i2c_tiny_rtc_class = {
-  .class = { USB_RTC, tiny_rtc_init, tiny_rtc_release, NULL },
+const usb_rtc_class_config_t usb_rtc_i2c_tiny_class = {
+  .entry = { USB_RTC, tiny_rtc_init, tiny_rtc_release, NULL },
   tiny_rtc_get_time,
   tiny_rtc_set_time
 };
