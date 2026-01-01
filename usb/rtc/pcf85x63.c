@@ -1,18 +1,15 @@
 //
 // pcf85x63.c
 //
-// driver for PCF85263/PCF85363 RTC chip(s)
+// driver for PCF85263/PCF85363 RTC chips
 //
 
 #include "usb.h"
-#include "usb/rtc.h"
 #include "rtc/pcf85x63.h"
 
-#define PCF85x63_ADDR   0xa2
+#define PCF85x63_ADDR   0x51
 
-/*
- * Date/Time registers
- */
+// date/time registers
 #define REG_100THS      0x00
 #define REG_SECS        0x01
 #define REG_MINUTES     0x02
@@ -23,32 +20,29 @@
 #define REG_YEARS       0x07
 #define MAX_REG_NUM     0x2f
 
-/*
- * Control registers
- */
+// control registers
 #define CTRL_OSCILLATOR 0x25
-    #define OSC_BIT_12_24    0x20
+    #define OSC_BIT_12HR        0x20
 #define CTRL_STOP_EN    0x2e
-    #define STOP_BIT_EN_STOP 0x01
+    #define STOP_BIT_EN_STOP    0x01
 #define CTRL_RESET      0x2f
-    #define RESET_CPR        0xa4
+    #define RESET_CPR           0xa4
 
-static uint8_t pcf85x63_probe(usb_device_t *dev, const i2c_bus_t *i2c)
+static bool pcf85x63_probe(usb_device_t *dev, const i2c_bus_t *i2c)
 {
     uint8_t rst = -1;
 
-    /* no any strong way to check chip present */
+    // no any normal way to detect this chip
     return i2c->bulk_read(dev, PCF85x63_ADDR, MAX_REG_NUM, &rst, 1)
         && rst == 0;
 }
 
-static uint8_t pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
+static bool pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, ctime_t date)
 {
     uint8_t regs[REG_YEARS + 1];
 
-    uint8_t ret = i2c->bulk_read(dev, PCF85x63_ADDR, REG_100THS, regs, sizeof(regs));
-    if (!ret)
-        return ret;
+    if (!i2c->bulk_read(dev, PCF85x63_ADDR, REG_100THS, regs, sizeof(regs)))
+        return false;
 
     date[0] = bcd2bin(regs[REG_YEARS]) + 100;
     date[1] = bcd2bin(regs[REG_MONTHS]);
@@ -58,12 +52,12 @@ static uint8_t pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_
     date[5] = bcd2bin(regs[REG_SECS] & 0x7F);
     date[6] = regs[REG_WEEKDAY];
 
-    return 1;
+    return true;
 }
 
-static uint8_t pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
+static bool pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, const ctime_t date)
 {
-    uint8_t buf[10];
+    uint8_t buf[12];
     uint8_t *regs = &buf[2];
 
     buf[0] = STOP_BIT_EN_STOP;
@@ -78,22 +72,21 @@ static uint8_t pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_
     regs[REG_SECS]    = bin2bcd(date[5]);
     regs[REG_WEEKDAY] = date[6];
 
-    // STOP and clear prescaler
-    if (i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_STOP_EN, buf, 2))
-    {
-        // Set TIME
-        if (i2c->bulk_write(dev, PCF85x63_ADDR, REG_100THS, regs, 8))
-        {
-            // START
-            return i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_STOP_EN, 0, 1);
-        }
-    }
+    // stop and clear prescaler
+    if (!i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_STOP_EN, buf, 2))
+        return false;
 
-    return 0;
+    // set new time
+    if (!i2c->bulk_write(dev, PCF85x63_ADDR, REG_100THS, regs, 8))
+        return false;
+
+    // start
+    buf[0] = 0;
+    return i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_STOP_EN, buf, 1);
 }
 
 const rtc_chip_t rtc_pcf85x63_chip = {
-    .name = "pcf85x63",
+    .name = "pcf85x63", 400,
     .probe = pcf85x63_probe,
     .get_time = pcf85x63_get_time,
     .set_time = pcf85x63_set_time,

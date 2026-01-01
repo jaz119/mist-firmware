@@ -5,40 +5,40 @@
 //
 
 #include "usb.h"
-#include "usb/rtc.h"
 #include "rtc/ds3231.h"
 
 #define DS3231_ADDR     0x68
 
+// date/time registers
 #define REG_SECS        0x00
 #define REG_MINUTES     0x01
 #define REG_HOURS       0x02
-    #define HOURS_BIT_12HR      0x40    /* in REG_HOUR */
+    #define HOURS_BIT_12HR      0x40    // in REG_HOUR
 #define REG_WEEKDAY     0x03
 #define REG_DAYS        0x04
 #define REG_MONTHS      0x05
 #define REG_YEARS       0x06
 
-#define REG_CR          0x0E    /* Control register */
-#define REG_SR          0x0F    /* Control/Status register */
+// control registers
+#define REG_CR          0x0E
+#define REG_SR          0x0F
 
-static uint8_t ds3231_probe(usb_device_t *dev, const i2c_bus_t *i2c)
+static bool ds3231_probe(usb_device_t *dev, const i2c_bus_t *i2c)
 {
     uint8_t crsr[2] = { 0, 0 };
 
     if (i2c->bulk_read(dev, DS3231_ADDR, REG_CR, crsr, 2))
         return ((crsr[0] & 0x1c) == 0x1c && (crsr[1] & 0x88) == 0x88);
 
-    return 0;
+    return false;
 }
 
-static uint8_t ds3231_get_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
+static bool ds3231_get_time(usb_device_t *dev, const i2c_bus_t *i2c, ctime_t date)
 {
     uint8_t regs[7];
 
-    uint8_t ret = i2c->bulk_read(dev, DS3231_ADDR, REG_SECS, regs, 7);
-    if (!ret)
-        return ret;
+    if (!i2c->bulk_read(dev, DS3231_ADDR, REG_SECS, regs, 7))
+        return false;
 
     if (regs[REG_MONTHS] & 0x80) {
         date[0] = bcd2bin(regs[REG_YEARS]) + 100;
@@ -53,10 +53,10 @@ static uint8_t ds3231_get_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t 
     date[5] = bcd2bin(regs[REG_SECS]);
     date[6] = regs[REG_WEEKDAY];
 
-    return 1;
+    return true;
 }
 
-static uint8_t ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t date)
+static bool ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, const ctime_t date)
 {
     uint8_t regs[7];
 
@@ -70,7 +70,7 @@ static uint8_t ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t 
     }
 
     regs[REG_DAYS] = bin2bcd(date[2]);
-    regs[REG_HOURS] = bin2bcd(date[3]) & ~HOURS_BIT_12HR;
+    regs[REG_HOURS] = bin2bcd(date[3]);
     regs[REG_MINUTES] = bin2bcd(date[4]);
     regs[REG_SECS] = bin2bcd(date[5]);
     regs[REG_WEEKDAY] = date[6];
@@ -79,7 +79,7 @@ static uint8_t ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, mtime_t 
 }
 
 const rtc_chip_t rtc_ds3231_chip = {
-    .name = "ds3231",
+    .name = "ds3231", 400,
     .probe = ds3231_probe,
     .get_time = ds3231_get_time,
     .set_time = ds3231_set_time,

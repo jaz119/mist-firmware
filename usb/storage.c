@@ -218,7 +218,6 @@ static uint8_t transaction(usb_device_t *dev, command_block_wrapper_t *cbw, uint
 
 static uint8_t scsi_command_in(usb_device_t *dev, uint8_t lun, uint16_t bsize, uint8_t *buf,
 			       uint8_t cmd, uint8_t cblen) {
-  uint8_t i;
   command_block_wrapper_t cbw;
 
   memset(&cbw, 0, sizeof(cbw));
@@ -256,7 +255,6 @@ static uint8_t test_unit_ready(usb_device_t *dev, uint8_t lun) {
 static uint8_t read(usb_device_t *dev, uint8_t lun,
 		    uint32_t addr, uint16_t len, char *buf) {
   command_block_wrapper_t cbw;
-  uint8_t i;
 
   bzero(&cbw, sizeof(cbw));
 
@@ -281,7 +279,6 @@ static uint8_t read(usb_device_t *dev, uint8_t lun,
 static uint8_t write(usb_device_t *dev, uint8_t lun,
 		    uint32_t addr, uint16_t len, const char *buf) {
   command_block_wrapper_t cbw;
-  uint8_t i;
 
   bzero(&cbw, sizeof(cbw));
 
@@ -418,10 +415,11 @@ static uint8_t usb_storage_release(usb_device_t *dev) {
 }
 
 static uint8_t usb_storage_poll(usb_device_t *dev) {
-  usb_storage_info_t *info = &(dev->storage_info);
   uint8_t rcode = 0;
 
 #if 0
+  usb_storage_info_t *info = &(dev->storage_info);
+
   if (info->qNextPollTime <= timer_get_msec()) {
     if(info->state == 1) {
       char b[512];

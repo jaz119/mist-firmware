@@ -123,7 +123,8 @@ typedef struct {
 #ifdef USB_STORAGE
 #include "storage.h"
 #endif
-#include "usb/rtc.h"
+#include "rtc/i2c-tiny.h"
+#include "rtc/i2c-mcp2221.h"
 #include "pl2303.h"
 
 // entry used for list of connected devices
@@ -145,7 +146,7 @@ typedef struct usb_device_entry {
 #ifdef USB_STORAGE
     usb_storage_info_t storage_info;
 #endif
-    usb_rtc_info_t rtc_info;
+    mcp_rtc_info_t mcp_rtc_info;
     usb_pl2303_info_t pl2303_info;
   };
 } usb_device_t;
