@@ -33,7 +33,7 @@ static bool pcf85x63_probe(usb_device_t *dev, const i2c_bus_t *i2c)
 {
     uint8_t cof = CTRL_BIT_COF_OFF;
 
-    // disable clock output for check and battery save
+    // disable CLK output for check and battery save
     return i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_FUNCTION, &cof, 1);
 }
 

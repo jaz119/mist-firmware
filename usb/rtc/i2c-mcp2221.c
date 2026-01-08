@@ -23,7 +23,6 @@
 enum {
     CMD_I2C_WR_DATA = 0x90,
     CMD_I2C_WR_RPT_START = 0x92,
-    CMD_I2C_WR_NO_STOP = 0x94,
     CMD_I2C_RD_DATA = 0x91,
     CMD_I2C_RD_RPT_START = 0x93,
     CMD_I2C_GET_DATA = 0x40,
@@ -52,16 +51,23 @@ typedef struct {
                                     // 0x21 = Speed change rejected
     uint8_t  i2c_req_divider;       // Value of the I2C system clock divider
     uint8_t  unused1[3];            // Don’t care
-    uint8_t  i2c_machine_state;     // Internal I2C state machine state value
-    uint16_t i2c_transfer_length;   // Requested I2C transfer length
-    uint16_t i2c_transfered;        // Number of already transferred bytes
-    uint8_t  i2c_buf_count;         // Internal I2C data buffer counter
+    uint8_t  i2c_engine_state;      // 0x00 = Idle
+                                    // 0x01 = Address NACK or partial data
+                                    // 0x10 = Physical bus is busy
+    uint16_t i2c_requested_len;     // Requested I2C transfer length
+    uint16_t i2c_transfered_len;    // Number of already transferred bytes
+    uint8_t  i2c_buf_counter;       // Internal I2C data buffer counter
     uint8_t  i2c_div;               // Current I2C speed divider
     uint8_t  i2c_timeout;           // Current I2C timeout value
     uint16_t i2c_address;           // I2C address being used
-    uint8_t  unused2[4];            // Don’t care
-    uint8_t  scl_input;             // SCL line value, as read from the pin
-    uint8_t  sda_input;             // SDA line value, as read from the pin
+    uint8_t  unused2[2];            // Don’t care
+    uint8_t  last_comm_status;      // 0x00 = Success
+                                    // 0x01 = Addr NACK (slave address doesn't respond)
+                                    // 0x02 = Data NACK (data transfer failed)
+                                    // 0x03 = Timeout
+    uint8_t  unknown;               // Don’t care
+    uint8_t  scl_line_state;        // SCL line value, as read from the pin
+    uint8_t  sda_line_state;        // SDA line value, as read from the pin
     uint8_t  intr_edge;             // Interrupt edge detector state, 0 or 1
     uint8_t  i2c_read_pending;      // 0, 1 or 2
     uint8_t  unused3[20];           // Don’t care
@@ -137,16 +143,13 @@ static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     return true;
 }
 
-static bool mcp_set_i2c_clock(usb_device_t *dev, uint16_t clock)
+static bool mcp_set_i2c_clock(usb_device_t *dev, uint8_t *rpt, uint16_t clock)
 {
     uint16_t size;
     mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
 
-    union {
-        mcp_cmd_t cmd;
-        mcp_cmd_resp_t resp;
-        uint8_t raw[REPORT_SIZE];
-    } pkt;
+    mcp_cmd_resp_t *resp = (mcp_cmd_resp_t *) rpt;
+    mcp_cmd_t *cmd = (mcp_cmd_t *) rpt;
 
     if (info->i2c_clock == clock)
         return true;
@@ -154,51 +157,42 @@ static bool mcp_set_i2c_clock(usb_device_t *dev, uint16_t clock)
     if (clock > 400) clock = 400;
     if (clock < 47)  clock = 47;
 
-    pkt.cmd.cmd_code = CMD_I2C_PARAM_OR_STATUS;
-    pkt.cmd.i2c_clock_divider = (12000000U - clock*1000) - 3;
-    pkt.cmd.set_i2c_speed = 0x20;
-    pkt.cmd.cancel_i2c = 0x10;
-    pkt.cmd.unused1 = 0;
+    // cancel bus operation and set clock rate
+    cmd->cmd_code = CMD_I2C_PARAM_OR_STATUS;
+    cmd->i2c_clock_divider = (12000000U - clock*1000) - 3;
+    cmd->set_i2c_speed = 0x20;
+    cmd->cancel_i2c = 0x10;
 
-    if (mcp_exec(dev, pkt.raw, &size))
+    if (mcp_exec(dev, rpt, &size))
     {
-        if (pkt.resp.set_i2c_speed == 0x20)
+        if (resp->set_i2c_speed == 0x20)
         {
             info->i2c_clock = clock;
             return true;
         } else {
             usbrtc_debugf("%s: mcp2221 error #%X",
-                __FUNCTION__, pkt.resp.set_i2c_speed);
+                __FUNCTION__, resp->set_i2c_speed);
         }
     }
 
     return false;
 }
 
-static bool mcp_check_status(usb_device_t *dev)
+static bool mcp_i2c_ready(usb_device_t *dev, uint8_t *rpt)
 {
+    mcp_cmd_t *cmd = (mcp_cmd_t *) rpt;
+    mcp_cmd_resp_t *resp = (mcp_cmd_resp_t *) rpt;
     uint16_t size;
 
-    union {
-        mcp_cmd_t cmd;
-        mcp_cmd_resp_t resp;
-        uint8_t raw[REPORT_SIZE];
-    } pkt;
+    cmd->cmd_code = CMD_I2C_PARAM_OR_STATUS;
+    cmd->set_i2c_speed = 0;
+    cmd->cancel_i2c = 0;
 
-    pkt.cmd.cmd_code = CMD_I2C_PARAM_OR_STATUS;
-    pkt.cmd.set_i2c_speed = 0;
-    pkt.cmd.cancel_i2c = 0;
-    pkt.cmd.unused1 = 0;
-
-    if (!mcp_exec(dev, pkt.raw, &size) || size != REPORT_SIZE)
+    if (!mcp_exec(dev, rpt, &size))
         return false;
 
-    iprintf("mcp2221 chip detected, rev.%c%c, fw: %c.%c, i2c clock div: %u\n",
-        pkt.resp.hw_rev_major, pkt.resp.hw_rev_minor,
-        pkt.resp.fw_rev_major, pkt.resp.fw_rev_minor,
-        pkt.resp.i2c_div);
-
-    return true;
+    // check for i2c engine idle state
+    return (resp->i2c_engine_state == 0);
 }
 
 static uint8_t usb_hid_parse_conf(
@@ -273,11 +267,17 @@ static uint8_t mcp_init(
     if ((dev_desc->idVendor != MCP2221_VID) || (dev_desc->idProduct != MCP2221_PID))
         return USB_ERROR_NO_SUCH_DEVICE;
 
+    union {
+        mcp_cmd_t cmd;
+        mcp_cmd_resp_t resp;
+        usb_configuration_descriptor_t conf_desc;
+        uint8_t raw[REPORT_SIZE];
+    } buf;
+
     uint8_t rcode;
-    usb_configuration_descriptor_t conf_desc;
 
     // Get configuration descriptor
-    if ((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), 0, &conf_desc))) {
+    if ((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), 0, &buf.conf_desc))) {
         usbrtc_debugf("mcp2221: failed to get config #0, error #%X", rcode);
         return rcode;
     }
@@ -287,7 +287,7 @@ static uint8_t mcp_init(
 
     // Reset runtime info
     info->chip_type = info->i2c_clock = -1;
-    info->read_step = info->last_time = 0;
+    info->last_poll_time = 0;
 
     for (uint8_t i = 0; ep[i]; i++)
     {
@@ -299,27 +299,31 @@ static uint8_t mcp_init(
     }
 
     // Parse HID descriptor
-    if ((rcode = usb_hid_parse_conf(dev, 0, conf_desc.wTotalLength))) {
+    if ((rcode = usb_hid_parse_conf(dev, 0, buf.conf_desc.wTotalLength))) {
         usbrtc_debugf("mcp2221: failed to parse HID config, error #%X", rcode);
         return rcode;
     }
 
     // Set Configuration Value
-    rcode = usb_set_conf(dev, conf_desc.bConfigurationValue);
+    rcode = usb_set_conf(dev, buf.conf_desc.bConfigurationValue);
     if (rcode) usbrtc_debugf("mcp2221: set config error %d", rcode);
 
-    // Request mcp2221 chip info
-    if (!mcp_check_status(dev)) {
-        usbrtc_debugf("mcp2221: chip not detected");
+    // Test mcp2221 chip state
+    if (!mcp_set_i2c_clock(dev, buf.raw, 100)) {
+        usbrtc_debugf("mcp2221: i2c bus error");
         return USB_ERROR_NO_SUCH_DEVICE;
     }
+
+    iprintf("mcp2221 chip detected, rev: %c%c, ver: %c.%c\n",
+        buf.resp.hw_rev_major, buf.resp.hw_rev_minor,
+        buf.resp.fw_rev_major, buf.resp.fw_rev_minor);
 
     // Probe for rtc chips
     for (uint8_t i = 0; rtc_chips[i]; i++)
     {
         const rtc_chip_t *chip = rtc_chips[i];
 
-        if (!mcp_set_i2c_clock(dev, chip->max_i2c_clock)) {
+        if (!mcp_set_i2c_clock(dev, buf.raw, chip->max_i2c_clock)) {
             usbrtc_debugf("mcp2221: failed to set %dkHz i2c clock rate",
                 chip->max_i2c_clock);
             continue;
@@ -359,67 +363,39 @@ static bool mcp_i2c_bulk_read(
     if (!buf || !length || length > sizeof(rpt.resp.data)-1)
         return false;
 
-    // state machine
-    switch (info->read_step)
-    {
-        case 1:
-        default:
-            // set register pointer to 'reg'
-            rpt.cmd.cmd_code = CMD_I2C_WR_DATA;
-            rpt.cmd.slave_addr = (addr << 1);
-            rpt.cmd.size_high = 0;
-            rpt.cmd.size_low = 1;
-            rpt.cmd.data[0] = reg;
+    // set register pointer to 'reg'
+    rpt.cmd.cmd_code = CMD_I2C_WR_RPT_START;
+    rpt.cmd.slave_addr = (addr << 1);
+    rpt.cmd.size_high = 0;
+    rpt.cmd.size_low = 1;
+    rpt.cmd.data[0] = reg;
 
-            if (!mcp_exec(dev, rpt.raw, &size))
-                return false;
+    if (!mcp_exec(dev, rpt.raw, &size))
+        return false;
 
-            info->read_step = 2;
+    // request to read 'length' byte(s)
+    rpt.cmd.cmd_code = CMD_I2C_RD_DATA;
+    rpt.cmd.slave_addr = (addr << 1) | 1;
+    rpt.cmd.size_low = length;
+    rpt.cmd.size_high = 0;
 
-        case 2:
-            // request to read 'length' byte(s)
-            rpt.cmd.cmd_code = CMD_I2C_RD_RPT_START;
-            rpt.cmd.slave_addr = (addr << 1) | 1;
-            rpt.cmd.size_low = length;
-            rpt.cmd.size_high = 0;
+    if (!mcp_exec(dev, rpt.raw, &size))
+        return false;
 
-            if (!mcp_exec(dev, rpt.raw, &size))
-                return false;
+    // waiting until data is ready
+    while (!mcp_i2c_ready(dev, rpt.raw))
+        timer_delay_msec(1);
 
-            info->read_step = 3;
-            usbrtc_debugf("%s: data pending", __FUNCTION__);
+    // fetch buffered i2c data
+    rpt.cmd.cmd_code = CMD_I2C_GET_DATA;
+    rpt.cmd.slave_addr = 0;
+    rpt.cmd.size_high = 0;
+    rpt.cmd.size_low = 0;
 
-            // need delay to complete i2c transaction
-            if (length < sizeof(ctime_t)) {
-                // chip probing: wait here
-                timer_delay_msec(5);
-            } else {
-                // getting time: wait in main loop
-                return false;
-            }
+    if (!mcp_exec(dev, rpt.raw, &size) || rpt.resp.data_size != length)
+        return false;
 
-        case 3:
-            // try to get i2c data
-            rpt.cmd.cmd_code = CMD_I2C_GET_DATA;
-            rpt.cmd.slave_addr = 0;
-            rpt.cmd.size_high = 0;
-            rpt.cmd.size_low = 0;
-
-            if (!mcp_exec(dev, rpt.raw, &size))
-                return false;
-
-            info->read_step = 1;
-
-            if (rpt.resp.data_size != length) {
-                usbrtc_debugf("%s: partial data read", __FUNCTION__);
-                return false;
-            }
-
-            usbrtc_debugf("%s: data read OK", __FUNCTION__);
-            memcpy(buf, &rpt.resp.data, length);
-            break;
-    }
-
+    memcpy(buf, &rpt.resp.data, length);
     return true;
 }
 
@@ -443,7 +419,6 @@ static bool mcp_i2c_bulk_write(
     rpt.cmd.slave_addr = (addr << 1);
     rpt.cmd.size_low = (length + 1);
     rpt.cmd.size_high = 0;
-
     rpt.cmd.data[0] = reg;
     memcpy(&rpt.cmd.data[1], buf, length);
 
@@ -455,15 +430,12 @@ static bool mcp_get_time(struct usb_device_entry *dev, ctime_t date)
     mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
     const rtc_chip_t *rtc = rtc_chips[info->chip_type];
 
-    // 5ms to comlete i2c transaction
     // 250ms for time polling interval
-    uint16_t delay = (info->read_step == 3) ? 5 : 250;
-
-    if (!timer_check(info->last_time, delay))
+    if (!timer_check(info->last_poll_time, 250))
         return false;
 
     bool res = rtc->get_time(dev, &mcp_i2c_bus, date);
-    info->last_time = timer_get_msec();
+    info->last_poll_time = timer_get_msec();
 
     return res;
 }

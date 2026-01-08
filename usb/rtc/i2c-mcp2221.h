@@ -13,9 +13,8 @@ typedef struct {
     ep_t ep_in;
     ep_t ep_out;
     uint8_t chip_type;
-    uint8_t read_step;
     uint16_t i2c_clock;
-    uint32_t last_time;
+    uint32_t last_poll_time;
 } mcp_rtc_info_t;
 
 // i2c bus interface
