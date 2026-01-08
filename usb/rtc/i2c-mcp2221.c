@@ -1,7 +1,7 @@
 //
 // i2c-mcp2221.c
 //
-// driver for I2C connected RTC via MCP2221(A) chip
+// RTC driver MCP2221(A) USB/I2C bridge chip
 //
 
 #include <string.h>
@@ -22,7 +22,10 @@
 // commands codes
 enum {
     CMD_I2C_WR_DATA = 0x90,
+    CMD_I2C_WR_RPT_START = 0x92,
+    CMD_I2C_WR_NO_STOP = 0x94,
     CMD_I2C_RD_DATA = 0x91,
+    CMD_I2C_RD_RPT_START = 0x93,
     CMD_I2C_GET_DATA = 0x40,
     CMD_I2C_PARAM_OR_STATUS = 0x10,
 };
@@ -35,7 +38,7 @@ typedef struct {
     uint8_t  set_i2c_speed;         // 0x20 = Set the I2C communication speed
     uint8_t  i2c_clock_divider;     // Value of the I2C system clock divider
     uint8_t  unused2[59];           // Any values
-} __attribute__ ((packed)) mcp_cmd_status_t;
+} __attribute__ ((packed)) mcp_cmd_t;
 
 // status/set parameters response
 typedef struct {
@@ -48,7 +51,8 @@ typedef struct {
                                     // 0x20 = New communication speed is being set
                                     // 0x21 = Speed change rejected
     uint8_t  i2c_req_divider;       // Value of the I2C system clock divider
-    uint8_t  unused1[4];            // Don’t care
+    uint8_t  unused1[3];            // Don’t care
+    uint8_t  i2c_machine_state;     // Internal I2C state machine state value
     uint16_t i2c_transfer_length;   // Requested I2C transfer length
     uint16_t i2c_transfered;        // Number of already transferred bytes
     uint8_t  i2c_buf_count;         // Internal I2C data buffer counter
@@ -69,13 +73,13 @@ typedef struct {
     uint16_t adc_ch1;               // ADC channel 1 input value
     uint16_t adc_ch2;               // ADC channel 2 input value
     uint8_t  unused4[8];            // Don’t care
-} __attribute__ ((packed)) mcp_cmd_response_t;
+} __attribute__ ((packed)) mcp_cmd_resp_t;
 
 // slave i2c command
 typedef struct {
     uint8_t  cmd_code;              // I2C command code
-    uint8_t  size_low;              // I2C transfer length – 16-bit value – low byte
-    uint8_t  size_high;             // I2C transfer length – 16-bit value – high byte
+    uint8_t  size_low;              // I2C transfer length, low byte
+    uint8_t  size_high;             // I2C transfer length, high byte
     uint8_t  slave_addr;            // I2C slave address to communicate with
     uint8_t  data[60];              // Data buffer for write
 } __attribute__ ((packed)) mcp_i2c_cmd_t;
@@ -87,7 +91,7 @@ typedef struct {
     uint8_t  internal_state;        // Internal I2C Engine state or Reserved
     uint8_t  data_size;             // Data size or Don’t care
     uint8_t  data[60];              // Data buffer for read or Don’t care
-} __attribute__ ((packed)) mcp_i2c_response_t;
+} __attribute__ ((packed)) mcp_i2c_resp_t;
 
 static bool mcp_i2c_bulk_read(
     usb_device_t *, uint8_t, uint8_t, uint8_t *, uint8_t);
@@ -107,43 +111,30 @@ static const rtc_chip_t *rtc_chips[] = {
     NULL
 };
 
-static bool mcp_hid_send(usb_device_t *dev, const uint8_t *rpt)
+static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
 {
-    uint8_t rcode;
+    uint8_t rcode, cmd = rpt[0];
     mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
 
     rcode = usb_out_transfer(dev, &info->ep_out, REPORT_SIZE, rpt);
 
     if (rcode) {
-        usbrtc_debugf("%s: failed for #%X, code #%X", __FUNCTION__, rpt[0], rcode);
-        return false;
+        usbrtc_debugf("%s: OUT failed for #%X, error #%X", __FUNCTION__, rpt[0], rcode);
+        // return false;
     }
-
-    return true;
-}
-
-static bool mcp_hid_recv(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
-{
-    uint8_t rcode, cmd = rpt[0];
-    mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
 
     *size = REPORT_SIZE;
     rpt[0] = rpt[1] = -1;
 
     rcode = usb_in_transfer(dev, &info->ep_in, size, rpt);
 
+    // check for command echo and status code
     if (rcode || rpt[0] != cmd || rpt[1] != 0) {
-        usbrtc_debugf("%s: failed for #%X, code #%X", __FUNCTION__, cmd, rcode);
+        usbrtc_debugf("%s: IN failed for #%X, error #%X", __FUNCTION__, cmd, rcode);
         return false;
     }
 
     return true;
-}
-
-static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
-{
-    return (mcp_hid_send(dev, rpt)
-        && mcp_hid_recv(dev, rpt, size));
 }
 
 static bool mcp_set_i2c_clock(usb_device_t *dev, uint16_t clock)
@@ -151,9 +142,9 @@ static bool mcp_set_i2c_clock(usb_device_t *dev, uint16_t clock)
     uint16_t size;
     mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
 
-    union buf_u {
-        mcp_cmd_status_t cmd;
-        mcp_cmd_response_t resp;
+    union {
+        mcp_cmd_t cmd;
+        mcp_cmd_resp_t resp;
         uint8_t raw[REPORT_SIZE];
     } pkt;
 
@@ -188,9 +179,9 @@ static bool mcp_check_status(usb_device_t *dev)
 {
     uint16_t size;
 
-    union buf_u {
-        mcp_cmd_status_t cmd;
-        mcp_cmd_response_t resp;
+    union {
+        mcp_cmd_t cmd;
+        mcp_cmd_resp_t resp;
         uint8_t raw[REPORT_SIZE];
     } pkt;
 
@@ -199,20 +190,15 @@ static bool mcp_check_status(usb_device_t *dev)
     pkt.cmd.cancel_i2c = 0;
     pkt.cmd.unused1 = 0;
 
-    if (mcp_exec(dev, pkt.raw, &size))
-    {
-        if (size == REPORT_SIZE)
-        {
-            iprintf("mcp2221 chip detected, rev: %c%c.%c%c, i2c clock div: %u\n",
-                pkt.resp.hw_rev_major, pkt.resp.hw_rev_minor,
-                pkt.resp.fw_rev_major, pkt.resp.fw_rev_minor,
-                pkt.resp.i2c_div);
+    if (!mcp_exec(dev, pkt.raw, &size) || size != REPORT_SIZE)
+        return false;
 
-            return true;
-        }
-    }
+    iprintf("mcp2221 chip detected, rev.%c%c, fw: %c.%c, i2c clock div: %u\n",
+        pkt.resp.hw_rev_major, pkt.resp.hw_rev_minor,
+        pkt.resp.fw_rev_major, pkt.resp.fw_rev_minor,
+        pkt.resp.i2c_div);
 
-    return false;
+    return true;
 }
 
 static uint8_t usb_hid_parse_conf(
@@ -333,15 +319,13 @@ static uint8_t mcp_init(
     {
         const rtc_chip_t *chip = rtc_chips[i];
 
-        if (!mcp_set_i2c_clock(dev, chip->max_i2c_clock))
-        {
+        if (!mcp_set_i2c_clock(dev, chip->max_i2c_clock)) {
             usbrtc_debugf("mcp2221: failed to set %dkHz i2c clock rate",
                 chip->max_i2c_clock);
             continue;
         }
 
-        if (chip->probe(dev, &mcp_i2c_bus))
-        {
+        if (chip->probe(dev, &mcp_i2c_bus)) {
             iprintf("%s rtc chip found\n", chip->name);
             info->chip_type = i;
             return 0;
@@ -363,16 +347,16 @@ static bool mcp_i2c_bulk_read(
 {
     usbrtc_debugf("%s()", __FUNCTION__);
 
-    union buf_u {
+    union {
         mcp_i2c_cmd_t cmd;
-        mcp_i2c_response_t resp;
+        mcp_i2c_resp_t resp;
         uint8_t raw[REPORT_SIZE];
     } rpt;
 
     mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
     uint16_t size;
 
-    if (!buf || !length || length > sizeof(rpt.resp.data) - 1)
+    if (!buf || !length || length > sizeof(rpt.resp.data)-1)
         return false;
 
     // state machine
@@ -394,7 +378,7 @@ static bool mcp_i2c_bulk_read(
 
         case 2:
             // request to read 'length' byte(s)
-            rpt.cmd.cmd_code = CMD_I2C_RD_DATA;
+            rpt.cmd.cmd_code = CMD_I2C_RD_RPT_START;
             rpt.cmd.slave_addr = (addr << 1) | 1;
             rpt.cmd.size_low = length;
             rpt.cmd.size_high = 0;
@@ -434,7 +418,7 @@ static bool mcp_i2c_bulk_read(
             usbrtc_debugf("%s: data read OK", __FUNCTION__);
             memcpy(buf, &rpt.resp.data, length);
             break;
-    };
+    }
 
     return true;
 }
@@ -444,15 +428,15 @@ static bool mcp_i2c_bulk_write(
 {
     usbrtc_debugf("%s()", __FUNCTION__);
 
-    union buf_u {
+    union {
         mcp_i2c_cmd_t cmd;
-        mcp_i2c_response_t resp;
+        mcp_i2c_resp_t resp;
         uint8_t raw[REPORT_SIZE];
     } rpt;
 
     uint16_t size;
 
-    if (!buf || !length || length > sizeof(rpt.cmd.data) - 1)
+    if (!buf || !length || length > sizeof(rpt.cmd.data)-1)
         return false;
 
     rpt.cmd.cmd_code = CMD_I2C_WR_DATA;

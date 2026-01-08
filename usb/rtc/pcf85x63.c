@@ -18,11 +18,12 @@
 #define REG_WEEKDAY     0x05
 #define REG_MONTHS      0x06
 #define REG_YEARS       0x07
-#define MAX_REG_NUM     0x2f
 
 // control registers
 #define CTRL_OSCILLATOR 0x25
     #define OSC_BIT_12HR        0x20
+#define CTRL_FUNCTION   0x28
+    #define CTRL_BIT_COF_OFF    0x07
 #define CTRL_STOP_EN    0x2e
     #define STOP_BIT_EN_STOP    0x01
 #define CTRL_RESET      0x2f
@@ -30,11 +31,10 @@
 
 static bool pcf85x63_probe(usb_device_t *dev, const i2c_bus_t *i2c)
 {
-    uint8_t rst = -1;
+    uint8_t cof = CTRL_BIT_COF_OFF;
 
-    // no any normal way to detect this chip
-    return i2c->bulk_read(dev, PCF85x63_ADDR, MAX_REG_NUM, &rst, 1)
-        && rst == 0;
+    // disable clock output for check and battery save
+    return i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_FUNCTION, &cof, 1);
 }
 
 static bool pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, ctime_t date)
@@ -58,7 +58,7 @@ static bool pcf85x63_get_time(usb_device_t *dev, const i2c_bus_t *i2c, ctime_t d
 static bool pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, const ctime_t date)
 {
     uint8_t buf[12];
-    uint8_t *regs = &buf[2];
+    uint8_t *regs = &buf[2], zero = 0;
 
     buf[0] = STOP_BIT_EN_STOP;
     buf[1] = RESET_CPR;
@@ -81,8 +81,7 @@ static bool pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, const cti
         return false;
 
     // start
-    buf[0] = 0;
-    return i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_STOP_EN, buf, 1);
+    return i2c->bulk_write(dev, PCF85x63_ADDR, CTRL_STOP_EN, &zero, 1);
 }
 
 const rtc_chip_t rtc_pcf85x63_chip = {
