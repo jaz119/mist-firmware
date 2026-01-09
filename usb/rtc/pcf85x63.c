@@ -1,7 +1,7 @@
 //
 // pcf85x63.c
 //
-// driver for PCF85263/PCF85363 RTC chips
+// RTC driver for NXP PCF85263/PCF85363
 //
 
 #include "usb.h"
@@ -85,7 +85,7 @@ static bool pcf85x63_set_time(usb_device_t *dev, const i2c_bus_t *i2c, const cti
 }
 
 const rtc_chip_t rtc_pcf85x63_chip = {
-    .name = "pcf85x63", 400,
+    .name = "PCF85263", 400,
     .probe = pcf85x63_probe,
     .get_time = pcf85x63_get_time,
     .set_time = pcf85x63_set_time,

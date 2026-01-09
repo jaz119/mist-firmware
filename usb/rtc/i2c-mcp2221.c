@@ -1,7 +1,7 @@
 //
 // i2c-mcp2221.c
 //
-// RTC driver MCP2221(A) USB/I2C bridge chip
+// I2C/RTC driver for Microchip MCP2221(A)
 //
 
 #include <string.h>
@@ -37,7 +37,7 @@ typedef struct {
     uint8_t  set_i2c_speed;         // 0x20 = Set the I2C communication speed
     uint8_t  i2c_clock_divider;     // Value of the I2C system clock divider
     uint8_t  unused2[59];           // Any values
-} __attribute__ ((packed)) mcp_cmd_t;
+} __attribute__ ((packed)) mcp_set_cmd_t;
 
 // status/set parameters response
 typedef struct {
@@ -79,7 +79,7 @@ typedef struct {
     uint16_t adc_ch1;               // ADC channel 1 input value
     uint16_t adc_ch2;               // ADC channel 2 input value
     uint8_t  unused4[8];            // Don’t care
-} __attribute__ ((packed)) mcp_cmd_resp_t;
+} __attribute__ ((packed)) mcp_set_resp_t;
 
 // slave i2c command
 typedef struct {
@@ -125,8 +125,9 @@ static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     rcode = usb_out_transfer(dev, &info->ep_out, REPORT_SIZE, rpt);
 
     if (rcode) {
-        usbrtc_debugf("%s: OUT failed for #%X, error #%X", __FUNCTION__, rpt[0], rcode);
-        // return false;
+        usbrtc_debugf("%s: OUT failed for #%X, error #%X",
+            __FUNCTION__, rpt[0], rcode);
+        return false;
     }
 
     *size = REPORT_SIZE;
@@ -136,7 +137,8 @@ static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
 
     // check for command echo and status code
     if (rcode || rpt[0] != cmd || rpt[1] != 0) {
-        usbrtc_debugf("%s: IN failed for #%X, error #%X", __FUNCTION__, cmd, rcode);
+        usbrtc_debugf("%s: IN failed for #%X, error #%X",
+            __FUNCTION__, cmd, rcode);
         return false;
     }
 
@@ -146,10 +148,10 @@ static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
 static bool mcp_set_i2c_clock(usb_device_t *dev, uint8_t *rpt, uint16_t clock)
 {
     uint16_t size;
-    mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
 
-    mcp_cmd_resp_t *resp = (mcp_cmd_resp_t *) rpt;
-    mcp_cmd_t *cmd = (mcp_cmd_t *) rpt;
+    mcp_set_cmd_t *cmd = (mcp_set_cmd_t *) rpt;
+    mcp_set_resp_t *resp = (mcp_set_resp_t *) rpt;
+    mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
 
     if (info->i2c_clock == clock)
         return true;
@@ -178,15 +180,16 @@ static bool mcp_set_i2c_clock(usb_device_t *dev, uint8_t *rpt, uint16_t clock)
     return false;
 }
 
-static bool mcp_i2c_ready(usb_device_t *dev, uint8_t *rpt)
+static bool mcp_i2c_ready(usb_device_t *dev, uint8_t *rpt, bool cancel)
 {
-    mcp_cmd_t *cmd = (mcp_cmd_t *) rpt;
-    mcp_cmd_resp_t *resp = (mcp_cmd_resp_t *) rpt;
     uint16_t size;
 
+    mcp_set_cmd_t *cmd = (mcp_set_cmd_t *) rpt;
+    mcp_set_resp_t *resp = (mcp_set_resp_t *) rpt;
+
     cmd->cmd_code = CMD_I2C_PARAM_OR_STATUS;
+    cmd->cancel_i2c = cancel ? 0x10 : 0;
     cmd->set_i2c_speed = 0;
-    cmd->cancel_i2c = 0;
 
     if (!mcp_exec(dev, rpt, &size))
         return false;
@@ -268,8 +271,8 @@ static uint8_t mcp_init(
         return USB_ERROR_NO_SUCH_DEVICE;
 
     union {
-        mcp_cmd_t cmd;
-        mcp_cmd_resp_t resp;
+        mcp_set_cmd_t cmd;
+        mcp_set_resp_t resp;
         usb_configuration_descriptor_t conf_desc;
         uint8_t raw[REPORT_SIZE];
     } buf;
@@ -287,7 +290,7 @@ static uint8_t mcp_init(
 
     // Reset runtime info
     info->chip_type = info->i2c_clock = -1;
-    info->last_poll_time = 0;
+    info->time_is_ok = info->last_poll_time = 0;
 
     for (uint8_t i = 0; ep[i]; i++)
     {
@@ -310,11 +313,11 @@ static uint8_t mcp_init(
 
     // Test mcp2221 chip state
     if (!mcp_set_i2c_clock(dev, buf.raw, 100)) {
-        usbrtc_debugf("mcp2221: i2c bus error");
+        usbrtc_debugf("mcp2221: device error");
         return USB_ERROR_NO_SUCH_DEVICE;
     }
 
-    iprintf("mcp2221 chip detected, rev: %c%c, ver: %c.%c\n",
+    iprintf("MCP2221 detected, rev: %c%c, ver: %c.%c\n",
         buf.resp.hw_rev_major, buf.resp.hw_rev_minor,
         buf.resp.fw_rev_major, buf.resp.fw_rev_minor);
 
@@ -330,7 +333,7 @@ static uint8_t mcp_init(
         }
 
         if (chip->probe(dev, &mcp_i2c_bus)) {
-            iprintf("%s rtc chip found\n", chip->name);
+            iprintf("%s rtc chip used\n", chip->name);
             info->chip_type = i;
             return 0;
         }
@@ -358,7 +361,7 @@ static bool mcp_i2c_bulk_read(
     } rpt;
 
     mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
-    uint16_t size;
+    uint16_t size, i;
 
     if (!buf || !length || length > sizeof(rpt.resp.data)-1)
         return false;
@@ -382,9 +385,15 @@ static bool mcp_i2c_bulk_read(
     if (!mcp_exec(dev, rpt.raw, &size))
         return false;
 
-    // waiting until data is ready
-    while (!mcp_i2c_ready(dev, rpt.raw))
+    // waiting until data is ready, for 50ms max
+    for (i = 0; i < 50 && !mcp_i2c_ready(dev, rpt.raw, false); i++)
         timer_delay_msec(1);
+
+    if (i == 50) {
+        usbrtc_debugf("%s: timeout, read canceled", __FUNCTION__);
+        mcp_i2c_ready(dev, rpt.raw, true);
+        return false;
+    }
 
     // fetch buffered i2c data
     rpt.cmd.cmd_code = CMD_I2C_GET_DATA;
@@ -392,11 +401,14 @@ static bool mcp_i2c_bulk_read(
     rpt.cmd.size_high = 0;
     rpt.cmd.size_low = 0;
 
-    if (!mcp_exec(dev, rpt.raw, &size) || rpt.resp.data_size != length)
-        return false;
+    if (mcp_exec(dev, rpt.raw, &size)
+        && rpt.resp.data_size == length)
+    {
+        memcpy(buf, &rpt.resp.data, length);
+        return true;
+    }
 
-    memcpy(buf, &rpt.resp.data, length);
-    return true;
+    return false;
 }
 
 static bool mcp_i2c_bulk_write(
@@ -430,14 +442,17 @@ static bool mcp_get_time(struct usb_device_entry *dev, ctime_t date)
     mcp_rtc_info_t *info = &(dev->mcp_rtc_info);
     const rtc_chip_t *rtc = rtc_chips[info->chip_type];
 
-    // 250ms for time polling interval
-    if (!timer_check(info->last_poll_time, 250))
-        return false;
+    if (timer_check(info->last_poll_time, 250))
+    {
+        // just 4 time updates per second
+        info->time_is_ok = rtc->get_time(dev, &mcp_i2c_bus, info->last_time);
+        info->last_poll_time = timer_get_msec();
+    }
 
-    bool res = rtc->get_time(dev, &mcp_i2c_bus, date);
-    info->last_poll_time = timer_get_msec();
+    if (info->time_is_ok)
+        memcpy(date, info->last_time, sizeof(ctime_t));
 
-    return res;
+    return info->time_is_ok;
 }
 
 static bool mcp_set_time(struct usb_device_entry *dev, const ctime_t date)

@@ -1,7 +1,7 @@
 //
 // ds3231.c
 //
-// driver for Maxim DS3231 RTC chip
+// RTC driver for Maxim DS3231
 //
 
 #include "usb.h"
@@ -13,10 +13,11 @@
 #define REG_SECS        0x00
 #define REG_MINUTES     0x01
 #define REG_HOURS       0x02
-    #define HOURS_BIT_12HR      0x40    // in REG_HOUR
+    #define HOURS_BIT_12HR      0x40
 #define REG_WEEKDAY     0x03
 #define REG_DAYS        0x04
 #define REG_MONTHS      0x05
+    #define MONTHS_BIT_CENTURY  0x80
 #define REG_YEARS       0x06
 
 // control registers
@@ -40,11 +41,10 @@ static bool ds3231_get_time(usb_device_t *dev, const i2c_bus_t *i2c, ctime_t dat
     if (!i2c->bulk_read(dev, DS3231_ADDR, REG_SECS, regs, 7))
         return false;
 
-    if (regs[REG_MONTHS] & 0x80) {
-        date[0] = bcd2bin(regs[REG_YEARS]) + 100;
-    } else {
-        date[0] = bcd2bin(regs[REG_YEARS]);
-    }
+    date[0] = bcd2bin(regs[REG_YEARS]);
+
+    if (regs[REG_MONTHS] & MONTHS_BIT_CENTURY)
+        date[0] += 100;
 
     date[1] = bcd2bin(regs[REG_MONTHS] & 0x7f);
     date[2] = bcd2bin(regs[REG_DAYS]);
@@ -62,13 +62,10 @@ static bool ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, const ctime
 
     regs[REG_MONTHS] = bin2bcd(date[1]);
 
-    if (date[0] >= 100) {
-        regs[REG_MONTHS] |= 0x80;
-        regs[REG_YEARS] = bin2bcd(date[0] % 100);
-    } else {
-        regs[REG_YEARS] = bin2bcd(date[0]);
-    }
+    if (date[0] >= 100)
+        regs[REG_MONTHS] |= MONTHS_BIT_CENTURY;
 
+    regs[REG_YEARS] = bin2bcd(date[0] % 100);
     regs[REG_DAYS] = bin2bcd(date[2]);
     regs[REG_HOURS] = bin2bcd(date[3]);
     regs[REG_MINUTES] = bin2bcd(date[4]);
@@ -85,7 +82,7 @@ static bool ds3231_set_time(usb_device_t *dev, const i2c_bus_t *i2c, const ctime
 }
 
 const rtc_chip_t rtc_ds3231_chip = {
-    .name = "ds3231", 400,
+    .name = "DS3231", 400,
     .probe = ds3231_probe,
     .get_time = ds3231_get_time,
     .set_time = ds3231_set_time,

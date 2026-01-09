@@ -1,7 +1,7 @@
 //
 // usb/rtc.c
 //
-// interface for RTC device drivers
+// interface for RTC USB device drivers
 //
 
 #include "usb.h"
