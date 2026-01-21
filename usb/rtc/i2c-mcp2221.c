@@ -110,7 +110,7 @@ typedef struct {
 // slave i2c response
 typedef struct {
     uint8_t  cmd_echo;              // I2C command code echo
-    uint8_t  is_failed;             // 0x00 = Completed successfully, 0x01 = Not completed
+    uint8_t  status;                // 0x00 = Completed successfully, 0x01 = Not completed
     uint8_t  internal_state;        // Internal I2C Engine state or Reserved
     uint8_t  data_size;             // Data size or Don’t care
     uint8_t  data[60];              // Data buffer for read or Don’t care
@@ -149,28 +149,38 @@ static void mcp_i2c_cancel(usb_device_t *dev, uint8_t *rpt)
 }
 
 static bool mcp_i2c_wait_for(
-    usb_device_t *dev, uint8_t *rpt, mcp_i2c_state_t state, int8_t timeout)
+    usb_device_t *dev, uint8_t *rpt, mcp_i2c_state_t state, int8_t time_ms)
 {
-    // waiting until bus state changed
     mcp_set_resp_t *resp = (mcp_set_resp_t *) rpt;
 
-    do {
-        timer_delay_msec(1);
-        usb_poll();
-    } while (mcp_get_status(dev, rpt, false) && resp->i2c_engine_state != state && --timeout);
+    // waiting until bus state changed
+    timer_delay_msec(1);
+    time_ms--;
 
-    if (!timeout || resp->status != 0 || resp->i2c_engine_state != state)
+    while (mcp_get_status(dev, rpt, false))
     {
-        usbrtc_debugf("%s: bus timeout, error #%X:#%X",
-            __FUNCTION__, resp->status, resp->i2c_engine_state);
+        if (resp->i2c_engine_state == state)
+            return true;
 
-        // trying to reset bus
-        mcp_i2c_cancel(dev, rpt);
-        return false;
+        if (resp->last_comm_status == I2C_MASK_ADDR_NACK)
+            mcp_i2c_cancel(dev, rpt);
+
+        if (!time_ms)
+        {
+            usbrtc_debugf("%s: bus timeout, error #%X:#%X:#%X",
+                __FUNCTION__, resp->status, resp->i2c_engine_state,
+                    resp->last_comm_status);
+            break;
+        }
+
+        usb_poll();
+        timer_delay_msec(1);
+        time_ms--;
     }
 
-    usbrtc_debugf("%s: time left: %d", __FUNCTION__, timeout);
-    return true;
+    // trying to reset bus
+    mcp_i2c_cancel(dev, rpt);
+    return false;
 }
 
 static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
@@ -477,6 +487,7 @@ static bool mcp_i2c_bulk_write(
 
     union {
         mcp_i2c_cmd_t cmd;
+        mcp_set_resp_t resp;
         uint8_t raw[REPORT_SIZE];
     } rpt;
 
@@ -496,7 +507,14 @@ static bool mcp_i2c_bulk_write(
     rpt.cmd.data[0] = reg;
     memcpy(&rpt.cmd.data[1], buf, length);
 
-    return mcp_exec(dev, rpt.raw, &size);
+    if (mcp_exec(dev, rpt.raw, &size)
+        && mcp_get_status(dev, rpt.raw, false))
+    {
+        return (rpt.resp.last_comm_status == 0);
+    }
+
+    mcp_i2c_cancel(dev, rpt.raw);
+    return false;
 }
 
 static bool mcp_get_time(struct usb_device_entry *dev, ctime_t date)

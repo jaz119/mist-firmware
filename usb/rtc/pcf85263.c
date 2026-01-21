@@ -28,7 +28,7 @@
     #define BATT_BIT_BSM_VBAT   0x02
 #define CTRL_PIN_IO     0x27
     #define IO_BIT_CLKPM_OFF    0x80
-    #define IO_BIT_INTAPM_HIZ   0x11
+    #define IO_BIT_INTAPM_HIZ   0x03
 #define CTRL_FUNCTION   0x28
     #define FUNC_BIT_COF_OFF    0x07
 #define CTRL_INTA_EN    0x29
@@ -44,12 +44,10 @@ static bool pcf85263_probe(
 {
     uint8_t setup[] = {
         BATT_BIT_BSM_VBAT,
-        (IO_BIT_CLKPM_OFF | IO_BIT_INTAPM_HIZ),
-        FUNC_BIT_COF_OFF, 0, 0, 0
+        (IO_BIT_CLKPM_OFF | IO_BIT_INTAPM_HIZ)
     };
 
     // disable CLK output pin for battery saving
-    // reset interrupts settings to defaults, clear all flags
     return i2c->bulk_write(dev, PCF85263_ADDR, CTRL_BATTERY, setup, sizeof(setup));
 }
 

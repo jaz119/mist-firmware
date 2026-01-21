@@ -1,5 +1,5 @@
-#ifndef I2C_TINY_H
-#define I2C_TINY_H
+#ifndef USB_I2C_TINY_H
+#define USB_I2C_TINY_H
 
 /*
  * RTC driver
@@ -10,4 +10,4 @@
 
 extern const usb_rtc_class_config_t usb_rtc_tiny_class;
 
-#endif // I2C_TINY_H
+#endif // USB_I2C_TINY_H

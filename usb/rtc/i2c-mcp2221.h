@@ -1,5 +1,5 @@
-#ifndef USB_RTC_MCP2221_H
-#define USB_RTC_MCP2221_H
+#ifndef USB_I2C_MCP2221_H
+#define USB_I2C_MCP2221_H
 
 /*
  * I2C/RTC driver
@@ -33,4 +33,4 @@ typedef struct {
     bool (*set_time)(usb_device_t *, const i2c_bus_t *, const ctime_t);
 } rtc_chip_t;
 
-#endif // USB_RTC_MCP2221_H
+#endif // USB_I2C_MCP2221_H
