@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "usb.h"
 #include "timer.h"
+#include "usb.h"
 #include "debug.h"
 
 static usb_device_t usb_devices[USB_NUMDEVICES];
