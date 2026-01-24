@@ -14,11 +14,11 @@
 /*- 1.0 11/Mar/05 JPP    : Creation S256                                     */
 /*---------------------------------------------------------------------------*/
 
-/* 
-   24-02-2006  Ewout Boks. Adapted from AT91SAM7S64-RAM.ld script by M. Thomas. 
+/*
+   24-02-2006  Ewout Boks. Adapted from AT91SAM7S64-RAM.ld script by M. Thomas.
    - Changed the memory sections to model the AT91SAM7S256 .
    - tested succesfully with AT91SAM7 GPIO Example and PEEDI debugger
-     on AT91SAM7S-EK equipped with AT91SAM7S256 
+     on AT91SAM7S-EK equipped with AT91SAM7S256
 */
 
 /* Memory Definitions */
@@ -26,8 +26,8 @@
 MEMORY
 {
   FLASH (rx) : ORIGIN = 0x00100000, LENGTH = 0x00040000
-  DATA (rw)  : ORIGIN = 0x00200000, LENGTH = 0x0000FF00
-  STACK (rw) : ORIGIN = 0x0020FF00, LENGTH = 0x00000000
+  DATA (rw)  : ORIGIN = 0x00200000, LENGTH = 0x0000F000
+  STACK (rw) : ORIGIN = 0x0020F000, LENGTH = 0x00001000
 }
 
 
@@ -57,7 +57,7 @@ SECTIONS
   {
     *(.text.startup)
   } >FLASH
- 
+
   . = ALIGN(4);
 
   /* .rodata section which is used for read-only data (constants) */
@@ -95,7 +95,7 @@ SECTIONS
     __bss_start__ = . ;
     *(.bss)
     *(COMMON)
-  } 
+  }
   . = ALIGN(4);
   __bss_end__ = . ;
   __end__ = . ;
@@ -103,10 +103,10 @@ SECTIONS
   PROVIDE (end = .);
 
     . = ALIGN(4);
-   .int_data :  
-   { 
-   *(.internal_ram_top) 
-   }> STACK 
+   .int_data :
+   {
+   *(.internal_ram_top)
+   }> STACK
 
 
 
@@ -145,3 +145,5 @@ SECTIONS
   .debug_varnames  0 : { *(.debug_varnames) }
 
 }
+
+ASSERT(__bss_end__ <= 0x0020F000, "RAM overflow: .bss reached STACK!")
