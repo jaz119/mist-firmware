@@ -57,6 +57,11 @@ void __init_hardware(void)
     *AT91C_PIOA_SODR = USB_PUP;
 #endif
 
+    // MAX3421e INT
+    AT91C_BASE_PIOA->PIO_PER = USB_INT;
+    AT91C_BASE_PIOA->PIO_ODR = USB_INT;
+    AT91C_BASE_PIOA->PIO_PPUER = USB_INT;
+
     // enable joystick ports
 #ifdef JOY0
     *AT91C_PIOA_PPUER = JOY0;

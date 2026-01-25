@@ -144,6 +144,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 void __init_hardware();
 
+// MAX3421E INT pin polling
+static inline uint8_t usb_irq_active() {
+  return !(PIOD->PIO_PDSR & USB_INT);
+}
+
 char mmc_inserted();
 char mmc_write_protected();
 
