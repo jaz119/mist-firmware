@@ -95,8 +95,10 @@ void __init_hardware()
     PIOA->PIO_PDR = PIO_PA11A_QSPI0_CS | PIO_PA12A_QSPI0_IO1 | PIO_PA13A_QSPI0_IO0 | PIO_PA14A_QSPI0_SCK | PIO_PA17A_QSPI0_IO2;
     PIOD->PIO_PDR = PIO_PD31A_QSPI0_IO3;
 
-    // MAX3421e
-    PIOD->PIO_ODR  = USB_INT;
+    // MAX3421e INT
+    PIOD->PIO_PER = USB_INT;
+    PIOD->PIO_ODR = USB_INT;
+    PIOD->PIO_PUER = USB_INT;
 
     // I2C
     PIOA->PIO_PDR = PIO_PA3A_TWD0 | PIO_PA4A_TWCK0;
@@ -172,7 +174,7 @@ static void Usart0IrqHandler() {
     // ready to transmit further bytes?
     if(status & UART_SR_TXRDY) {
 
-        // further bytes to send in buffer? 
+        // further bytes to send in buffer?
         if(tx_wptr != tx_rptr)
         // yes, simply send it and leave irq enabled
         UART0->UART_THR = tx_buf[tx_rptr++];
@@ -188,7 +190,7 @@ void USART_Poll(void) {
         xmodem_poll();
 
     while(rx_wptr != rx_rptr) {
-        // this can a little be optimized by sending whole buffer parts 
+        // this can a little be optimized by sending whole buffer parts
         // at once and not just single bytes. But that's probably not
         // worth the effort.
         char chr = rx_buf[rx_rptr++];

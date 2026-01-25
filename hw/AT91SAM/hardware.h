@@ -12,12 +12,15 @@
 #define DISKLED       AT91C_PIO_PA29
 #define DISKLED_ON    *AT91C_PIOA_CODR = DISKLED;
 #define DISKLED_OFF   *AT91C_PIOA_SODR = DISKLED;
+
 #define MMC_SEL       AT91C_PIO_PA31
+
 #define USB_SEL       AT91C_PIO_PA11
+#define USB_INT       AT91C_PIO_PA30
 #define USB_PUP       AT91C_PIO_PA16
+
 #define SD_WP         AT91C_PIO_PA1
 #define SD_CD         AT91C_PIO_PA0
-
 
 // fpga programming interface
 #define FPGA_OER      *AT91C_PIOA_OER
@@ -101,6 +104,11 @@
 
 #define SECTOR_BUFFER_SIZE   4096
 
+// MAX3421E INT pin polling
+static inline uint8_t usb_irq_active() {
+  return !(AT91C_BASE_PIOA->PIO_PDSR & USB_INT);
+}
+
 char mmc_inserted(void);
 char mmc_write_protected(void);
 void USART_Init(unsigned long baudrate);
@@ -145,8 +153,8 @@ void EnableIO(void);
 void DisableIO(void);
 #endif
 
-#define DEBUG_FUNC_IN() 
-#define DEBUG_FUNC_OUT() 
+#define DEBUG_FUNC_IN()
+#define DEBUG_FUNC_OUT()
 
 #ifdef __GNUC__
 void __init_hardware(void);
