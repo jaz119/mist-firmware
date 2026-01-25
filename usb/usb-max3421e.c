@@ -27,15 +27,20 @@ static uint8_t usb_wait_completion() {
 	unsigned long ack_start = timer_get_msec();
 
 	// wait for transfer completion
-	while( !timer_check(ack_start, USB_ACK_TIMEOUT) ) {
-		uint8_t tmpdata = max3421e_read_u08( MAX3421E_HIRQ );
+	while( !timer_check(ack_start, USB_ACK_TIMEOUT) )
+	{
+		// wait for low on INT pin
+		if( !usb_irq_active() )
+			continue;
 
-		if( tmpdata & MAX3421E_HXFRDNIRQ ) {
-			// clear the interrupt
-			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
-			return 0;
-		}
-	}
+		uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
+
+		if( hirq & MAX3421E_HXFRDNIRQ ) {
+ 			//clear the interrupt
+ 			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
+ 			return 0;
+ 		}
+ 	}
 
 	// clear the transaction flags
 	max3421e_write_u08( MAX3421E_HIRQ,

@@ -13,7 +13,7 @@
 
 /* MAX3421E command byte format: rrrrr0wa where 'r' is register number  */
 //
-// MAX3421E Registers in HOST mode. 
+// MAX3421E Registers in HOST mode.
 //
 #define MAX3421E_RCVFIFO    0x08    //1<<3
 #define MAX3421E_SNDFIFO    0x10    //2<<3
@@ -117,7 +117,7 @@
 
 #define MAX3421E_HIRQ       0xc8    //25<<3
 /* HIRQ Bits */
-#define MAX3421E_BUSEVENTIRQ   0x01   // indicates BUS reset Done or BUS resume     
+#define MAX3421E_BUSEVENTIRQ   0x01   // indicates BUS reset Done or BUS resume
 #define MAX3421E_RWUIRQ        0x02
 #define MAX3421E_RCVDAVIRQ     0x04
 #define MAX3421E_SNDBAVIRQ     0x08
@@ -170,7 +170,7 @@
 #define tokIN     0x00  // HS=0, ISO=0, OUTNIN=0, SETUP=0
 #define tokOUT    0x20  // HS=0, ISO=0, OUTNIN=1, SETUP=0
 #define tokINHS   0x80  // HS=1, ISO=0, OUTNIN=0, SETUP=0
-#define tokOUTHS  0xA0  // HS=1, ISO=0, OUTNIN=1, SETUP=0 
+#define tokOUTHS  0xA0  // HS=1, ISO=0, OUTNIN=1, SETUP=0
 #define tokISOIN  0x40  // HS=0, ISO=1, OUTNIN=0, SETUP=0
 #define tokISOOUT 0x60  // HS=0, ISO=1, OUTNIN=1, SETUP=0
 
@@ -182,7 +182,7 @@
 #define MAX3421E_KSTATUS   0x40
 #define MAX3421E_JSTATUS   0x80
 #define MAX3421E_SE0       0x00    //SE0 - disconnect state
-#define MAX3421E_SE1       0xc0    //SE1 - illegal state       
+#define MAX3421E_SE1       0xc0    //SE1 - illegal state
 
 /* Host error MAX3421E_esult codes, the 4 LSB's in the HRSL register */
 #define hrSUCCESS   0x00
@@ -202,8 +202,8 @@
 #define hrTIMEOUT   0x0E
 #define hrBABBLE    0x0F
 
-#define MAX3421E_MODE_FS_HOST    (MAX3421E_DPPULLDN|MAX3421E_DMPULLDN|MAX3421E_HOST|MAX3421E_SOFKAENAB)
-#define MAX3421E_MODE_LS_HOST    (MAX3421E_DPPULLDN|MAX3421E_DMPULLDN|MAX3421E_HOST|MAX3421E_LOWSPEED|MAX3421E_SOFKAENAB)
+// Base mode to keep SOF generation and host settings alive
+#define MAX3421E_MODE_HOST    (MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SOFKAENAB)
 
 // interface used by usb.c
 void max3421e_init();

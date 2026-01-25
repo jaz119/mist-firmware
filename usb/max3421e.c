@@ -51,16 +51,19 @@ uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data) {
 static uint8_t vbusState = MAX3421E_STATE_SE0;
 
 uint16_t max3421e_reset() {
-  uint16_t i = 0;
+  uint32_t timeout = 1000000;
 
   /* reset chip */
   max3421e_write_u08( MAX3421E_USBCTL, MAX3421E_CHIPRES );
   max3421e_write_u08( MAX3421E_USBCTL, 0 );
 
   /* wait for pll to synchronize */
-  while( ++i ) {
+  while( --timeout ) {
     if(( max3421e_read_u08( MAX3421E_USBIRQ ) & MAX3421E_OSCOKIRQ )) {
-      return i;
+      // reset all interrupts
+      max3421e_write_u08( MAX3421E_HIRQ, 0xff );
+      max3421e_write_u08( MAX3421E_USBIRQ, 0xff );
+      return 1;
     }
   }
   return 0;
@@ -71,23 +74,24 @@ void max3421e_busprobe() {
 
   uint8_t bus_sample = max3421e_read_u08( MAX3421E_HRSL );	// Get J,K status
   bus_sample &= ( MAX3421E_JSTATUS | MAX3421E_KSTATUS );	// zero the rest of the byte
+
   switch( bus_sample ) {					// start full-speed or low-speed host
   case MAX3421E_JSTATUS:
     if( !(max3421e_read_u08( MAX3421E_MODE ) & MAX3421E_LOWSPEED) ) {
-      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_FS_HOST );
+      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST );
       vbusState = MAX3421E_STATE_FSHOST;
     } else {
-      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_LS_HOST);
+      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST | MAX3421E_LOWSPEED | MAX3421E_HUBPRE );
       vbusState = MAX3421E_STATE_LSHOST;
     }
     break;
 
   case MAX3421E_KSTATUS:
     if( !(max3421e_read_u08( MAX3421E_MODE ) & MAX3421E_LOWSPEED) ) {
-      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_LS_HOST );
+      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST | MAX3421E_LOWSPEED | MAX3421E_HUBPRE );
       vbusState = MAX3421E_STATE_LSHOST;
     } else {
-      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_FS_HOST );
+      max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST );
       vbusState = MAX3421E_STATE_FSHOST;
     }
     break;
@@ -97,7 +101,7 @@ void max3421e_busprobe() {
     break;
 
   case MAX3421E_SE0:					        // disconnected state
-    max3421e_write_u08( MAX3421E_MODE, MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SEPIRQ);
+    max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST | MAX3421E_SEPIRQ);
     vbusState = MAX3421E_STATE_SE0;
     break;
   }
@@ -109,36 +113,39 @@ void max3421e_init() {
   timer_init();
 
   // switch to full duplex mode
-  max3421e_write_u08(MAX3421E_PINCTL, MAX3421E_FDUPSPI | MAX3421E_INTLEVEL);
-
-  // read and output version
-  iprintf("Chip revision: %x\n", max3421e_read_u08(MAX3421E_REVISION));
+  max3421e_write_u08(MAX3421E_PINCTL, MAX3421E_FDUPSPI);
 
   if( max3421e_reset() == 0 ) {
     iprintf("pll init failed\n");
     return;
   }
 
+  max3421e_write_u08(MAX3421E_PINCTL, MAX3421E_FDUPSPI);
+
+  // read and output version
+  iprintf("Chip revision: %x\n", max3421e_read_u08(MAX3421E_REVISION));
+
   // enable pulldowns, set host mode
-  max3421e_write_u08( MAX3421E_MODE, MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST );
+  max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST );
 
   // enable interrupts
-  //  max3421e_write_u08( MAX3421E_HIEN, MAX3421E_CONDETIE| MAX3421E_FRAMEIE );
-  max3421e_write_u08( MAX3421E_HIEN, MAX3421E_CONDETIE );
+  max3421e_write_u08( MAX3421E_HIEN, MAX3421E_CONDETIE | MAX3421E_HXFRDNIE );
 
   /* check if device is connected */
 
   // sample USB bus
-  max3421e_write_u08( MAX3421E_HCTL,MAX3421E_SAMPLEBUS );
+  max3421e_write_u08( MAX3421E_HCTL, MAX3421E_SAMPLEBUS );
 
   // wait for sample operation to finish
-  while(!(max3421e_read_u08( MAX3421E_HCTL ) & MAX3421E_SAMPLEBUS ));
+  uint16_t sample_timeout = 1000;
+  while(( max3421e_read_u08( MAX3421E_HCTL ) & MAX3421E_SAMPLEBUS ) && --sample_timeout)
+    delay_usec(50);
 
   // check if anything is connected
   max3421e_busprobe();
 
   // clear connection detect interrupt
-  max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_CONDETIRQ );
+  max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_CONDETIRQ | MAX3421E_HXFRDNIRQ );
 
   // enable interrupts
   max3421e_write_u08( MAX3421E_CPUCTL, MAX3421E_IE );
@@ -181,19 +188,25 @@ uint8_t max3421e_poll() {
   }
 
   if( hirq & MAX3421E_CONDETIRQ ) {
-    iprintf("=> CONDETIRQ\n");
+    // iprintf("=> CONDETIRQ\n");
     max3421e_busprobe();
     max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_CONDETIRQ );
   }
 
   if( hirq & MAX3421E_BUSEVENTIRQ) {
-    iprintf("=> BUSEVENTIRQ\n");
+    // iprintf("=> BUSEVENTIRQ\n");
     max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_BUSEVENTIRQ );
   }
 
   if( hirq & MAX3421E_SNDBAVIRQ) {
     //    iprintf("=> MAX3421E_SNDBAVIRQ\n");
     max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_SNDBAVIRQ);
+  }
+
+  // Safety check for HXFRDNIRQ to ensure
+  // USB_INT pin is released even if it was missed during a transaction
+  if( hirq & MAX3421E_HXFRDNIRQ ) {
+    max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
   }
 
   //if( hirq & MAX3421E_FRAMEIRQ) {
@@ -213,4 +226,3 @@ uint8_t max3421e_poll() {
 
   return vbusState;
 }
-
