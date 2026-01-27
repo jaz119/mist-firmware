@@ -25,7 +25,7 @@ static uint8_t usb_hub_get_hub_descriptor(usb_device_t *dev, uint8_t index,
 // Set Port Feature
 static uint8_t usb_hub_set_port_feature(usb_device_t *dev, uint8_t fid, uint8_t port, uint8_t sel ) {
   return( usb_ctrl_req( dev, USB_HUB_REQ_SET_PORT_FEATURE,
-       USB_REQUEST_SET_FEATURE, fid, 0, (((0x0000|sel)<<8)|port), 0, NULL));
+       USB_REQUEST_SET_FEATURE, fid, 0, ((0x0000|port)|(sel<<8)), 0, NULL));
 }
 
 // Get Port Status
@@ -62,17 +62,21 @@ static uint8_t usb_hub_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len,
 
     case USB_DESCRIPTOR_ENDPOINT:
       usb_dump_endpoint_descriptor(&p->ep_desc);
-      pep->epAddr     = p->ep_desc.bEndpointAddress & 0x7f;
-      pep->maxPktSize = p->ep_desc.wMaxPacketSize[0];
-      if (pep->maxPktSize != 0) return 0;
+      if ((p->ep_desc.bmAttributes & 0x03) == 0x03 && (p->ep_desc.bEndpointAddress & 0x80)) {
+        pep->epAddr     = p->ep_desc.bEndpointAddress & 0x0f;
+        pep->maxPktSize = p->ep_desc.wMaxPacketSize[0];
+        return 0;
+      }
       break;
 
     default:
       iprintf("unsupported descriptor type %d size %d", p->raw[1], p->raw[0]);
     }
 
+    if (!p->conf_desc.bLength || p->conf_desc.bLength > len)
+      break;
+
     // advance to next descriptor
-    if (!p->conf_desc.bLength || p->conf_desc.bLength > len) break;
     len -= p->conf_desc.bLength;
     p = (union buf_u*)(p->raw + p->conf_desc.bLength);
   }
@@ -82,7 +86,7 @@ static uint8_t usb_hub_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len,
     return USB_ERROR_CONFIGURATION_SIZE_MISMATCH;
   }
 
-  return USB_ERROR_INVALID_MAX_PKT_SIZE;
+  return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 }
 
 static uint8_t usb_hub_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
@@ -117,7 +121,7 @@ static uint8_t usb_hub_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
   }
 
   // Get hub descriptor
-  rcode = usb_hub_get_hub_descriptor(dev, 0, 8, &buf.hub_desc);
+  rcode = usb_hub_get_hub_descriptor(dev, 0, 9, &buf.hub_desc);
 
   if (rcode) {
     puts("failed to get hub descriptor");
@@ -299,7 +303,7 @@ static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
     return rcode;
 
   uint8_t port, mask;
-  for(port=1,mask=0x02; port<8; mask<<=1, port++) {
+  for(port=1,mask=0x02; port<=8; mask<<=1, port++) {
     if (buf[0] & mask) {
       hub_event_t evt;
       evt.bmEvent = 0;
@@ -331,8 +335,9 @@ static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
 
     // Emulate connection event for the port
     evt.bmChange |= USB_HUB_PORT_STATUS_PORT_CONNECTION;
+    evt.bmChange |= USB_HUB_PORT_STATUS_PORT_POWER;
 
-    rcode = usb_hub_port_status_change(dev, port, evt);
+    rcode = usb_hub_port_status_change(dev, port, evt); // NAK if no changes
     if (rcode == HUB_ERROR_PORT_HAS_BEEN_RESET)
       return 0;
 
