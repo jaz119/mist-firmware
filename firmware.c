@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define FW_ID "MNMGUPG"
 #endif
 
-static DWORD clmt[99];
+extern DWORD clmt[128];
 
 unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize) {
    int i, j;

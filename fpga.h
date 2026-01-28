@@ -1,6 +1,7 @@
 #ifndef FPGA_H
 #define FPGA_H
 
+#include "timer.h"
 #include "fat_compat.h"
 
 unsigned char fpga_init(const char *name);
@@ -19,6 +20,7 @@ unsigned char GetFPGAStatus(void);
 #define SPI_RST_USR         0x1
 #define SPI_RST_CPU         0x2
 #define SPI_CPU_HLT         0x4
+
 extern uint8_t rstval;
 
 #endif
