@@ -7,16 +7,12 @@
 #include "stdio.h"
 #include "boot.h"
 #include "hardware.h"
+#include "timer.h"
 #include "osd.h"
 #include "spi.h"
 #include "fat_compat.h"
 #include "font.h"
 
-// TODO!
-#define SPIN() asm volatile ( "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0");
 
 static void mem_upload_init(unsigned long addr) {
   spi_osd_cmd32le_cont(OSD_CMD_WR, addr);
@@ -24,18 +20,12 @@ static void mem_upload_init(unsigned long addr) {
 
 static void mem_upload_fini() {
   DisableOsd();
-
-  // do we really still need these if it's within a function?
-  SPIN(); SPIN(); 
-  SPIN(); SPIN();
+  delay_usec(1);
 }
 
 static void mem_write16(unsigned short x) {
   SPI((((x)>>8)&0xff)); SPI(((x)&0xff));
-
-  // do we really still need these if it's within a function?
-  SPIN(); SPIN();
-  SPIN(); SPIN();
+  delay_usec(1);
 }
 
 //// boot cursor positions ////
@@ -53,13 +43,13 @@ static void BootEnableMem()
 {
   // TEMP enable 1MB memory
   spi_osd_cmd8(OSD_CMD_MEM, 0x5);
-  SPIN(); SPIN(); SPIN(); SPIN();
+  delay_usec(1);
   //EnableOsd();
   //SPI(OSD_CMD_RST);
   //rstval = (SPI_CPU_HLT | SPI_RST_CPU);
   //SPI(rstval);
   //DisableOsd();
-  //SPIN(); SPIN(); SPIN(); SPIN();
+  //delay_usec(1);
   //while ((read32(REG_SYS_STAT_ADR) & 0x2));
 }
 
@@ -98,7 +88,7 @@ static void BootUploadLogo()
         }
         SPI(sector_buffer[i++]);
         SPI(sector_buffer[i++]);
-        SPIN(); SPIN(); SPIN(); SPIN();
+        delay_usec(1);
         //for (tmp=0; tmp<0x80000; tmp++);
         //printf("i=%03d  x=%03d  y=%03d  dat[0]=0x%08x  dat[1]=0x%08x\r", i, x, y, sector_buffer[i], sector_buffer[i+1]);
         adr += 2;
@@ -120,7 +110,7 @@ static void BootUploadLogo()
         }
         SPI(sector_buffer[i++]);
         SPI(sector_buffer[i++]);
-        SPIN(); SPIN(); SPIN(); SPIN();
+        delay_usec(1);
         adr += 2;
       }
       mem_upload_fini();
@@ -154,7 +144,7 @@ static void BootUploadBall()
       }
       SPI(sector_buffer[i++]);
       SPI(sector_buffer[i++]);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       adr += 2;
     }
     mem_upload_fini();
@@ -184,7 +174,7 @@ static void BootUploadCopper()
       }
       SPI(sector_buffer[i++]);
       SPI(sector_buffer[i++]);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       adr += 2;
     }
     mem_upload_fini();
@@ -299,10 +289,10 @@ static void BootCustomInit()
   mem_write16(0x000a);
   mem_upload_fini();
 
-  //move.w #$0000,$dff088  ; COPJMP1, restart copper at location 1 
+  //move.w #$0000,$dff088  ; COPJMP1, restart copper at location 1
   mem_upload_init(0xdff088);
   mem_write16(0x0000);
-  mem_upload_fini(); 
+  mem_upload_fini();
 }
 
 
@@ -346,10 +336,9 @@ void BootPrintEx(char * str)
         SPI(char_row(0,j));
       else
         SPI(char_row(str[i+1],j));
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
     }
     mem_upload_fini();
     bootscreen_adr += 640/8;
   }
 }
-

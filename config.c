@@ -60,25 +60,19 @@ static const ini_var_t config_ini_vars[] = {
   {"POWERLEDOFFSTATE", (void*)&tmpconf.features.powerledoffstate, UINT8, 0, 1, 1}
 };
 
-// TODO fix SPIN macros all over the place!
-#define SPIN() asm volatile ( "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0")
-
 static void ClearKickstartMirrorE0(void)
 {
   spi_osd_cmd32le_cont(OSD_CMD_WR, 0x00e00000);
   for (int i = 0; i < (0x80000 / 4); i++) {
     SPI(0x00);
     SPI(0x00);
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(1);
     SPI(0x00);
     SPI(0x00);
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(1);
   }
   DisableOsd();
-  SPIN(); SPIN(); SPIN(); SPIN();
+  delay_usec(1);
 }
 
 static void ClearVectorTable(void)
@@ -87,13 +81,13 @@ static void ClearVectorTable(void)
   for (int i = 0; i < 256; i++) {
     SPI(0x00);
     SPI(0x00);
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(1);
     SPI(0x00);
     SPI(0x00);
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(1);
   }
   DisableOsd();
-  SPIN(); SPIN(); SPIN(); SPIN();
+  delay_usec(1);
 }
 
 //// UploadKickstart() ////
@@ -230,68 +224,68 @@ char UploadActionReplay()
       adr = 0xa10000 + 20;
       spi_osd_cmd32le_cont(OSD_CMD_WR, adr);
       data = 0x00800000; // mon_size, 4 bytes
-      SPI((data>>24)&0xff); SPI((data>>16)&0xff); SPIN(); SPIN(); SPIN(); SPIN(); SPI((data>>8)&0xff); SPI((data>>0)&0xff);
+      SPI((data>>24)&0xff); SPI((data>>16)&0xff); delay_usec(1); SPI((data>>8)&0xff); SPI((data>>0)&0xff);
       data = 0x00; // col0h, 1 byte
       SPI((data>>0)&0xff);
       data = 0x5a; // col0l, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0x0f; // col1h, 1 byte
       SPI((data>>0)&0xff);
       data = 0xff; // col1l, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0xff; // right, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0x00; // keyboard, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0xff; // key, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = config.enable_ide[0] ? 0xff : 0; // ide, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0xff; // a1200, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = config.chipset&CONFIG_AGA ? 0xff : 0; // aga, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0xff; // insert, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0x0f; // delay, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0xff; // lview, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0x00; // cd32, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = config.chipset&CONFIG_NTSC ? 1 : 0; // screenmode, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0xff; // novbr, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 0; // entered, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       data = 1; // hexmode, 1 byte
       SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       DisableOsd();
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       adr = 0xa10000 + 68;
       spi_osd_cmd32le_cont(OSD_CMD_WR, adr);
       data = ((config.memory&0x3) + 1) * 512 * 1024; // maxchip, 4 bytes TODO is this correct?
-      SPI((data>>24)&0xff); SPI((data>>16)&0xff); SPIN(); SPIN(); SPIN(); SPIN(); SPI((data>>8)&0xff); SPI((data>>0)&0xff);
-      SPIN(); SPIN(); SPIN(); SPIN();
+      SPI((data>>24)&0xff); SPI((data>>16)&0xff); delay_usec(1); SPI((data>>8)&0xff); SPI((data>>0)&0xff);
+      delay_usec(1);
       DisableOsd();
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(1);
       f_close(&romfile);
       return(1);
     } else {
@@ -577,13 +571,13 @@ static void ApplyConfiguration(char reloadkickstart)
 
     if(reloadkickstart) {
       iprintf("Reloading kickstart ...\r");
-      WaitTimer(1000);
+      WaitTimer(500);
       EnableOsd();
       SPI(OSD_CMD_RST);
-      rstval |= (SPI_RST_CPU | SPI_CPU_HLT);
+      rstval |= (SPI_RST_CPU | SPI_CPU_HLT); // reset #3
       SPI(rstval);
       DisableOsd();
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(50);
       UploadActionReplay();
       if (!UploadKickstart(config.kickstart)) {
         strcpy(config.kickstart, "KICK.ROM");
@@ -595,16 +589,16 @@ static void ApplyConfiguration(char reloadkickstart)
     iprintf("Resetting ...\r");
     EnableOsd();
     SPI(OSD_CMD_RST);
-    rstval |= (SPI_RST_USR | SPI_RST_CPU);
+    rstval |= (SPI_RST_USR | SPI_RST_CPU); // reset #4
     SPI(rstval);
     DisableOsd();
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(50);
     EnableOsd();
     SPI(OSD_CMD_RST);
-    rstval = 0;
+    rstval = 0; // 68K CPU ready to go
     SPI(rstval);
     DisableOsd();
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(50);
   }
 }
 

@@ -77,15 +77,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const char version[] = {"$VER:ATH" VDATE};
 
 unsigned char Error;
+
 char s[FF_LFN_BUF + 1];
+DWORD clmt[128]; // fast seek cache
 
 unsigned long storage_size = 0;
 
 void FatalError(unsigned long error) {
   unsigned long i;
-  
+
   iprintf("Fatal error: %lu\r", error);
-  
+
   while (1) {
     for (i = 0; i < error; i++) {
       DISKLED_ON;
@@ -100,7 +102,7 @@ void FatalError(unsigned long error) {
 
 void HandleFpga(void) {
   unsigned char  c1, c2;
-  
+
   EnableFpga();
   c1 = SPI(0); // cmd request and drive number
   c2 = SPI(0); // track number
@@ -109,10 +111,10 @@ void HandleFpga(void) {
   SPI(0);
   SPI(0);
   DisableFpga();
-  
+
   HandleFDD(c1, c2);
   HandleHDD(c1, c2, 1);
-  
+
   UpdateDriveStatus();
 }
 
@@ -141,7 +143,7 @@ int main(void)
     // make sure printf works over rs232
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
-#endif   
+#endif
 
     DISKLED_ON;
 
@@ -274,7 +276,7 @@ int main(void)
       }
 
       // 8 bit cores can also have a ui if a valid config string can be read from it
-      if((user_io_core_type() == CORE_TYPE_8BIT) && 
+      if((user_io_core_type() == CORE_TYPE_8BIT) &&
 	 user_io_is_8bit_with_config_string())
 	HandleUI();
 

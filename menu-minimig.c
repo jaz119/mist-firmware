@@ -15,11 +15,6 @@
 #include "misc_cfg.h"
 #include "cue_parser.h"
 
-// TODO!
-#define SPIN() asm volatile ( "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0");
 extern unsigned char drives;
 extern adfTYPE df[4];
 static hardfileTYPE t_hardfile[HARDFILES]; // temporary copy of former hardfile configuration
@@ -241,20 +236,20 @@ static char KickstartReload(uint8_t idx) {
 			rstval = (SPI_RST_CPU | SPI_CPU_HLT);
 			SPI(rstval);
 			DisableOsd();
-			SPIN(); SPIN(); SPIN(); SPIN();
+			delay_usec(50);
 			UploadKickstart(config.kickstart);
 			EnableOsd();
 			SPI(OSD_CMD_RST);
 			rstval = (SPI_RST_USR | SPI_RST_CPU);
 			SPI(rstval);
 			DisableOsd();
-			SPIN(); SPIN(); SPIN(); SPIN();
+			delay_usec(50);
 			EnableOsd();
 			SPI(OSD_CMD_RST);
 			rstval = 0;
 			SPI(rstval);
 			DisableOsd();
-			SPIN(); SPIN(); SPIN(); SPIN();
+			delay_usec(50);
 		}
 	}
 	return 0;
