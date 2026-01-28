@@ -47,12 +47,6 @@ uint8_t rstval = 0;
 
 #define CMD_HDRID 0xAACA
 
-// TODO!
-#define SPIN() asm volatile ( "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0\n\t" \
-                              "mov r0, r0");
-
 extern char s[FF_LFN_BUF + 1];
 extern adfTYPE df[4];
 
@@ -66,7 +60,7 @@ char BootPrint(const char *text);
 #ifdef XILINX_CCLK
 
 // single byte serialization of FPGA configuration datastream
-void ShiftFpga(unsigned char data)
+RAMFUNC static void ShiftFpga(unsigned char data)
 {
     AT91_REG *ppioa_codr = AT91C_PIOA_CODR;
     AT91_REG *ppioa_sodr = AT91C_PIOA_SODR;
@@ -123,7 +117,7 @@ void ShiftFpga(unsigned char data)
 
 // Xilinx FPGA configuration
 // was before unsigned char ConfigureFpga(void)
-unsigned char ConfigureFpga(const char *name)
+RAMFUNC unsigned char ConfigureFpga(const char *name)
 {
     unsigned long  t;
     unsigned long  n;
@@ -238,7 +232,7 @@ unsigned char ConfigureFpga(const char *name)
 
 
 #ifdef ALTERA_DCLK
-static inline void ShiftFpga(unsigned char data)
+RAMFUNC static void ShiftFpga(unsigned char data)
 {
     unsigned char i;
     for ( i = 0; i < 8; i++ )
@@ -253,7 +247,7 @@ static inline void ShiftFpga(unsigned char data)
 }
 
 // Altera FPGA configuration
-unsigned char ConfigureFpga(const char *name)
+RAMFUNC unsigned char ConfigureFpga(const char *name)
 {
     unsigned long i;
     unsigned char *ptr;
@@ -565,20 +559,20 @@ void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int siz
     EnableOsd();
     unsigned int adr = address + i*512;
     SPI(OSD_CMD_WR);
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(5);
     SPI(adr&0xff); adr = adr>>8;
     SPI(adr&0xff); adr = adr>>8;
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(5);
     SPI(adr&0xff); adr = adr>>8;
     SPI(adr&0xff); adr = adr>>8;
-    SPIN(); SPIN(); SPIN(); SPIN();
+    delay_usec(5);
     for (j=0; j<512; j=j+4) {
       SPI(sector_buffer[j+0]);
       SPI(sector_buffer[j+1]);
-      SPIN(); SPIN(); SPIN(); SPIN(); SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(10);
       SPI(sector_buffer[j+2]);
       SPI(sector_buffer[j+3]);
-      SPIN(); SPIN(); SPIN(); SPIN(); SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(10);
     }
     DisableOsd();
   }
@@ -912,7 +906,6 @@ unsigned char GetFPGAStatus(void)
 
 
 unsigned char fpga_init(const char *name) {
-  unsigned long time = GetRTTC();
   int loaded_from_usb = USB_LOAD_VAR;
   unsigned char ct;
 
@@ -922,6 +915,7 @@ unsigned char fpga_init(const char *name) {
   settings_load(true);
 
   iprintf("loaded_from_usb = %d\n", USB_LOAD_VAR == USB_LOAD_VALUE);
+  unsigned long time = GetRTTC();
   USB_LOAD_VAR = 0;
 
   if((loaded_from_usb != USB_LOAD_VALUE) && !user_io_dip_switch1()) {
@@ -956,7 +950,7 @@ unsigned char fpga_init(const char *name) {
 
     if(minimig_v2()) {
       user_io_8bit_set_status(minimig_cfg.clock_freq << 1, 0xffffffff);
-      WaitTimer(100);
+      WaitTimer(100); // delay for PLL
       EnableOsd();
       SPI(OSD_CMD_VERSION);
       minimig_ver_beta   = SPI(0xff);
@@ -964,22 +958,21 @@ unsigned char fpga_init(const char *name) {
       minimig_ver_minor  = SPI(0xff);
       minimig_ver_minion = SPI(0xff);
       DisableOsd();
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(5);
       EnableOsd();
       SPI(OSD_CMD_RST);
-      rstval = (SPI_RST_USR | SPI_RST_CPU | SPI_CPU_HLT);
+      rstval = (SPI_RST_USR | SPI_RST_CPU | SPI_CPU_HLT); // reset #1
       SPI(rstval);
       DisableOsd();
-      SPIN(); SPIN(); SPIN(); SPIN();
+      delay_usec(5);
       EnableOsd();
       SPI(OSD_CMD_RST);
-      rstval = (SPI_RST_CPU | SPI_CPU_HLT);
+      rstval = (SPI_RST_CPU | SPI_CPU_HLT); // reset #2
       SPI(rstval);
       DisableOsd();
-      SPIN(); SPIN(); SPIN(); SPIN();
-      WaitTimer(100);
+      WaitTimer(100); // video sync delay
       BootInit();
-      WaitTimer(500);
+      WaitTimer(250);
       char rtl_ver[45];
       siprintf(rtl_ver, "**** MINIMIG-AGA%s v%d.%d.%d for MiST ****", minimig_ver_beta ? " BETA" : "", minimig_ver_major, minimig_ver_minor, minimig_ver_minion);
       BootPrintEx(rtl_ver);
@@ -990,7 +983,6 @@ unsigned char fpga_init(const char *name) {
       BootPrintEx("MiST by Till Harbaum (till@harbaum.org)");
       BootPrintEx("For updates & code see https://github.com/rkrajnc/minimig-mist");
       BootPrintEx(" ");
-      WaitTimer(1000);
     }
 
     ChangeDirectoryName("/");
@@ -1003,7 +995,7 @@ unsigned char fpga_init(const char *name) {
 
     config.kickstart[0]=0;
     SetConfigurationFilename(arc_get_cfg_file_n());
-    LoadConfiguration(0, 1);  // Use slot-based config filename
+    LoadConfiguration(NULL, true); // Use slot-based config filename
 
   } // end of minimig setup
 
