@@ -355,7 +355,7 @@ static uint8_t usb_hub_poll(usb_device_t *dev) {
   if (!info->bPollEnable)
     return 0;
 
-  if (timer_check(info->qLastPollTime, 100)) { // poll 10 times a second
+  if (usb_irq_active() || timer_check(info->qLastPollTime, 100)) {
     rcode = usb_hub_check_hub_status(dev, info->bNbrPorts);
     info->qLastPollTime = timer_get_msec();
   }

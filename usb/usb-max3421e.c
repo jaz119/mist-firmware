@@ -23,11 +23,11 @@ void usb_hw_init() {
 	usb_reset_state();
 }
 
-static uint8_t usb_wait_completion() {
-	unsigned long ack_start = timer_get_msec();
+static uint8_t usb_wait_irq() {
+	unsigned long start = timer_get_msec();
 
 	// wait for transfer completion
-	while( !timer_check(ack_start, USB_ACK_TIMEOUT) )
+	while( !timer_check(start, USB_ACK_TIMEOUT) )
 	{
 		// wait for low on INT pin
 		if( !usb_irq_active() )
@@ -35,12 +35,16 @@ static uint8_t usb_wait_completion() {
 
 		uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
 
+		if( hirq & MAX3421E_CONDETIRQ ) {
+			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_CONDETIRQ );
+			return USB_ERROR_DEVICE_DISCONNECTED;
+		}
+
 		if( hirq & MAX3421E_HXFRDNIRQ ) {
- 			//clear the interrupt
- 			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
- 			return 0;
- 		}
- 	}
+			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
+			return 0;
+		}
+	}
 
 	// clear the transaction flags
 	max3421e_write_u08( MAX3421E_HIRQ,
@@ -97,10 +101,10 @@ static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) 
 		max3421e_write_u08( MAX3421E_HXFR, ( token|ep )); //launch the transfer
 
 		// wait for transfer completion
-		rcode = usb_wait_completion();
-		if( rcode != 0 ) return( rcode ); // timeout
+		rcode = usb_wait_irq();
+		if( rcode ) return( rcode ); // error
 
-		//analyze transfer result
+		// analyze transfer result
 		rcode = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
 
 		switch( rcode ) {
@@ -230,8 +234,8 @@ static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 			max3421e_write_u08( MAX3421E_HXFR, ( tokOUT | pep->epAddr ));
 
 			// wait for the completion IRQ
-			rcode = usb_wait_completion();
-			if( rcode ) return( rcode ); // timeout
+			rcode = usb_wait_irq();
+			if( rcode ) return( rcode ); // error
 
 			// analyze transfer result
 			rcode = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
@@ -242,8 +246,8 @@ static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 				nak_count ++;
 				if( nak_limit && ( nak_count == nak_limit ))
 					return( rcode );
-				delay_usec( USB_NACK_DELAY );
 				/* Host out NAK bug workaround */
+				delay_usec( USB_NACK_DELAY );
 				continue;
 
 			case hrTIMEOUT:
