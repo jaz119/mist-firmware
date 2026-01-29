@@ -539,6 +539,7 @@ char SetRTC(unsigned char *d) {
 }
 
 void RAMFUNC UnlockFlash() {
+    // FIXME: Attempt to unblock non-existent regions (above 1Mb)
     for (int i = 0; i < 64; i++) {
         while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
         EEFC->EEFC_FCR = EEFC_FCR_FCMD_CLB | EEFC_FCR_FARG(i) | EEFC_FCR_FKEY_PASSWD; // unlock page

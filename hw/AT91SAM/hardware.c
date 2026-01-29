@@ -443,16 +443,15 @@ char SetRTC(unsigned char *d) {
 }
 
 void RAMFUNC UnlockFlash() {
-  *AT91C_MC_FMR = 48 << 16 | FWS << 8; // MCLK cycles in 1us
-  for (int i = 0; i < 16; i++)
-    if (*AT91C_MC_FSR & 1 << 16 + i)
-    { // page is locked
-      while (!(*AT91C_MC_FSR & AT91C_MC_FRDY));  // wait for ready
-      *AT91C_MC_FCR = 0x5A << 24 | i << 6 + 8 | AT91C_MC_FCMD_UNLOCK; // unlock page
-      while (!(*AT91C_MC_FSR & AT91C_MC_FRDY));  // wait for ready
-    }
+  *AT91C_MC_FMR = (48 << 16) | (FWS << 8);  // MCLK cycles in 1us
 
-  *AT91C_MC_FMR = 72 << 16 | FWS << 8; // MCLK cycles in 1.5us
+  for (int i = 0; i < 16; i++) {
+    while (!(*AT91C_MC_FSR & AT91C_MC_FRDY));  // wait for ready
+    *AT91C_MC_FCR = (0x5A << 24) | ((i * 64) << 8) | AT91C_MC_FCMD_UNLOCK; // unlock page
+  }
+
+  while (!(*AT91C_MC_FSR & AT91C_MC_FRDY));  // wait for ready
+  *AT91C_MC_FMR = (72 << 16) | (FWS << 8); // MCLK cycles in 1.5us
 }
 
 void RAMFUNC WriteFlash(int page) {
