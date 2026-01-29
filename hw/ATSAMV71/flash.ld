@@ -39,7 +39,7 @@ SEARCH_DIR(.)
 /* Memory Spaces Definitions */
 MEMORY
 {
-	flash   (RX)   : ORIGIN = 0x00400000, LENGTH = 2M   /* Internal Flash */
+	flash   (RX)   : ORIGIN = 0x00400000, LENGTH = 1M   /* Internal Flash */
 	sram    (W!RX) : ORIGIN = 0x20400000, LENGTH = 380K /* SRAM */
 	sram_nc (RWX)  : ORIGIN = 0x2045F000, LENGTH = 4K   /* SRAM (non-cached) */
 }
