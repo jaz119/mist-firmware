@@ -202,8 +202,8 @@
 #define hrTIMEOUT   0x0E
 #define hrBABBLE    0x0F
 
-// Base mode to keep SOF generation and host settings alive
-#define MAX3421E_MODE_HOST    (MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SOFKAENAB)
+/* Base mode to keep SOF generation and host settings alive */
+#define MAX3421E_MODE_HOST      (MAX3421E_DPPULLDN|MAX3421E_DMPULLDN|MAX3421E_HOST|MAX3421E_SOFKAENAB)
 
 // interface used by usb.c
 void max3421e_init();

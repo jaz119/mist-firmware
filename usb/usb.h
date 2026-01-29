@@ -46,9 +46,9 @@ typedef struct {
 #define USB_REQ_CL_GET_INTF   USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_CLASS|USB_SETUP_RECIPIENT_INTERFACE     //get interface request type
 
 #define USB_SETTLE_DELAY 200   // settle delay in milliseconds
-#define USB_XFER_TIMEOUT 1500  // USB transfer timeout in milliseconds, per section 9.2.6.1 of USB 2.0 spec
-#define USB_ACK_TIMEOUT  10    // USB ACK timeout
-#define USB_RETRY_DELAY  100   // USB timeout retry delay (usec)
+#define USB_XFER_TIMEOUT 5000  // USB transfer timeout in milliseconds, per section 9.2.6.1 of USB 2.0 spec
+#define USB_ACK_TIMEOUT  25    // USB ACK timeout
+#define USB_RETRY_DELAY  250   // USB timeout retry delay (usec)
 #define USB_NACK_DELAY   50    // USB NACK delay (usec)
 #define USB_RETRY_LIMIT  3     // retry limit for a transfer
 

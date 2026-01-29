@@ -23,12 +23,11 @@ void usb_hw_init() {
 	usb_reset_state();
 }
 
-static uint8_t usb_wait_completion() {
-	unsigned long ack_start = timer_get_msec();
+static uint8_t usb_wait_irq() {
+	unsigned long start = timer_get_msec();
 
 	// wait for transfer completion
-	while( !timer_check(ack_start, USB_ACK_TIMEOUT) )
-	{
+	while( !timer_check(start, USB_ACK_TIMEOUT) ) {
 		// wait for low on INT pin
 		if( !usb_irq_active() )
 			continue;
@@ -36,17 +35,19 @@ static uint8_t usb_wait_completion() {
 		uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
 
 		if( hirq & MAX3421E_HXFRDNIRQ ) {
- 			//clear the interrupt
- 			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
- 			return 0;
- 		}
- 	}
+			// get transfer result
+			uint8_t res = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
+			// clear the interrupt
+			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
+			return res;
+		}
+	}
 
 	// clear the transaction flags
 	max3421e_write_u08( MAX3421E_HIRQ,
-		MAX3421E_HXFRDNIRQ | MAX3421E_RCVDAVIRQ | MAX3421E_SNDBAVIRQ );
+		MAX3421E_HXFRDNIRQ | MAX3421E_SNDBAVIRQ );
 
-	return USB_ERROR_TRANSFER_TIMEOUT;
+	return hrUNDEF;
 }
 
 static uint8_t usb_set_address(usb_device_t *dev, ep_t *ep,
@@ -65,12 +66,13 @@ static uint8_t usb_set_address(usb_device_t *dev, ep_t *ep,
 	max3421e_write_u08( MAX3421E_PERADDR, dev->bAddress); // set peripheral address
 
 	uint8_t mode = max3421e_read_u08( MAX3421E_MODE );
+
+	// Set bmLOWSPEED and bmHUBPRE in case of low-speed device,
+	// reset them otherwise
 	uint8_t new_mode = (dev->lowspeed) ?
 				mode | MAX3421E_LOWSPEED | bmHubPre :
 				mode & ~(MAX3421E_HUBPRE | MAX3421E_LOWSPEED);
 
-	// Set bmLOWSPEED and bmHUBPRE in case of low-speed device,
-	// reset them otherwise
 	if ( mode != new_mode )
 		max3421e_write_u08( MAX3421E_MODE, new_mode);
 
@@ -94,14 +96,11 @@ static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) 
 	unsigned long timeout = timer_get_msec();
 
 	while( !timer_check(timeout, USB_XFER_TIMEOUT) )  {
-		max3421e_write_u08( MAX3421E_HXFR, ( token|ep )); //launch the transfer
+		// launch the transfer
+		max3421e_write_u08( MAX3421E_HXFR, ( token|ep ));
 
 		// wait for transfer completion
-		rcode = usb_wait_completion();
-		if( rcode != 0 ) return( rcode ); // timeout
-
-		//analyze transfer result
-		rcode = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
+		rcode = usb_wait_irq();
 
 		switch( rcode ) {
 		case hrNAK:
@@ -230,20 +229,16 @@ static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 			max3421e_write_u08( MAX3421E_HXFR, ( tokOUT | pep->epAddr ));
 
 			// wait for the completion IRQ
-			rcode = usb_wait_completion();
-			if( rcode ) return( rcode ); // timeout
-
-			// analyze transfer result
-			rcode = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
-			if( rcode == 0 ) break; // success
+			rcode = usb_wait_irq();
+			if( rcode == hrSUCCESS ) break; // success
 
 			switch( rcode ) {
 			case hrNAK:
 				nak_count ++;
 				if( nak_limit && ( nak_count == nak_limit ))
 					return( rcode );
-				delay_usec( USB_NACK_DELAY );
 				/* Host out NAK bug workaround */
+				delay_usec( USB_NACK_DELAY );
 				continue;
 
 			case hrTIMEOUT:
@@ -450,7 +445,7 @@ void usb_poll() {
 			break;
 
 		case USB_STATE_RUNNING:
-		break;
+			break;
 		}
 	}
 }

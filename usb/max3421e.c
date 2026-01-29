@@ -7,7 +7,6 @@
 
 void max3421e_write_u08(uint8_t reg, uint8_t data) {
   //  iprintf("write %x %x\n", reg, data);
-
   spi_max_start();
   spi8(reg | MAX3421E_WRITE);
   spi8(data);
@@ -23,10 +22,8 @@ uint8_t max3421e_read_u08(uint8_t reg) {
 }
 
 const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data) {
-
   spi_max_start();
   spi8(reg | MAX3421E_WRITE);
-
   spi_write(data, n);
   spi_max_end();
   return data+n;
@@ -44,27 +41,25 @@ uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data) {
     while(n--) spi8(0);
 
   spi_max_end();
-
   return data+n;
 }
 
 static uint8_t vbusState = MAX3421E_STATE_SE0;
 
 uint16_t max3421e_reset() {
-  uint32_t timeout = 1000000;
-
   /* reset chip */
   max3421e_write_u08( MAX3421E_USBCTL, MAX3421E_CHIPRES );
   max3421e_write_u08( MAX3421E_USBCTL, 0 );
 
   /* wait for pll to synchronize */
-  while( --timeout ) {
+  for( uint32_t timeout = 0; timeout < 1000; timeout++ ) {
     if(( max3421e_read_u08( MAX3421E_USBIRQ ) & MAX3421E_OSCOKIRQ )) {
       // reset all interrupts
       max3421e_write_u08( MAX3421E_HIRQ, 0xff );
       max3421e_write_u08( MAX3421E_USBIRQ, 0xff );
       return 1;
     }
+    delay_usec(25);
   }
   return 0;
 }
@@ -101,7 +96,7 @@ void max3421e_busprobe() {
     break;
 
   case MAX3421E_SE0:					        // disconnected state
-    max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST | MAX3421E_SEPIRQ);
+    max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST );
     vbusState = MAX3421E_STATE_SE0;
     break;
   }
@@ -123,13 +118,13 @@ void max3421e_init() {
   max3421e_write_u08(MAX3421E_PINCTL, MAX3421E_FDUPSPI);
 
   // read and output version
-  iprintf("Chip revision: %x\n", max3421e_read_u08(MAX3421E_REVISION));
+  iprintf("Chip revision: #%x\n", max3421e_read_u08(MAX3421E_REVISION));
 
   // enable pulldowns, set host mode
   max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST );
 
   // enable interrupts
-  max3421e_write_u08( MAX3421E_HIEN, MAX3421E_CONDETIE | MAX3421E_HXFRDNIE );
+  max3421e_write_u08( MAX3421E_HIEN, MAX3421E_HXFRDNIE );
 
   /* check if device is connected */
 
