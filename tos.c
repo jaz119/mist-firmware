@@ -23,7 +23,7 @@
 #define CONFIG_FILENAME  "MIST    CFG"
 
 extern bool eth_present;
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 
 typedef struct {
   unsigned long system_ctrl;  // system control word

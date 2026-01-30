@@ -48,7 +48,7 @@ static char cache_buffer[1024];
 static uint8_t buffer_drive_index = 0;
 static uint32_t buffer_lba = 0xffffffff;
 
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 
 // mouse and keyboard emulation state
 typedef enum { EMU_NONE, EMU_MOUSE, EMU_JOY0, EMU_JOY1 } emu_mode_t;

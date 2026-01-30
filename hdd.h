@@ -61,7 +61,7 @@
 #define HDF_FILETYPE_RDB      2
 #define HDF_FILETYPE_DOS      3
 
-#define HARDFILES 4
+#define HARDFILES  SD_IMAGES
 
 #define TFR_ERR    1
 #define TFR_SCOUNT 2
@@ -76,7 +76,7 @@ typedef struct
 {
     unsigned char enabled; // 0: Disabled, 1: Hard file, 2: MMC (entire card), 3-6: Partition 1-4 of MMC card, 10-CDROM
     unsigned char present;
-    char name[64];
+    char name[FF_MAX_LFN];
 } hardfileTYPE;
 
 typedef struct

@@ -31,7 +31,7 @@
 #include "cue_parser.h"
 #include "menu_info.h"
 
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 
 // TODO: remove these extern hacks to private variables
 extern unsigned char menusub;

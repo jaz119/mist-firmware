@@ -20,8 +20,9 @@
 #include "settings.h"
 #include "user_io.h"
 #include "usb/joymapping.h"
+#include "osd.h"
 
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 
 static uint64_t status;
 

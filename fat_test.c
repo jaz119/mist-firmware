@@ -34,47 +34,63 @@ void dump(unsigned char *buf) {
 	printf("\n");
 }
 
-void iprintf(const char *format, ...) {
-	va_list arg;
-	va_start(arg, format);
-	vprintf(format, arg);
-	va_end(arg);
+void FatalError(unsigned long error) {
+	iprintf("Fatal: %lu\r", error);
+	exit(error);
 }
 
-void FatalError(const char *msg, int errno) {
-	printf("Fatal error: %s (%d)\n", msg, errno);
-	exit(1);
+char OsdLines() {
+	iprintf("> %s()\n", __FUNCTION__);
+    return 16;
+}
+
+char GetRTC(unsigned char *) {
+	iprintf("> %s()\n", __FUNCTION__);
+	return 0;
 }
 
 unsigned char MMC_CheckCard() {
+	// iprintf("> %s()\n", __FUNCTION__);
 	return 1;
 }
 
+unsigned long MMC_GetCapacity() {
+	iprintf("> %s()\n", __FUNCTION__);
+	return 0; // FIXME
+}
+
 unsigned char MMC_Read(unsigned long lba, unsigned char *pReadBuffer) {
-//	printf("MMC_Read lba: %d\n", lba);
+	iprintf("> %s(%lu)\n", __FUNCTION__, lba);
 	fseek(fp, lba << 9, SEEK_SET);
 	fread(pReadBuffer, 512, 1, fp);
 	return(1);
 }
 
 unsigned char MMC_Write(unsigned long lba, unsigned char *pWriteBuffer) {
+	iprintf("> %s(%lu)\n", __FUNCTION__, lba);
 	fseek(fp, lba << 9, SEEK_SET);
 	fwrite(pWriteBuffer, 512, 1, fp);
 	return(1);
 }
 
 unsigned char MMC_ReadMultiple(unsigned long lba, unsigned char *pReadBuffer, unsigned long nBlockCount) {
+	iprintf("> %s(%lu, %lu)\n", __FUNCTION__, lba, nBlockCount);
 	fseek(fp, lba << 9, SEEK_SET);
 	fread(pReadBuffer, 512, nBlockCount, fp);
 	return(1);
 }
 
+unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBuffer, unsigned long nBlockCount) {
+	iprintf("> %s(%lu, %lu)\n", __FUNCTION__, lba, nBlockCount);
+	return 0;
+}
+
 void ErrorMessage(const char *message, unsigned char code) {
-	printf(message);
+	printf("Error: %s\n", message);
 }
 
 void BootPrint(const char *message) {
-	printf(message);
+	printf("Boot: %s\n", message);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -112,7 +128,7 @@ void FileNextBlockTest() {
 		}
 		fp = fopen("dump.bin", "w");
 		fsize = f_size(&file);
-		printf("File: %s, size: %llu\n", fname, fsize);
+		printf("File: %s, size: %lu\n", fname, fsize);
 		while (fsize) {
 			FileReadNextBlock(&file, buf);
 			//dump(buf);
@@ -141,7 +157,7 @@ void ScanDirectoryTest() {
 		for (i = 0; i < nDirEntries; i++)
 		{
 			k = sort_table[i];
-			printf("%c %s %llu", i == iSelectedEntry ? '*' : ' ', DirEntries[k].fname, DirEntries[k].fsize);
+			printf("%c %s %lu", i == iSelectedEntry ? '*' : ' ', DirEntries[k].fname, DirEntries[k].fsize);
 			printf("\n");
 		}
 		lastStartCluster = DirEntries[0].fclust;

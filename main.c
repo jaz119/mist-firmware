@@ -75,11 +75,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #error "newlib lacks support of long long type in IO functions. Please use a toolchain that was compiled with option --enable-newlib-io-long-long."
 #endif
 
-const char version[] = {"$VER:ATH" VDATE};
+const char version[] = {"$VER:ATA" VDATE};
 
 unsigned char Error;
 
-char s[FF_LFN_BUF + 1];
+char s[OSD_BUF_SIZE];
 DWORD clmt[128]; // fast seek cache
 
 unsigned long storage_size = 0;

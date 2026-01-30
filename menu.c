@@ -91,7 +91,7 @@ static menu_select_file_t menu_select_callback;
 
 extern const char version[];
 
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 
 extern unsigned long storage_size;
 

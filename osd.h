@@ -98,6 +98,8 @@
 
 #define OSD_TURBO_STEP 50
 
+#define OSD_BUF_SIZE   255
+
 #include <inttypes.h>
 
 /*functions*/

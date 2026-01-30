@@ -6,6 +6,7 @@ LD      = $(BASE)-gcc
 AS      = $(BASE)-as
 CP      = $(BASE)-objcopy
 DUMP    = $(BASE)-objdump
+SIZE    = $(BASE)-size
 
 TODAY = `date +"%m/%d/%y"`
 
@@ -14,8 +15,8 @@ SRC = hw/AT91SAM/Cstartup_SAM7.c hw/AT91SAM/hardware.c hw/AT91SAM/spi.c hw/AT91S
 SRC += fdd.c firmware.c fpga.c hdd.c main.c menu.c menu-minimig.c menu-8bit.c menu_info.c osd.c state.c syscalls.c user_io.c settings.c data_io.c boot.c idxfile.c config.c tos.c ikbd.c xmodem.c ini_parser.c cue_parser.c mist_cfg.c archie.c pcecd.c neocd.c snes.c zx_col.c arc_file.c c64files.c font.c utils.c serial_sink.c
 SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/usbdebug.c usb/hub.c usb/hid.c usb/hidparser.c usb/xboxusb.c usb/timer.c usb/asix.c usb/pl2303.c usb/storage.c usb/joymapping.c usb/joystick.c
 SRC += usb/rtc.c usb/rtc/i2c-tiny.c usb/rtc/i2c-mcp2221.c usb/rtc/pcf85263.c usb/rtc/ds3231.c
-SRC += fat_compat.c
-SRC += FatFs/diskio.c FatFs/ff.c FatFs/ffunicode.c
+SRC += fat_compat.c diskio.c
+SRC += FatFs/ff.c FatFs/ffunicode.c
 # SRC += usb/storage.c
 SRC += cdc_control.c storage_control.c
 # SRC += sxmlc/sxmlc.c
@@ -28,10 +29,9 @@ LIBDIR   =
 
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
-DFLAGS  = -I. -Iusb -Iarch/ -Ihw/AT91SAM -DMIST -DCONFIG_ARCH_ARMV4TE -DCONFIG_ARCH_ARM -DUSB_STORAGE
-CFLAGS  = $(DFLAGS) -c -march=armv4t -mtune=arm7tdmi -mthumb -fno-common -Os --std=gnu99 -fsigned-char -DVDATE=\"`date +"%y%m%d"`\"
-CFLAGS-firmware.o += -marm
-CFLAGS += $(CFLAGS-$@)
+DFLAGS  = -I. -Iusb -Iarch/ -Ihw/AT91SAM -DCONFIG_ARCH_ARMV4TE -DCONFIG_ARCH_ARM
+DFLAGS += -DMIST -DUSB_STORAGE -DFF_FS_TINY=1 -DFF_MAX_LFN=64 -DFF_LFN_BUF=64
+CFLAGS  = $(DFLAGS) -march=armv4t -mtune=arm7tdmi -mthumb -fno-common -Os --std=gnu99 -fsigned-char -DVDATE=\"`date +"%y%m%d"`\"
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -mthumb -nostartfiles -Wl,-Map,$(PRJ).map -T$(LINKMAP) $(LIBDIR)
 LFLAGS += --specs=nano.specs
@@ -80,6 +80,7 @@ $(PRJ).hex: $(PRJ).elf
 # Link - this produces an ELF binary.
 $(PRJ).elf: crt.o $(OBJ)
 	$(LD) $(LFLAGS) -o $@ $+ $(LIBS)
+	$(SIZE) -B $@
 
 $(PRJ).upg: $(PRJ).bin $(MKUPG)
 	./$(MKUPG) $< $@ `date +"%y%m%d"`
@@ -89,15 +90,9 @@ crt.o: hw/AT91SAM/Cstartup.S
 	$(AS) $(AFLAGS) -o $@ $< > crt.lst
 
 %.o: %.c
-	$(CC) $(CFLAGS)  -o $@ -c $<
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
-# Automatic dependencies
--include $(DEP)
-%.d: %.c
-	$(CC) $(DFLAGS) -MM $< -MT $@ -MT $*.o -MF $@
-
-# Ensure correct time stamp
-main.o: $(filter-out main.o, $(OBJ))
+firmware.o: CFLAGS += -marm
 
 sections: $(PRJ).elf
 	$(DUMP) --section-headers $<

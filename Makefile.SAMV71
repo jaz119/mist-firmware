@@ -6,6 +6,7 @@ LD      = $(BASE)-gcc
 AS      = $(BASE)-as
 CP      = $(BASE)-objcopy
 DUMP    = $(BASE)-objdump
+SIZE    = $(BASE)-size
 
 TODAY = `date +"%m/%d/%y"`
 
@@ -19,8 +20,8 @@ SRC += usb/usbdebug.c usb/hub.c usb/xboxusb.c usb/hid.c usb/hidparser.c usb/time
 SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c
 # SRC += usb/rtc.c usb/rtc/i2c-tiny.c usb/rtc/i2c-mcp2221.c usb/rtc/pcf85263.c usb/rtc/ds3231.c
 # SRC += usb/usb-samv71.c
-SRC += fat_compat.c
-SRC += FatFs/diskio.c FatFs/ff.c FatFs/ffunicode.c
+SRC += fat_compat.c diskio.c
+SRC += FatFs/ff.c FatFs/ffunicode.c
 SRC += cdc_control.c storage_control.c
 
 OBJ = $(SRC:.c=.o)
@@ -31,10 +32,11 @@ LIBDIR   =
 
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
-DFLAGS  = -I. -Iarch -Icmsis -Iusb -Ihw/ATSAMV71 -D_GNU_SOURCE -DMIST -DCONFIG_HAVE_NVIC -DCONFIG_HAVE_ETH -DCONFIG_HAVE_GMAC -DCONFIG_HAVE_GMAC_QUEUES -DGMAC_QUEUE_COUNT=6 -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV7M -DCONFIG_CHIP_SAMV71 -DCONFIG_PACKAGE_100PIN
-DFLAGS += -DCONFIG_FLASH_1024KB -DFW_ID=\"SIDIUPG\" -DSZ_TBL=2048 -DDEFAULT_CORE_NAME=\"SIDI128.RBF\" -DFATFS_NO_TINY -DSD_NO_DIRECT_MODE -DJOY_DB9_MD -DHAVE_QSPI -DHAVE_HDMI -DHAVE_PSX -DHAVE_XML -DUSB_STORAGE
+DFLAGS  = -I. -Iarch -Icmsis -Iusb -Ihw/ATSAMV71 -D_GNU_SOURCE -DCONFIG_HAVE_NVIC -DCONFIG_HAVE_ETH -DCONFIG_HAVE_GMAC -DCONFIG_HAVE_GMAC_QUEUES -DGMAC_QUEUE_COUNT=6 -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV7M -DCONFIG_CHIP_SAMV71 -DCONFIG_PACKAGE_100PIN
+DFLAGS += -DCONFIG_FLASH_1024KB -DFW_ID=\"SIDIUPG\" -DSZ_TBL=2048 -DDEFAULT_CORE_NAME=\"SIDI128.RBF\" -DSD_NO_DIRECT_MODE -DJOY_DB9_MD -DHAVE_QSPI -DHAVE_HDMI -DHAVE_PSX -DHAVE_XML
+DFLAGS += -DMIST -DUSB_STORAGE -DFF_FS_TINY=0 -DFF_MAX_LFN=255 -DFF_LFN_BUF=255
 #DFLAGS += -DPROTOTYPE
-CFLAGS  = $(DFLAGS) -march=armv7-m -mtune=cortex-m7 -mthumb -ffunction-sections -fsigned-char -c -Os --std=gnu99 -DVDATE=\"`date +"%y%m%d"`\"
+CFLAGS  = $(DFLAGS) -march=armv7-m -mtune=cortex-m7 -mthumb -ffunction-sections -fsigned-char -c -O2 --std=gnu99 -DVDATE=\"`date +"%y%m%d"`\"
 CFLAGS += $(CFLAGS-$@)
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -march=armv7-m -mtune=cortex-m7 -mthumb -Wl,-Map,$(PRJ).map -T$(LINKMAP) $(LIBDIR)
@@ -82,20 +84,13 @@ $(PRJ).hex: $(PRJ).elf
 # Link - this produces an ELF binary.
 $(PRJ).elf: $(OBJ)
 	$(LD) $(LFLAGS) -o $@ $+ $(LIBS)
+	$(SIZE) -B $@
 
 $(PRJ).upg: $(PRJ).bin $(MKUPG)
 	./$(MKUPG) $< $@ `date +"%y%m%d"`
 
 %.o: %.c
-	$(CC) $(CFLAGS)  -o $@ -c $<
-
-# Automatic dependencies
--include $(DEP)
-%.d: %.c
-	$(CC) $(DFLAGS) -MM $< -MT $@ -MT $*.o -MF $@
-
-# Ensure correct time stamp
-main.o: $(filter-out main.o, $(OBJ))
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 sections: $(PRJ).elf
 	$(DUMP) --section-headers $<
