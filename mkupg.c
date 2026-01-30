@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
 
   // create upgrade header
   memset(&upgrade, 0, sizeof(upgrade));
-  strcpy(upgrade.version,"ATH");
+  strcpy(upgrade.version,"ATA");
   strncpy(upgrade.version+3,argv[3],6);
   strcpy(upgrade.id, FW_ID);
   upgrade.rom.size = size;

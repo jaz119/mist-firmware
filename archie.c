@@ -24,7 +24,7 @@ static archie_config_t config;
 
 static char floppy_name[MAX_FLOPPY][64];
 
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 
 enum state { STATE_HRST, STATE_RAK1, STATE_RAK2, STATE_IDLE, 
 	     STATE_WAIT4ACK1, STATE_WAIT4ACK2, STATE_HOLD_OFF } kbd_state;

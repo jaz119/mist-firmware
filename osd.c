@@ -124,7 +124,7 @@ void StarsUpdate()
 static unsigned long scroll_offset=0; // file/dir name scrolling position
 static unsigned long scroll_timer=0;  // file/dir name scrolling timer
 
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 
 static int arrow;
 static unsigned char titlebuffer[128];

@@ -22,7 +22,7 @@ static unsigned char t_enable_ide[2]; // temporary copy of former IDE configurat
 static unsigned char t_ide_idx;
 
 extern configTYPE config;
-extern char s[FF_LFN_BUF + 1];
+extern char s[OSD_BUF_SIZE];
 extern char minimig_ver_beta;
 extern char minimig_ver_major;
 extern char minimig_ver_minor;

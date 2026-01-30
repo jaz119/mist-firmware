@@ -12,6 +12,8 @@
 #include "FatFs/ff.h"
 #include "FatFs/diskio.h"
 
+void disk_cache_set(char enable, LBA_t base);
+
 unsigned char sector_buffer[SECTOR_BUFFER_SIZE]; // sector buffer for one CDDA sector (or 4 SD sector)
 struct PartitionEntry partitions[4];             // lbastart and sectors will be byteswapped as necessary
 int partitioncount;
@@ -102,8 +104,8 @@ unsigned char FindDrive(void) {
 		int i;
 		for(i=0;i<partitioncount;++i) {
 			iprintf("Partition: %d",i);
-			iprintf("  Start: %ld",partitions[i].startlba);
-			iprintf("  Size: %ld\n",partitions[i].sectors);
+			iprintf("  Start: %d",partitions[i].startlba);
+			iprintf("  Size: %d\n",partitions[i].sectors);
 		}
 
 	}
@@ -113,16 +115,15 @@ unsigned char FindDrive(void) {
 	// some debug output
 
 	iprintf("Partition type: ");
-	iprintf(fs_type_to_string());
-	iprintf("\n");
-	iprintf("fat_size: %lu\n", fs.fsize);
+	iprintf("%s\n", fs_type_to_string());
+	iprintf("fat_size: %u\n", fs.fsize);
 	iprintf("fat_number: %u\n", fs.n_fats);
-	iprintf("fat_start: %lu\n", fs.fatbase);
-	iprintf("root_directory_start: %lu\n", fs.dirbase);
+	iprintf("fat_start: %u\n", fs.fatbase);
+	iprintf("root_directory_start: %u\n", fs.dirbase);
 	iprintf("dir_entries: %u\n", fs.n_rootdir);
-	iprintf("data_start: %lu\n", fs.database);
+	iprintf("data_start: %u\n", fs.database);
 	iprintf("cluster_size: %u\n", fs.csize);
-	iprintf("free_clusters: %lu\n", fs.free_clst);
+	iprintf("free_clusters: %u\n", fs.free_clst);
 
 	return(1);
 }
@@ -258,7 +259,7 @@ unsigned char nDirEntries = 0;          // entries in DirEntry table
 unsigned char iSelectedEntry = 0;       // selected entry index
 unsigned char maxDirEntries = 0;
 
-static FILINFO       t_DirEntries[MAXDIRENTRIES];
+static FILINFO       t_DirEntries[MAXDIRENTRIES]; // FIXME: memory usage, get rid of it!
 static unsigned char t_sort_table[MAXDIRENTRIES];
 
 static DIR           dir;

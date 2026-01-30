@@ -21,7 +21,7 @@ typedef struct
 
 typedef struct
 {
-    char          kickstart[80];
+    char          kickstart[FF_MAX_LFN];
     filterTYPE    filter;
     unsigned char memory;
     unsigned char chipset;

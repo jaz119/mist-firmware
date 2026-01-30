@@ -15,6 +15,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -96,7 +97,7 @@ static char *c64_idxitem(int idx, int *offset)
 	return idxline;
 }
 
-static char c64_idx_getmenupage(uint8_t idx, char action, menu_page_t *page) 
+static char c64_idx_getmenupage(uint8_t idx, char action, menu_page_t *page)
 {
 	if (action == MENU_PAGE_EXIT) {
 		f_close(&idxfile);
