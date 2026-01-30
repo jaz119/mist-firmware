@@ -22,6 +22,7 @@ jobs:
             with:
                 tag_name: latest-${{ github.ref_name }}
                 name: "Latest Build: ${{ github.ref_name }}"
+                prerelease: true
                 body: "The latest build from the branch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}"
                 fail_on_unmatched_files: true
                 files: |
