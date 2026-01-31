@@ -5,17 +5,13 @@
 
 #include "fat_compat.h"
 
-//#define FAT_IMG "/dev/sdd"
-//#define TESTDIR "/c64/games/d64/s"
-#define FAT_IMG "test-arcade.img"
-#define TESTDIR "/"
-
 extern FILINFO  DirEntries[MAXDIRENTRIES];
 extern unsigned char sort_table[MAXDIRENTRIES];
+
 extern unsigned char nDirEntries;
 extern unsigned char iSelectedEntry;
 
-FILE * fp;
+FILE *fp = NULL;
 
 void dump(unsigned char *buf) {
 	for (int i = 0; i < 512; i++) {
@@ -40,12 +36,12 @@ void FatalError(unsigned long error) {
 }
 
 char OsdLines() {
-	iprintf("> %s()\n", __FUNCTION__);
+	// iprintf("> %s()\n", __FUNCTION__);
     return 16;
 }
 
 char GetRTC(unsigned char *) {
-	iprintf("> %s()\n", __FUNCTION__);
+	iprintf("! %s()\n", __FUNCTION__);
 	return 0;
 }
 
@@ -55,7 +51,7 @@ unsigned char MMC_CheckCard() {
 }
 
 unsigned long MMC_GetCapacity() {
-	iprintf("> %s()\n", __FUNCTION__);
+	iprintf("! %s()\n", __FUNCTION__);
 	return 0; // FIXME
 }
 
@@ -81,7 +77,7 @@ unsigned char MMC_ReadMultiple(unsigned long lba, unsigned char *pReadBuffer, un
 }
 
 unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBuffer, unsigned long nBlockCount) {
-	iprintf("> %s(%lu, %lu)\n", __FUNCTION__, lba, nBlockCount);
+	iprintf("! %s(%lu, %lu)\n", __FUNCTION__, lba, nBlockCount);
 	return 0;
 }
 
@@ -149,8 +145,6 @@ void ScanDirectoryTest() {
 	unsigned long lastStartCluster;
 	int page = 0;
 
-	ChangeDirectoryName(TESTDIR);
-
 	ScanDirectory(SCAN_INIT, "*", SCAN_DIR | SCAN_LFN);
 	printf("nDirEntries = %d\n", nDirEntries);
 	while (1) {
@@ -173,6 +167,9 @@ void ScanDirectoryTest() {
 	}
 }
 
+//#define FAT_IMG "/dev/sdd"
+#define FAT_IMG "test-arcade.img"
+
 int main () {
 
 	fp = fopen(FAT_IMG, "r");
@@ -180,9 +177,21 @@ int main () {
 		perror(0);
 		return(-1);
 	}
+
 	FindDrive();
 	FileReadTest();
 	FileNextBlockTest();
+
+	ChangeDirectoryName("/");
+	ScanDirectoryTest();
+
+	ChangeDirectoryName("Arcade/Jotego");
+	ScanDirectoryTest();
+
+	ChangeDirectoryName("/Utils");
+	ScanDirectoryTest();
+
+	ChangeDirectoryName("..");
 	ScanDirectoryTest();
 
 	fclose(fp);

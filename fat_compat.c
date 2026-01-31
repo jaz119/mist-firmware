@@ -259,7 +259,7 @@ unsigned char nDirEntries = 0;          // entries in DirEntry table
 unsigned char iSelectedEntry = 0;       // selected entry index
 unsigned char maxDirEntries = 0;
 
-static FILINFO       t_DirEntries[MAXDIRENTRIES]; // FIXME: memory usage, get rid of it!
+static FILINFO       t_DirEntries[MAXDIRENTRIES];
 static unsigned char t_sort_table[MAXDIRENTRIES];
 
 static DIR           dir;
@@ -415,7 +415,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 		}
 		if (fil.fname[0] == 0) break;
 
-		is_file = ~fil.fattrib & AM_DIR;
+		is_file = !(fil.fattrib & AM_DIR);
 
 		if (!(fil.fattrib & AM_HID) &&
 		   ((extension[0] == '*')
