@@ -28,7 +28,7 @@ void spi_init() {
 
 RAMFUNC void spi_wait4xfer_end() {
   while (!(*AT91C_SPI_SR & AT91C_SPI_TXEMPTY));
-  
+
   /* Clear any data left in the receiver */
   (void)*AT91C_SPI_RDR;
   (void)*AT91C_SPI_RDR;
@@ -102,7 +102,7 @@ void spi_max_end() {
     *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
 }
 
-void spi_block(unsigned short num) {
+FAST void spi_block(unsigned short num) {
   unsigned short i;
   unsigned long t;
 
@@ -118,7 +118,7 @@ RAMFUNC void spi_read(char *addr, uint16_t len) {
   *AT91C_PIOA_SODR = AT91C_PA13_MOSI; // set GPIO output register
   *AT91C_PIOA_OER = AT91C_PA13_MOSI;  // GPIO pin as output
   *AT91C_PIOA_PER = AT91C_PA13_MOSI;  // enable GPIO function
-  
+
   // use SPI PDC (DMA transfer)
   *AT91C_SPI_TPR = (unsigned long)addr;
   *AT91C_SPI_TCR = len;
@@ -134,11 +134,7 @@ RAMFUNC void spi_read(char *addr, uint16_t len) {
   *AT91C_PIOA_PDR = AT91C_PA13_MOSI; // disable GPIO function
 }
 
-RAMFUNC void spi_block_read(char *addr) {
-  spi_read(addr, 512);
-}
-
-void spi_write(const char *addr, uint16_t len) {
+RAMFUNC void spi_write(const char *addr, uint16_t len) {
   // use SPI PDC (DMA transfer)
   *AT91C_SPI_TPR = (unsigned long)addr;
   *AT91C_SPI_TCR = len;
@@ -148,10 +144,6 @@ void spi_write(const char *addr, uint16_t len) {
   // wait for tranfer end
   while (!(*AT91C_SPI_SR & AT91C_SPI_ENDTX));
   *AT91C_SPI_PTCR = AT91C_PDC_TXTDIS; // disable transmitter
-}
-
-void spi_block_write(const char *addr) {
-  spi_write(addr, 512);
 }
 
 static unsigned char spi_speed;
@@ -192,15 +184,14 @@ void spi_set_speed(unsigned char speed) {
   }
 }
 
+RAMFUNC unsigned char SPI(unsigned char outByte) {
+  while (!(*AT91C_SPI_SR & AT91C_SPI_TDRE));
+  *AT91C_SPI_TDR = outByte;
+  while (!(*AT91C_SPI_SR & AT91C_SPI_RDRF));
+  return((unsigned char)*AT91C_SPI_RDR);
+}
+
 /* generic helper */
-unsigned char spi_in() {
-  return SPI(0);
-}
-
-void spi8(unsigned char parm) {
-  SPI(parm);
-}
-
 void spi16(unsigned short parm) {
   SPI(parm >> 8);
   SPI(parm >> 0);
@@ -233,7 +224,7 @@ void spi32le(unsigned long parm) {
 }
 
 void spi_n(unsigned char value, unsigned short cnt) {
-  while(cnt--) 
+  while(cnt--)
     SPI(value);
 }
 

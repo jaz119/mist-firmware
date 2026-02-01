@@ -4,8 +4,8 @@ BASE ?= arm-none-eabi
 CC      = $(BASE)-gcc
 LD      = $(BASE)-gcc
 AS      = $(BASE)-as
-CP      = $(BASE)-objcopy
-DUMP    = $(BASE)-objdump
+OBJCOPY = $(BASE)-objcopy
+OBJDUMP = $(BASE)-objdump
 SIZE    = $(BASE)-size
 
 TODAY = `date +"%m/%d/%y"`
@@ -31,9 +31,9 @@ LIBDIR   =
 # for ESA11 add -DEMIST
 DFLAGS  = -I. -Iusb -Iarch/ -Ihw/AT91SAM -DCONFIG_ARCH_ARMV4TE -DCONFIG_ARCH_ARM
 DFLAGS += -DMIST -DUSB_STORAGE -DFF_FS_TINY=1 -DFF_MAX_LFN=64 -DFF_LFN_BUF=64
-CFLAGS  = $(DFLAGS) -march=armv4t -mtune=arm7tdmi -mthumb -fno-common -Os --std=gnu99 -fsigned-char -DVDATE=\"`date +"%y%m%d"`\"
+CFLAGS  = $(DFLAGS) -march=armv4t -mtune=arm7tdmi -mthumb-interwork -mthumb -fno-common -Os --std=gnu99 -fsigned-char -DVDATE=\"`date +"%y%m%d"`\"
 AFLAGS  = -ahls -mapcs-32
-LFLAGS  = -mthumb -nostartfiles -Wl,-Map,$(PRJ).map -T$(LINKMAP) $(LIBDIR)
+LFLAGS  = -mthumb-interwork -mthumb -nostartfiles -Wl,-Map,$(PRJ).map -T$(LINKMAP) $(LIBDIR)
 LFLAGS += --specs=nano.specs
 CPFLAGS = --output-target=ihex
 
@@ -71,11 +71,11 @@ flash_sam: $(PRJ).hex
 
 # Convert ELF binary to bin file.
 $(PRJ).bin: $(PRJ).elf
-	$(CP) -O binary $< $@
+	@$(OBJCOPY) -O binary $< $@
 
 # Convert ELF binary to Intel HEX file.
 $(PRJ).hex: $(PRJ).elf
-	$(CP) $(CPFLAGS) $< $@
+	@$(OBJCOPY) $(CPFLAGS) $< $@
 
 # Link - this produces an ELF binary.
 $(PRJ).elf: crt.o $(OBJ)
@@ -95,7 +95,7 @@ crt.o: hw/AT91SAM/Cstartup.S
 firmware.o: CFLAGS += -marm
 
 sections: $(PRJ).elf
-	$(DUMP) --section-headers $<
+	$(OBJDUMP) --section-headers $<
 
 release:
 	make $(PRJ).hex $(PRJ).bin $(PRJ).upg

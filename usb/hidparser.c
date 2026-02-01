@@ -59,9 +59,9 @@ typedef struct {
 #define USAGE_WHEEL   56
 #define USAGE_HAT     57
 
-// check if the current report 
+// check if the current report
 bool report_is_usable(uint16_t bit_count, uint8_t report_complete, hid_report_t *conf) {
-	hidp_debugf("  - total bit count: %d (%d bytes, %d bits)", 
+	hidp_debugf("  - total bit count: %d (%d bytes, %d bits)",
 	      bit_count, bit_count/8, bit_count%8);
 
 	conf->report_size = bit_count/8;
@@ -78,7 +78,7 @@ bool report_is_usable(uint16_t bit_count, uint8_t report_complete, hid_report_t 
 	return false;
 }
 
-bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf) {
+FAST bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf) {
 	int8_t app_collection = 0;
 	int8_t phys_log_collection = 0;
 	uint8_t skip_collection = 0;
@@ -137,7 +137,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 		//    hidp_extreme_debugf("Value = %d (%u)\n", value, value);
 
-		// we are currently skipping an unknown/unsupported collection) 
+		// we are currently skipping an unknown/unsupported collection)
 		if(skip_collection) {
 			if(!type) {  // main item
 				// any new collection increases the depth of collections to skip
@@ -166,7 +166,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 				switch(tag) {
 				case 8:
-					// handle found buttons 
+					// handle found buttons
 					if(btns) {
 						if((conf->type == REPORT_TYPE_JOYSTICK) ||
 						   (conf->type == REPORT_TYPE_MOUSE)) {
@@ -177,7 +177,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 								if(report_count > b) {
 									uint16_t this_bit = bit_count+b*report_size;
 
-									hidp_debugf("BUTTON%d @ %d (byte %d, mask %d)", b, 
+									hidp_debugf("BUTTON%d @ %d (byte %d, mask %d)", b,
 										this_bit, this_bit/8, 1 << (this_bit%8));
 
 									conf->joystick_mouse.button[b].byte_offset = this_bit/8;
@@ -186,7 +186,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 								}
 							}
 
-							// we found at least one button which is all we want to accept this as a valid 
+							// we found at least one button which is all we want to accept this as a valid
 							// joystick
 							report_complete |= JOY_MOUSE_REQ_BTN_0;
 							if(report_count > 1) report_complete |= JOY_MOUSE_REQ_BTN_1;
@@ -413,7 +413,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 						// usage(mouse) is always allowed
 						hidp_debugf(" -> Mouse");
 						conf->type = REPORT_TYPE_MOUSE;
-					} else if(!collection_depth && 
+					} else if(!collection_depth &&
 						((value == USAGE_GAMEPAD) || (value == USAGE_JOYSTICK))) {
 							hidp_extreme_debugf(" -> Gamepad/Joystick");
 							hidp_debugf("Gamepad/Joystick usage found");

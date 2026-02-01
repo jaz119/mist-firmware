@@ -37,8 +37,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // 2010-08-15   - support for joystick emulation
 // 2010-08-18   - clean-up
 
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 #include "errors.h"
 #include "hardware.h"
 #include "mmc.h"
@@ -134,7 +134,7 @@ int GetUSBStorageDevices()
 }
 #endif
 
-int main(void)
+FAST int main(void)
 {
     uint8_t mmc_ok = 0;
 
@@ -279,12 +279,12 @@ int main(void)
 
       // 8 bit cores can also have a ui if a valid config string can be read from it
       if((user_io_core_type() == CORE_TYPE_8BIT) &&
-	 user_io_is_8bit_with_config_string())
-	HandleUI();
+        user_io_is_8bit_with_config_string())
+        HandleUI();
 
       // Archie core will get its own treatment one day ...
       if(user_io_core_type() == CORE_TYPE_ARCHIE)
-	HandleUI();
+        HandleUI();
     }
     return 0;
 }

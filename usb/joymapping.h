@@ -47,7 +47,7 @@ void virtual_joystick_remap_update(joymapping_t*);
 void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag);
 
 // runtime mapping
-uint16_t virtual_joystick_mapping (uint16_t vid, uint16_t pid, uint16_t joy_input);
+FORCE_ARM uint16_t virtual_joystick_mapping (uint16_t vid, uint16_t pid, uint16_t joy_input);
 
 // name known joysticks
 const char* get_joystick_name( uint16_t vid, uint16_t pid );
@@ -59,7 +59,7 @@ void joystick_key_map_init(void);
 char joystick_key_map(char *, char, int);
 
 // runtime mapping
-bool virtual_joystick_keyboard ( uint16_t vjoy );
+FORCE_ARM bool virtual_joystick_keyboard ( uint16_t vjoy );
 
 /*****************************************************************************/
 

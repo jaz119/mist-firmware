@@ -25,8 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "user_io.h"
 #include "xmodem.h"
 #include "ikbd.h"
-#include "usb.h"
-#include "usb/rtc.h"
 
 void __init_hardware(void)
 {
@@ -123,7 +121,7 @@ volatile static unsigned char tx_rptr, tx_wptr;
 volatile static unsigned char rx_buf[256];
 volatile static unsigned char rx_rptr, rx_wptr;
 
-void Usart0IrqHandler(void) {
+FAST static void Usart0IrqHandler(void) {
   // Read USART status
   unsigned char status = AT91C_BASE_US0->US_CSR;
 
@@ -237,7 +235,7 @@ unsigned long CheckButton(void)
 #endif
 }
 
-void timer0_c_irq_handler(void) {
+FAST static void timer0_c_irq_handler(void) {
   //* Acknowledge interrupt status
   unsigned int dummy = AT91C_BASE_TC0->TC_SR;
 
@@ -262,8 +260,6 @@ void Timer_Init(void) {
 
   //* Enable the clock
   AT91C_BASE_TC0->TC_CCR = AT91C_TC_CLKEN ;
-
-
 
   //* Open Timer 0 interrupt
 
@@ -300,18 +296,10 @@ RAMFUNC unsigned long CheckTimer(unsigned long time)
     return(time > (1UL << 31));
 }
 
-void WaitTimer(unsigned long time)
+FAST void WaitTimer(unsigned long time)
 {
     time = GetTimer(time);
     while (!CheckTimer(time));
-}
-
-inline char mmc_inserted() {
-  return !(*AT91C_PIOA_PDSR & SD_CD);
-}
-
-char mmc_write_protected() {
-  return (*AT91C_PIOA_PDSR & SD_WP);
 }
 
 void InitRTTC() {
@@ -399,10 +387,8 @@ unsigned char UserButton() {
   return (adc_state & 8);
 }
 
-void InitDB9() {}
-
 // poll db9 joysticks
-char GetDB9(char index, uint16_t *joy_map) {
+FAST char GetDB9(char index, uint16_t *joy_map) {
   static int joy0_state = JOY0;
   static int joy1_state = JOY1;
   if (!index) {
@@ -434,15 +420,7 @@ char GetDB9(char index, uint16_t *joy_map) {
   }
 }
 
-char GetRTC(unsigned char *d) {
-  return usb_rtc_get_time(d);
-}
-
-char SetRTC(unsigned char *d) {
-  return usb_rtc_set_time(d);
-}
-
-void RAMFUNC UnlockFlash() {
+RAMFUNC void UnlockFlash() {
   *AT91C_MC_FMR = (48 << 16) | (FWS << 8);  // MCLK cycles in 1us
 
   for (int i = 0; i < 16; i++) {
@@ -454,7 +432,7 @@ void RAMFUNC UnlockFlash() {
   *AT91C_MC_FMR = (72 << 16) | (FWS << 8); // MCLK cycles in 1.5us
 }
 
-void RAMFUNC WriteFlash(int page) {
+RAMFUNC void WriteFlash(int page) {
   while (!(*AT91C_MC_FSR & AT91C_MC_FRDY));  // wait for ready
   *AT91C_MC_FCR = 0x5A << 24 | page << 8 | AT91C_MC_FCMD_START_PROG; // key: 0x5A
   while (!(*AT91C_MC_FSR & AT91C_MC_FRDY));  // wait for ready

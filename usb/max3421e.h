@@ -3,6 +3,7 @@
 #define MAX3421E_H
 
 #include <inttypes.h>
+#include <attrs.h>
 
 #define MAX3421E_STATE_SE0     0
 #define MAX3421E_STATE_SE1     1
@@ -207,7 +208,7 @@
 
 // interface used by usb.c
 void max3421e_init();
-uint8_t max3421e_poll();
+FAST uint8_t max3421e_poll();
 void max3421e_write_u08(uint8_t reg, uint8_t data);
 uint8_t max3421e_read_u08(uint8_t reg);
 const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data);

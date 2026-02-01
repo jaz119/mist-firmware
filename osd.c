@@ -34,7 +34,7 @@ This is the Minimig OSD (on-screen-display) handler.
 */
 
 #include <string.h>
-#include "stdio.h"
+#include <stdio.h>
 
 #include "osd.h"
 #include "spi.h"
@@ -48,10 +48,10 @@ extern unsigned char charfont[128][8];
 // conversion table of Amiga keyboard scan codes to ASCII codes
 static const char keycode_table[128] =
 {
-      0,'1','2','3','4','5','6','7','8','9','0',  0,  0,  0,  0,  0,
-    'Q','W','E','R','T','Y','U','I','O','P',  0,  0,  0,  0,  0,  0,
-    'A','S','D','F','G','H','J','K','L',  0,  0,  0,  0,  0,  0,  0,
-      0,'Z','X','C','V','B','N','M',  0,  0,  0,  0,  0,  0,  0,  0,
+      0, '1','2','3','4','5','6','7','8','9','0', 0,  0,  0,  0,  0,
+     'Q','W','E','R','T','Y','U','I','O','P', 0,  0,  0,  0,  0,  0,
+     'A','S','D','F','G','H','J','K','L', 0,  0,  0,  0,  0,  0,  0,
+      0, 'Z','X','C','V','B','N','M', 0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -68,7 +68,7 @@ struct star stars[64];
 
 static char linebuffer[256];
 
-static int quickrand()
+FAST static int quickrand()
 {
 	static int prev;
 #ifndef MIST
@@ -96,7 +96,7 @@ void StarsInit()
 	}
 }
 
-void StarsUpdate()
+FAST void StarsUpdate()
 {
 	int i;
 	int lines=OsdLines()*8 - 10;
@@ -129,7 +129,7 @@ extern char s[OSD_BUF_SIZE];
 static int arrow;
 static unsigned char titlebuffer[128];
 
-static void rotatechar(unsigned char *in,unsigned char *out)
+FAST static void rotatechar(unsigned char *in,unsigned char *out)
 {
 	int a;
 	int b;
@@ -143,10 +143,10 @@ static void rotatechar(unsigned char *in,unsigned char *out)
 			a|=(in[c]>>b)&1;
 		}
 		out[b]=a;
-	}		
+	}
 }
 
-void OsdSetTitle(char *s,int a)
+FAST void OsdSetTitle(char *s,int a)
 {
 	// Compose the title, condensing character gaps
 	arrow=a;
@@ -220,7 +220,7 @@ void OsdWrite(unsigned char n, char *s, unsigned char invert, unsigned char stip
 }
 
 // write a null-terminated string <s> to the OSD buffer starting at line <n>
-void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned char stipple,char offset)
+FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned char stipple,char offset)
 {
   char *text = s;
   char arrowline[31];
@@ -242,7 +242,7 @@ void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned cha
 }
 
 
-void OsdDrawLogo(unsigned char n, char row,char superimpose) {
+FAST void OsdDrawLogo(unsigned char n, char row,char superimpose) {
   unsigned short i;
   const unsigned char *p;
   int linelimit=OSDLINELEN;
@@ -281,7 +281,7 @@ void OsdDrawLogo(unsigned char n, char row,char superimpose) {
         spi16(0x0000);
         i += 22;
       }
-      if(i>=linelimit) 
+      if(i>=linelimit)
         break;
       if(lp)
         spi8(*lp++ | *bg++);
@@ -321,7 +321,7 @@ void OsdDrawLogo(unsigned char n, char row,char superimpose) {
 
 
 // write a null-terminated string <s> to the OSD buffer starting at line <n>
-void OsdPrintText(unsigned char line, char *text, unsigned long start, unsigned long width, unsigned long xoffset, unsigned char yoffset, unsigned char invert, unsigned char stipple)
+FAST void OsdPrintText(unsigned char line, char *text, unsigned long start, unsigned long width, unsigned long xoffset, unsigned char yoffset, unsigned char invert, unsigned char stipple)
 {
   // line : OSD line number (0-7)
   // text : pointer to null-terminated string
@@ -346,7 +346,7 @@ void OsdPrintText(unsigned char line, char *text, unsigned long start, unsigned 
   // select buffer and line to write to
   if(!minimig_v2())
     spi_osd_cmd_cont(MM1_OSDCMDWRITE | line);
-  else 
+  else
     spi_osd_cmd32_cont(OSD_CMD_OSD_WR, line);
 
   if(invert)
@@ -438,9 +438,9 @@ void OsdDisable(void)
 {
     user_io_osd_key_enable(0);
 
-    if(!minimig_v2()) 
+    if(!minimig_v2())
       spi_osd_cmd(MM1_OSDCMDDISABLE);
-    else 
+    else
       spi_osd_cmd8(OSD_CMD_OSD, 0x00);
 }
 
@@ -476,13 +476,13 @@ void ConfigCPU(unsigned char cpu)
 {
     if(minimig_v1())
       spi_osd_cmd(MM1_OSDCMDCFGCPU | (cpu & 0x03));		//CPU
-    else 
+    else
       spi_osd_cmd8(OSD_CMD_CPU, cpu & 0x0f);
 }
 
 void ConfigChipset(unsigned char chipset)
 {
-    if(minimig_v1()) 
+    if(minimig_v1())
       spi_osd_cmd(MM1_OSDCMDCFGCHP | (chipset & 0x0F));
     else
       spi_osd_cmd8(OSD_CMD_CHIP, chipset & 0x1f);
@@ -534,7 +534,7 @@ unsigned char OsdGetCtrl(void)
     static unsigned char repeat2;
     unsigned char c1=0,c;
 
-    // minimig OSD is controlled by key codes from core 
+    // minimig OSD is controlled by key codes from core
     if(user_io_core_type() == CORE_TYPE_MINIMIG) {
       // send command and get current ctrl status
       EnableOsd();
@@ -542,7 +542,7 @@ unsigned char OsdGetCtrl(void)
       DisableOsd();
     }
 
-    // minimig OSD is controlled by key codes from core 
+    // minimig OSD is controlled by key codes from core
     if(user_io_core_type() == CORE_TYPE_MINIMIG2) {
       // send command and get current ctrl status
       EnableOsd();
@@ -557,7 +557,7 @@ unsigned char OsdGetCtrl(void)
        (user_io_core_type() == CORE_TYPE_8BIT))
       c1 = OsdKeyGet();
 
-    // OsdKeyGet permanently returns the last key event. 
+    // OsdKeyGet permanently returns the last key event.
 
     // generate normal "key-pressed" event
     c = 0;
@@ -616,7 +616,7 @@ unsigned char GetASCIIKey(unsigned char keycode)
 }
 
 
-void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset)
+FAST void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset)
 {
 // this function is called periodically when a string longer than the window is displayed.
 

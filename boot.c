@@ -3,8 +3,8 @@
 // 2014, rok.krajnc@gmail.com
 
 
-#include "string.h"
-#include "stdio.h"
+#include <string.h>
+#include <stdio.h>
 #include "boot.h"
 #include "hardware.h"
 #include "timer.h"

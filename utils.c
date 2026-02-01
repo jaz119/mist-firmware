@@ -5,11 +5,13 @@
 #include "utils.h"
 #include "attrs.h"
 
-unsigned char bin2bcd(unsigned char in) {
-  return 16*(in/10) + (in % 10);
+FAST unsigned char bin2bcd(unsigned char in) {
+  unsigned int tens = (in * 205) >> 11;
+  unsigned int units = in - (tens * 10);
+  return (tens << 4) | units;
 }
 
-unsigned char bcd2bin(unsigned char in) {
+FAST unsigned char bcd2bin(unsigned char in) {
   return 10*(in >> 4) + (in & 0x0f);
 }
 

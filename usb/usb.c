@@ -12,7 +12,7 @@ usb_device_t *usb_get_devices() {
 }
 
 // get (last connected) device by type
-usb_device_t *usb_get_device(usb_dev_type_t type) {
+FAST usb_device_t *usb_get_device(usb_dev_type_t type) {
 	usb_device_t *devs = usb_get_devices();
 
 	for(int i=USB_NUMDEVICES-1;i>=0;i--)
@@ -203,7 +203,6 @@ uint8_t usb_get_dev_qualifier_descr( usb_device_t *dev, uint16_t nbytes, usb_dev
   return( usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
                         0x00, USB_DESCRIPTOR_DEVICE_QUALIFIER, 0x0000, nbytes, (uint8_t*)p));
 }
-
 
 //get configuration descriptor
 uint8_t usb_get_conf_descr( usb_device_t *dev, uint16_t nbytes,

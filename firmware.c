@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 #include "errors.h"
 #include "hardware.h"
 #include "irqflags.h"
@@ -47,7 +47,7 @@ FAST unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, uns
    return crc;
 }
 
-unsigned char CheckFirmware(char *name)
+FAST unsigned char CheckFirmware(char *name)
 {
     unsigned long crc;
     unsigned long size;
@@ -89,7 +89,7 @@ unsigned char CheckFirmware(char *name)
 
                         if (rom_size > IFLASH_SIZE)
                         {
-                            iprintf("Flash overflow: %lu > %lu\n",
+                            iprintf("Flash overflow: %lu > %lu\r",
                                 pUpgrade->rom.size, (unsigned long)IFLASH_SIZE);
                             f_close(&file);
                             return 0;
@@ -110,8 +110,8 @@ unsigned char CheckFirmware(char *name)
                             size -= read_size;
                         }
 
-                        iprintf("Calculated ROM CRC    : %08lX\n", ~crc);
-                        iprintf("ROM CRC from header   : %08lX\n", rom_crc);
+                        iprintf("Calculated ROM CRC    : %08lX\r", ~crc);
+                        iprintf("ROM CRC from header   : %08lX\r", rom_crc);
 
                         if (~crc == rom_crc)
                         {
@@ -120,23 +120,23 @@ unsigned char CheckFirmware(char *name)
                             Error = ERROR_NONE;
                             return 1;
                         }
-                        else iprintf("ROM CRC mismatch! from header: %08lX, calculated: %08lX\n",
+                        else iprintf("ROM CRC mismatch! from header: %08lX, calculated: %08lX\r",
                             rom_crc, ~crc);
                     }
-                    else iprintf("ROM size mismatch! from header: %lu, from file: %llu\n",
+                    else iprintf("ROM size mismatch! from header: %lu, from file: %llu\r",
                         pUpgrade->rom.size, f_size(&file)-sizeof(UPGRADE));
                 }
-                else iprintf("Invalid upgrade file header!\n");
+                else iprintf("Invalid upgrade file header!\r");
             }
-            else iprintf("Header CRC mismatch! from header: %08lX, calculated: %08lX\n",
+            else iprintf("Header CRC mismatch! from header: %08lX, calculated: %08lX\r",
                 pUpgrade->crc, crc);
           }
-          else iprintf("Error creating linkmap\n");
+          else iprintf("Error creating linkmap\r");
         }
-        else iprintf("Upgrade file size too small: %llu\n", f_size(&file));
+        else iprintf("Upgrade file size too small: %llu\r", f_size(&file));
         f_close(&file);
     }
-    else iprintf("Cannot open firmware file!\n");
+    else iprintf("Cannot open firmware file!\r");
     return 0;
 }
 

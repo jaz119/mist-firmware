@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include "attrs.h"
 
 /* NAK powers. To save space in endpoint data structure, amount of retries */
 /* before giving up and returning 0x4 is stored in bmNakPower as a power of 2.*/
@@ -310,17 +311,17 @@ uint8_t usb_get_conf( usb_device_t *dev, uint8_t *conf_value );
 uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value );
 uint8_t usb_release_device(uint8_t parent, uint8_t port);
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed);
-usb_device_t *usb_get_device(usb_dev_type_t);
+FAST usb_device_t *usb_get_device(usb_dev_type_t);
 usb_device_t *usb_get_devices();
 
 // device-specific functions
-uint8_t usb_in_transfer( usb_device_t *, ep_t *ep, uint16_t *nbytesptr, uint8_t* data);
-uint8_t usb_out_transfer( usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t* data );
-uint8_t usb_ctrl_req( usb_device_t *, uint8_t bmReqType,
+FAST uint8_t usb_in_transfer( usb_device_t *, ep_t *ep, uint16_t *nbytesptr, uint8_t* data);
+FAST uint8_t usb_out_transfer( usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t* data );
+FAST uint8_t usb_ctrl_req( usb_device_t *, uint8_t bmReqType,
                       uint8_t bRequest, uint8_t wValLo, uint8_t wValHi,
                       uint16_t wInd, uint16_t nbytes, uint8_t* dataptr);
 void usb_hw_init();
-void usb_poll();
+FAST void usb_poll();
 void usb_SetHubPreMask(void);
 void usb_ResetHubPreMask(void);
 

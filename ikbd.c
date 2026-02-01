@@ -120,7 +120,7 @@ unsigned short be16(unsigned short in) {
   return ((in & 0xff)<<8) + ((in & 0xff00)>>8);
 }
 
-static void enqueue(unsigned short b) {
+FAST static void enqueue(unsigned short b) {
   if(((wptr + 1)&(QUEUE_LEN-1)) == rptr)
     return;
 
@@ -644,7 +644,7 @@ void ikbd_mouse(unsigned char b, char x, char y) {
 }
 
 // advance the ikbd time by one second
-void ikbd_update_time(void) {
+FAST void ikbd_update_time(void) {
   static const char mdays[] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
   short year = 1900 + ikbd.date[T_YEAR];

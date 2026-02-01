@@ -289,7 +289,7 @@ static uint8_t usb_hub_port_status_change(usb_device_t *dev, uint8_t port, hub_e
   return 0;
 }
 
-static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
+FAST static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
   usb_hub_info_t *info = &(dev->hub_info);
 
   uint8_t	rcode;
@@ -347,7 +347,7 @@ static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
   return 0;
 }
 
-static uint8_t usb_hub_poll(usb_device_t *dev) {
+FAST static uint8_t usb_hub_poll(usb_device_t *dev) {
   usb_hub_info_t *info = &(dev->hub_info);
 
   uint8_t rcode = 0;

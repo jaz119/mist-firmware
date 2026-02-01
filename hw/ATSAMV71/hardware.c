@@ -302,11 +302,9 @@ inline char mmc_write_protected() {
     return !!(PIOD->PIO_PDSR & SD_WP);
 }
 
-inline RAMFUNC void MCUReset() {
-    RSTC->RSTC_CR = RSTC_CR_PROCRST | RSTC_CR_EXTRST | RSTC_CR_KEY_PASSWD;
+inline unsigned long GetRTTC() {
+    return timer_ticks;
 }
-
-inline int GetRTTC() {return timer_ticks;}
 
 void InitRTTC() {
   // reprogram the realtime timer to run at 1Khz
@@ -538,7 +536,7 @@ char SetRTC(unsigned char *d) {
     return 1;
 }
 
-void RAMFUNC UnlockFlash() {
+RAMFUNC void UnlockFlash() {
     // FIXME: Attempt to unblock non-existent regions (above 1Mb)
     for (int i = 0; i < 64; i++) {
         while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
@@ -547,7 +545,7 @@ void RAMFUNC UnlockFlash() {
     }
 }
 
-void RAMFUNC WriteFlash(unsigned long page) {
+RAMFUNC void WriteFlash(unsigned long page) {
     uint32_t status;
     while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
     if (!(page & 0xf)) {

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "chip.h"
 #include "samv71.h"
 #include "core_cm7.h"
+#include "attrs.h"
 
 #define MCLK   144000000
 #define PLLCLK 288000000
@@ -158,16 +159,18 @@ unsigned char USART_Read();
 
 unsigned long CheckButton();
 void Timer_Init();
-unsigned long GetTimer(unsigned long offset);
-unsigned long CheckTimer(unsigned long t);
+RAMFUNC unsigned long GetTimer(unsigned long offset);
+RAMFUNC unsigned long CheckTimer(unsigned long t);
 void WaitTimer(unsigned long time);
 
 void USART_Poll();
 
-void MCUReset();
+static inline void MCUReset() {
+    RSTC->RSTC_CR = RSTC_CR_PROCRST | RSTC_CR_EXTRST | RSTC_CR_KEY_PASSWD;
+}
 
 void InitRTTC();
-int GetRTTC();
+unsigned long GetRTTC();
 
 int GetSPICLK();
 
@@ -184,8 +187,8 @@ char GetDB9(char index, uint16_t *joy_map);
 char GetRTC(unsigned char *d);
 char SetRTC(unsigned char *d);
 
-void UnlockFlash();
-void WriteFlash(unsigned long page);
+RAMFUNC void UnlockFlash();
+RAMFUNC void WriteFlash(unsigned long page);
 
 #ifdef FPGA3
 // the MiST has the user inout on the arm controller

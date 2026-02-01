@@ -5,6 +5,10 @@
 
 #include <inttypes.h>
 
+#include "usb.h"
+#include "usb/rtc.h"
+#include "attrs.h"
+
 #define MCLK 48000000
 #define FWS 1 // Flash wait states
 
@@ -112,43 +116,59 @@ static inline uint8_t usb_irq_active() {
   return !(AT91C_BASE_PIOA->PIO_PDSR & USB_INT);
 }
 
-char mmc_inserted(void);
-char mmc_write_protected(void);
+static inline char mmc_inserted() {
+  return !(*AT91C_PIOA_PDSR & SD_CD);
+}
+
+static inline char mmc_write_protected() {
+  return (*AT91C_PIOA_PDSR & SD_WP);
+}
+
 void USART_Init(unsigned long baudrate);
 void USART_Write(unsigned char c);
 unsigned char USART_Read(void);
-
-unsigned long CheckButton(void);
-void Timer_Init(void);
-unsigned long GetTimer(unsigned long offset);
-unsigned long CheckTimer(unsigned long t);
-void WaitTimer(unsigned long time);
-
 void USART_Poll(void);
 
-void inline MCUReset() {*AT91C_RSTC_RCR = 0xA5 << 24 | AT91C_RSTC_PERRST | AT91C_RSTC_PROCRST | AT91C_RSTC_EXTRST;}
+unsigned long CheckButton(void);
+
+void Timer_Init(void);
+RAMFUNC unsigned long GetTimer(unsigned long offset);
+RAMFUNC unsigned long CheckTimer(unsigned long t);
+FAST void WaitTimer(unsigned long time);
+
+static inline void MCUReset() {
+  *AT91C_RSTC_RCR = 0xA5 << 24 | AT91C_RSTC_PERRST | AT91C_RSTC_PROCRST | AT91C_RSTC_EXTRST;
+}
 
 void InitRTTC();
 
-int inline GetRTTC() {return (int)(AT91C_BASE_RTTC->RTTC_RTVR);}
+static inline unsigned long GetRTTC() {
+  return (AT91C_BASE_RTTC->RTTC_RTVR);
+}
 
 int GetSPICLK();
 
 void InitADC(void);
 void PollADC();
+
 // user, menu, DIP2, DIP1
 unsigned char Buttons();
 unsigned char MenuButton();
 unsigned char UserButton();
 
-void InitDB9();
-char GetDB9(char index, uint16_t *joy_map);
+static inline void InitDB9() {};
+FAST char GetDB9(char index, uint16_t *joy_map);
 
-char GetRTC(unsigned char *d);
-char SetRTC(unsigned char *d);
+static inline char GetRTC(unsigned char *d) {
+  return usb_rtc_get_time(d);
+}
 
-void UnlockFlash();
-void WriteFlash(int page);
+static inline char SetRTC(unsigned char *d) {
+  return usb_rtc_set_time(d);
+}
+
+RAMFUNC void UnlockFlash();
+RAMFUNC void WriteFlash(int page);
 
 #ifdef FPGA3
 // the MiST has the user inout on the arm controller

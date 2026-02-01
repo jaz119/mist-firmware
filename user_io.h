@@ -8,6 +8,8 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+
+#include "attrs.h"
 #include "fat_compat.h"
 
 #define UIO_STATUS      0x00
@@ -51,7 +53,7 @@
 #define UIO_SET_SDCONF  0x19  // send SD card configuration (CSD, CID)
 #define UIO_ASTICK      0x1a
 #define UIO_SIO_IN      0x1b  // serial in
-#define UIO_SET_SDSTAT  0x1c  // set sd card status 
+#define UIO_SET_SDSTAT  0x1c  // set sd card status
 #define UIO_SET_SDINFO  0x1d  // send info about mounted image
 #define UIO_SET_STATUS2 0x1e  // 64bit status
 #define UIO_GET_KBD_LED 0x1f  // keyboard LEDs control
@@ -143,7 +145,7 @@
 #define JOY_DOWN2       0x040000
 #define JOY_UP2         0x080000
 
-// keyboard LEDs control 
+// keyboard LEDs control
 #define KBD_LED_CAPS_CONTROL  0x01
 #define KBD_LED_CAPS_STATUS   0x02
 #define KBD_LED_CAPS_MASK     (KBD_LED_CAPS_CONTROL | KBD_LED_CAPS_STATUS)
@@ -166,7 +168,7 @@
 #define CORE_TYPE_DUMB      0xa0   // core without any io controller interaction
 #define CORE_TYPE_MINIMIG   0xa1   // minimig amiga core
 #define CORE_TYPE_PACE      0xa2   // core from pacedev.net (joystick only)
-#define CORE_TYPE_MIST      0xa3   // mist atari st core   
+#define CORE_TYPE_MIST      0xa3   // mist atari st core
 #define CORE_TYPE_8BIT      0xa4   // atari 800/c64 like core
 #define CORE_TYPE_MINIMIG2  0xa5   // new Minimig with AGA
 #define CORE_TYPE_ARCHIE    0xa6   // Acorn Archimedes
@@ -185,11 +187,11 @@
 #define UIO_PARITY_MARK  3
 #define UIO_PARITY_SPACE 4
 
-#define UIO_PRIORITY_KEYBOARD 0 
+#define UIO_PRIORITY_KEYBOARD 0
 #define UIO_PRIORITY_GAMEPAD  1
 
 
-// serial status data type returned from the core 
+// serial status data type returned from the core
 typedef struct {
   uint32_t bitrate;        // 300, 600 ... 115200
   uint8_t datasize;        // 5,6,7,8 ...
@@ -207,7 +209,7 @@ uint32_t user_io_get_core_features();
 char minimig_v1();
 char minimig_v2();
 char user_io_is_8bit_with_config_string();
-void user_io_poll();
+FAST void user_io_poll();
 void user_io_osd_key_enable(char);
 void user_io_serial_tx(char *, uint16_t);
 char *user_io_8bit_get_string(unsigned char);
@@ -231,21 +233,21 @@ void user_io_eth_send_rx_frame(uint8_t *, uint16_t);
 void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
 
 // hooks from the usb layer
-void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z);
-void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid);
+FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z);
+FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid);
 #define CONFIG_ROOT 1   // create config filename in the root directory
 #define CONFIG_VHD  2   // create config filename according to VHD= in arc file
 char user_io_create_config_name(char *s, const char *ext, char flags);
 void user_io_digital_joystick(unsigned char, unsigned char);
 void user_io_digital_joystick_ext(unsigned char, uint32_t);
-void user_io_analog_joystick(unsigned char, char, char, char, char);
+FAST void user_io_analog_joystick(unsigned char, char, char, char, char);
 char user_io_osd_is_visible();
 void user_io_send_buttons(char);
 char user_io_i2c_write(unsigned char addr, unsigned char subaddr, unsigned char data);
 char user_io_i2c_read(unsigned char addr, unsigned char subaddr, unsigned char *data);
 
-char user_io_key_remap(char *, char, int);
-void add_modifiers(uint8_t mod, uint16_t* keys_ps2);
+FAST char user_io_key_remap(char *, char, int);
+FAST void add_modifiers(uint8_t mod, uint16_t* keys_ps2);
 
 unsigned char user_io_ext_idx(const char*, const char*);
 

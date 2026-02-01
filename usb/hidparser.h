@@ -1,6 +1,8 @@
 #ifndef HIDPARSER_H
 #define HIDPARSER_H
 
+#include "attrs.h"
+
 #define REPORT_TYPE_NONE     0
 #define REPORT_TYPE_MOUSE    1
 #define REPORT_TYPE_KEYBOARD 2
@@ -45,11 +47,11 @@ typedef struct {
       } hat;                   // 1 hat (joystick only)
 
 			uint8_t button_count;
-      
+
     } joystick_mouse;
   };
 } hid_report_t;
 
-bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf);
+FAST bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf);
 
 #endif // HIDPARSER_H

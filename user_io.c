@@ -481,7 +481,7 @@ static unsigned short usb2ps2code( unsigned char k) {
 	return (ps2_kbd_scan_set == 1) ? usb2ps2_set1[k] : usb2ps2[k];
 }
 
-void user_io_analog_joystick(unsigned char joystick, char valueX, char valueY, char valueX2, char valueY2) {
+FAST void user_io_analog_joystick(unsigned char joystick, char valueX, char valueY, char valueX2, char valueY2) {
 	if(osd_is_visible) return;
 
 	if(core_type == CORE_TYPE_8BIT || core_type == CORE_TYPE_MINIMIG2) {
@@ -1232,7 +1232,7 @@ static void handle_ps2_mouse_commands()
 	}
 }
 
-void user_io_poll() {
+FAST void user_io_poll() {
 
 	// check of core has changed from a good one to a not supported on
 	// as this likely means that the user is reloading the core via jtag
@@ -1942,7 +1942,7 @@ static void send_keycode(unsigned short code) {
 		archie_kbd(code);
 }
 
-void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) {
+FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) {
 
 	// send mouse data as minimig expects it
 	if((core_type == CORE_TYPE_MINIMIG) ||
@@ -2063,7 +2063,7 @@ static void check_reset(unsigned short modifiers, char useKeys)
 	}
 }
 
-unsigned short modifier_keycode(unsigned char index) {
+static unsigned short modifier_keycode(unsigned char index) {
 	/* usb modifer bits:
 	        0     1     2    3    4     5     6    7
 	      LCTRL LSHIFT LALT LGUI RCTRL RSHIFT RALT RGUI
@@ -2157,7 +2157,7 @@ static char kr_fn_table[] =
 	0x28, 0x58  //KP Enter
 };
 
-static void keyrah_trans(unsigned char *m, unsigned char *k)
+FAST static void keyrah_trans(unsigned char *m, unsigned char *k)
 {
 	static char keyrah_fn_state = 0;
 	char fn = 0;
@@ -2229,7 +2229,7 @@ static void keyrah_trans(unsigned char *m, unsigned char *k)
 //Keyrah v2: USB\VID_18D8&PID_0002\A600/A1200_MULTIMEDIA_EXTENSION_VERSION
 #define KEYRAH_ID (mist_cfg.keyrah_mode && (((((uint32_t)vid)<<16) | pid) == mist_cfg.keyrah_mode))
 
-void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
+FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
 {
 	static char caps=0;
 	// ignore lower priority clears if higher priority key was pressed
@@ -2614,7 +2614,7 @@ void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned s
 }
 
 /* translates a USB modifiers into scancodes */
-void add_modifiers(uint8_t mod, uint16_t* keys_ps2)
+FAST void add_modifiers(uint8_t mod, uint16_t* keys_ps2)
 {
 	uint8_t i;
 	uint8_t offset = 1;

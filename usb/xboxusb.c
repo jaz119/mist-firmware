@@ -176,7 +176,7 @@ uint8_t usb_xbox_release(usb_device_t *dev) {
 	return 0;
 }
 
-static void usb_xbox_read_report(usb_device_t *dev, uint16_t len, uint8_t *buf) {
+FAST static void usb_xbox_read_report(usb_device_t *dev, uint16_t len, uint8_t *buf) {
 	if(!buf) return;
 //	hexdump(buf, len, 0);
 	if(buf[0] != 0x00 || buf[1] != 0x14) { // Check if it's the correct report - the controller also sends different status reports
@@ -251,7 +251,7 @@ static void usb_xbox_read_report(usb_device_t *dev, uint16_t len, uint8_t *buf) 
 	user_io_analog_joystick(idx, buf[7], ~buf[9], buf[11], ~buf[13]);
 }
 
-uint8_t usb_xbox_poll(usb_device_t *dev) {
+FAST static uint8_t usb_xbox_poll(usb_device_t *dev) {
 
 	if(!dev->xbox_info.bPollEnable)
 		return 0;

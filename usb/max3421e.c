@@ -153,7 +153,7 @@ void max3421e_init() {
 
 #include "timer.h"
 
-uint8_t max3421e_poll() {
+FAST uint8_t max3421e_poll() {
   uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
 
   // do LED animation on V1.3+ boards if enabled via cfg file

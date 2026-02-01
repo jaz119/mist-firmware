@@ -87,7 +87,7 @@ char hid_joystick_button_remap(char *s, char action, int tag) {
 /*****************************************************************************/
 
 //get HID report descriptor
-static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size)  {
+FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size)  {
 	//  hid_debugf("%s(%x, if=%d, size=%d)", __FUNCTION__, dev->bAddress, iface, size);
 
 	uint8_t buf[size];
@@ -293,7 +293,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 	return 0;
 }
 
-static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
+FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
 	hid_debugf("%s(%x)", __FUNCTION__, dev->bAddress);
 
 	uint8_t rcode;
@@ -460,7 +460,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	return 0;
 }
 
-static uint8_t usb_hid_release(usb_device_t *dev) {
+FAST static uint8_t usb_hid_release(usb_device_t *dev) {
 	usb_hid_info_t *info = &(dev->hid_info);
 
 	puts(__FUNCTION__);
@@ -569,48 +569,22 @@ static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, ui
 }
 
 // collect bits from byte stream and assemble them into a signed word
-static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_signed) {
-	// mask unused bits of first byte
-	uint8_t mask = 0xff << (offset&7);
-	uint8_t byte = offset/8;
-	uint8_t bits = size;
-	uint8_t shift = offset&7;
+FORCE_ARM static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_signed) {
+	uint32_t byte = offset >> 3;
+	uint32_t shift = offset & 7;
 
-	//  iprintf("0 m:%x by:%d bi=%d sh=%d ->", mask, byte, bits, shift);
-	uint16_t rval = (p[byte++] & mask) >> shift;
-	//  iprintf("%d\n", (int16_t)rval);
-	mask = 0xff;
-	shift = 8-shift;
-	bits -= shift;
+	uint32_t val = p[byte];
+	val |= (uint32_t)p[byte + 1] << 8;
 
-	// first byte already contained more bits than we need
-	if(shift > size) {
-		//    iprintf("  too many bits, masked %x ->", (1<<size)-1);
-		// mask unused bits
-		rval &= (1<<size)-1;
-		//    iprintf("%d\n", (int16_t)rval);
-	} else {
-		// further bytes if required
-		while(bits) {
-			mask = (bits<8)?(0xff>>(8-bits)):0xff;
-			//      iprintf("+ m:%x by:%d bi=%d sh=%d ->", mask, byte, bits, shift);
-			rval += (p[byte++] & mask) << shift;
-			//      iprintf("%d\n", (int16_t)rval);
-			shift += 8;
-			bits -= (bits>8)?8:bits;
-		}
+	if ((shift + size) > 16) {
+		val |= (uint32_t)p[byte + 2] << 16;
 	}
 
-	if(is_signed) {
-		// do sign expansion
-		uint16_t sign_bit = 1<<(size-1);
-		if(rval & sign_bit) {
-			while(sign_bit) {
-				rval |= sign_bit;
-				sign_bit <<= 1;
-			}
-			// iprintf(" is negative -> sign expand to %d\n", (int16_t)rval);
-		}
+	uint16_t rval = (uint16_t)((val >> shift) & ((1UL << size) - 1));
+
+	if (is_signed) {
+		uint32_t s_shift = 32 - size;
+		rval = (uint16_t)((int32_t)((uint32_t)rval << s_shift) >> s_shift);
 	}
 
 	return rval;
@@ -619,7 +593,7 @@ static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_
 static usb_hid_iface_info_t *virt_joy_kbd_iface = NULL;
 
 /* processes a single USB interface */
-static void usb_process_iface (usb_device_t *dev,
+FORCE_ARM static void usb_process_iface (usb_device_t *dev,
                                usb_hid_iface_info_t *iface,
                                uint16_t read,
                                uint8_t *buf) {
@@ -887,7 +861,7 @@ static void usb_process_iface (usb_device_t *dev,
 }
 
 
-static uint8_t usb_hid_poll(usb_device_t *dev) {
+FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	usb_hid_info_t *info = &(dev->hid_info);
 	int8_t i;
 
@@ -904,7 +878,7 @@ static uint8_t usb_hid_poll(usb_device_t *dev) {
 				// report may not fit into one packet
 				if (iface->conf.report_size > read)
 					read = iface->conf.report_size;
-				uint8_t buf[read];
+				uint8_t buf[read+2];
 				// clear buffer
 				memset(buf, 0, iface->ep.maxPktSize);
 				uint8_t rcode = usb_in_transfer(dev, &(iface->ep), &read, buf);

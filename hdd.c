@@ -269,7 +269,7 @@ static void IdentifyPacketDevice(unsigned short *pBuffer, unsigned char unit)
 }
 
 // chs2lba()
-static unsigned long chs2lba(unsigned short cylinder, unsigned char head, unsigned short sector, unsigned char unit, char lbamode)
+FAST static unsigned long chs2lba(unsigned short cylinder, unsigned char head, unsigned short sector, unsigned char unit, char lbamode)
 {
   if (lbamode){
     return ((head<<24) + (cylinder<<8) + sector);
