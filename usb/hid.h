@@ -5,9 +5,9 @@
 #include <inttypes.h>
 #include "hidparser.h"
 
-#define HID_LED_NUM_LOCK    0x01
-#define HID_LED_CAPS_LOCK   0x02
-#define HID_LED_SCROLL_LOCK 0x04
+#define HID_LED_NUM_LOCK            0x01
+#define HID_LED_CAPS_LOCK           0x02
+#define HID_LED_SCROLL_LOCK         0x04
 
 /* HID constants. Not part of chapter 9 */
 /* Class-Specific Requests */
@@ -18,16 +18,16 @@
 #define HID_REQUEST_SET_IDLE        0x0A
 #define HID_REQUEST_SET_PROTOCOL    0x0B
 
-#define HID_DESCRIPTOR_HID		0x21
-#define HID_DESCRIPTOR_REPORT		0x22
-#define HID_DESRIPTOR_PHY		0x23
+#define HID_DESCRIPTOR_HID          0x21
+#define HID_DESCRIPTOR_REPORT       0x22
+#define HID_DESRIPTOR_PHY           0x23
 
 /* Protocol Selection */
-#define HID_BOOT_PROTOCOL                       0x00
-#define HID_RPT_PROTOCOL                        0x01
+#define HID_BOOT_PROTOCOL           0x00
+#define HID_RPT_PROTOCOL            0x01
 
 /* HID Interface Class SubClass Codes */
-#define HID_BOOT_INTF_SUBCLASS          0x01
+#define HID_BOOT_INTF_SUBCLASS      0x01
 
 #define HID_PROTOCOL_NONE           0x00
 #define HID_PROTOCOL_KEYBOARD       0x01
@@ -64,9 +64,9 @@ typedef struct {
   bool has_boot_mode: 1;     // device supports boot mode
   bool is_5200daptor: 1;     // device is a 5200daptor with special key handling
   uint16_t key_state;        // needed to detect key state changes in 5200daptor
-  
+
   // additional info extracted from the report descriptor
-  // (currently only used for joysticks) 
+  // (currently only used for joysticks)
   uint32_t jmap;           // last reported joystick state
   uint16_t jindex;         // joystick index
   hid_report_t conf;

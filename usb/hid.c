@@ -10,12 +10,11 @@
 #include "joymapping.h"
 #include "joystick.h"
 #include "hardware.h"
-#include "../utils.h"
-#include "../user_io.h"
-#include "../mist_cfg.h"
-#include "../osd.h"
-#include "../state.h"
-
+#include "utils.h"
+#include "user_io.h"
+#include "mist_cfg.h"
+#include "osd.h"
+#include "state.h"
 
 static unsigned char kbd_led_state = 0;  // default: all leds off
 static unsigned char keyboards = 0;      // number of detected usb keyboards
@@ -90,19 +89,19 @@ char hid_joystick_button_remap(char *s, char action, int tag) {
 FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size)  {
 	//  hid_debugf("%s(%x, if=%d, size=%d)", __FUNCTION__, dev->bAddress, iface, size);
 
-	uint8_t buf[size];
+	uint8_t ALIGNED(4) buf[size];
 	usb_hid_info_t *info = &(dev->hid_info);
 	uint8_t rcode = usb_ctrl_req( dev, HID_REQ_HIDREPORT, USB_REQUEST_GET_DESCRIPTOR, 0x00,
 			      HID_DESCRIPTOR_REPORT, info->iface[i].iface_idx, size, buf);
 
 	if(!rcode) {
-		hid_debugf("HID report descriptor:");
+		iprintf("HID report descriptor:\n");
 		hexdump(buf, size, 0);
 
 		// we got a report descriptor. Try to parse it
 		if(parse_report_descriptor(buf, size, &(info->iface[i].conf))) {
 			if(info->iface[i].conf.type == REPORT_TYPE_JOYSTICK) {
-				hid_debugf("Detected USB joystick #%d", joystick_count());
+				iprintf("Detected USB joystick%d\n", joystick_count());
 				info->iface[i].device_type = HID_DEVICE_JOYSTICK;
 				info->iface[i].jindex = joystick_add();
 			}
@@ -209,17 +208,17 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 					switch(p->iface_desc.bInterfaceProtocol) {
 					case HID_PROTOCOL_NONE:
-						hid_debugf("HID protocol is NONE");
+						iprintf("HID protocol is NONE\n");
 						break;
 
 					case HID_PROTOCOL_KEYBOARD:
-						hid_debugf("HID protocol is KEYBOARD");
+						iprintf("HID protocol is KEYBOARD\n");
 						info->iface[info->bNumIfaces].device_type = HID_DEVICE_KEYBOARD;
 						keyboards++;
 						break;
 
 					case HID_PROTOCOL_MOUSE:
-						hid_debugf("HID protocol is MOUSE");
+						iprintf("HID protocol is MOUSE\n");
 						// don't use boot mode for mice unless it's explicitey requested in mist.ini
 						if(!mist_cfg.mouse_boot_mode)
 							info->iface[info->bNumIfaces].ignore_boot_mode = true;
@@ -229,7 +228,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 						break;
 
 					default:
-						hid_debugf("HID protocol is %d", p->iface_desc.bInterfaceProtocol);
+						iprintf("HID protocol is %d\n", p->iface_desc.bInterfaceProtocol);
 						break;
 					}
 				}
@@ -243,7 +242,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 					// only interrupt in endpoints are supported
 					if ((p->ep_desc.bmAttributes & 0x03) == 3 && (p->ep_desc.bEndpointAddress & 0x80) == 0x80) {
-						hid_debugf("endpoint %d, interval = %dms",
+						iprintf("endpoint %d, interval = %dms\n",
 						p->ep_desc.bEndpointAddress & 0x0F, p->ep_desc.bInterval);
 
 						// Fill in the endpoint info structure
@@ -267,7 +266,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 					if(p->hid_desc.bDescrType == HID_DESCRIPTOR_REPORT) {
 						uint16_t len = p->hid_desc.wDescriptorLength[0] +
 						  256 * p->hid_desc.wDescriptorLength[1];
-						hid_debugf(" -> report descriptor size = %d", len);
+						iprintf(" -> report descriptor size = %d\n", len);
 
 						info->iface[info->bNumIfaces].report_desc_size = len;
 					}
@@ -314,7 +313,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 		info->iface[i].ep.epType     = 0;
 		info->iface[i].ep.maxPktSize = 8;
 		info->iface[i].ep.epAttribs  = 0;
-		info->iface[i].ep.bmNakPower = USB_NAK_MAX_POWER;
+		info->iface[i].ep.bmNakPower = USB_NAK_DEFAULT;
 	}
 
 	// save vid/pid for automatic hack later
@@ -358,7 +357,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 
 			if(info->iface[i].device_type == HID_DEVICE_UNKNOWN) {
 				// bInterfaceProtocol was 0 ("none") -> try to parse anyway
-				iprintf("HID NONE: report type = %d, size = %d\n",
+				hid_debugf("HID NONE: report type = %d, size = %d",
 				info->iface[i].conf.type, info->iface[i].conf.report_size);
 
 				// currently we only use this to support "report type "REPORT_TYPE_KEYBOARD" which in turn
@@ -463,7 +462,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 FAST static uint8_t usb_hid_release(usb_device_t *dev) {
 	usb_hid_info_t *info = &(dev->hid_info);
 
-	puts(__FUNCTION__);
+	hid_debugf("%s()", __FUNCTION__);
 
 	uint8_t i;
 	for(i=0;i<info->bNumIfaces;i++) {
@@ -878,13 +877,14 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 				// report may not fit into one packet
 				if (iface->conf.report_size > read)
 					read = iface->conf.report_size;
-				uint8_t buf[read+2];
+				uint8_t ALIGNED(4) buf[read+2];
 				// clear buffer
 				memset(buf, 0, iface->ep.maxPktSize);
 				uint8_t rcode = usb_in_transfer(dev, &(iface->ep), &read, buf);
 				if (rcode) {
 					if (rcode != hrNAK)
-						hid_debugf("%s() error: %d", __FUNCTION__, rcode);
+						hid_debugf("%s(%d): error #%02X",
+							__FUNCTION__, dev->bAddress, rcode);
 				} else {
 					usb_process_iface (dev, iface, read, buf);
 				}

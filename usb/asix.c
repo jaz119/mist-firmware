@@ -562,7 +562,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
   // poll interrupt endpoint
   if (timer_check(info->qLastIrqPollTime, info->int_poll_ms)) {
     uint16_t read = info->ep[info->ep_int_idx].maxPktSize;
-    uint8_t buf[info->ep[info->ep_int_idx].maxPktSize];
+    uint8_t ALIGNED(4) buf[info->ep[info->ep_int_idx].maxPktSize];
     uint8_t rcode = usb_in_transfer(dev, &(info->ep[info->ep_int_idx]), &read, buf);
 
     if (rcode) {

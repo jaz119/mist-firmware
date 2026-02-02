@@ -8,16 +8,16 @@
 /* NAK powers. To save space in endpoint data structure, amount of retries */
 /* before giving up and returning 0x4 is stored in bmNakPower as a power of 2.*/
 /* The actual nak_limit is then calculated as nak_limit = ( 2^bmNakPower - 1) */
-#define USB_NAK_MAX_POWER 16 // NAK binary order maximum value
-#define USB_NAK_DEFAULT   12 // default 4K-1 NAKs before giving up
-#define USB_NAK_NOWAIT    1  // Single NAK stops transfer
-#define USB_NAK_NONAK     0  // Do not count NAKs, stop retrying after USB Timeout
+#define USB_NAK_MAX_POWER     16 // NAK binary order maximum value
+#define USB_NAK_DEFAULT       7  // default 127 NAKs before giving up
+#define USB_NAK_NOWAIT        1  // Single NAK stops transfer
+#define USB_NAK_NONAK         0  // Do not count NAKs, stop retrying after USB Timeout
 
-#define EP_TYPE_CTRL                           0U
-#define EP_TYPE_ISOC                           1U
-#define EP_TYPE_BULK                           2U
-#define EP_TYPE_INTR                           3U
-#define EP_TYPE_MSK                            3U
+#define EP_TYPE_CTRL          0U
+#define EP_TYPE_ISOC          1U
+#define EP_TYPE_BULK          2U
+#define EP_TYPE_INTR          3U
+#define EP_TYPE_MSK           3U
 
 typedef struct {
   uint8_t epAddr;     // Endpoint address
@@ -46,12 +46,12 @@ typedef struct {
 #define USB_REQ_SET           USB_SETUP_HOST_TO_DEVICE|USB_SETUP_TYPE_STANDARD|USB_SETUP_RECIPIENT_DEVICE     //set request type for all but 'set feature' and 'set interface'
 #define USB_REQ_CL_GET_INTF   USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_CLASS|USB_SETUP_RECIPIENT_INTERFACE     //get interface request type
 
-#define USB_SETTLE_DELAY 200   // settle delay in milliseconds
-#define USB_XFER_TIMEOUT 5000  // USB transfer timeout in milliseconds, per section 9.2.6.1 of USB 2.0 spec
-#define USB_ACK_TIMEOUT  25    // USB ACK timeout
-#define USB_RETRY_DELAY  250   // USB timeout retry delay (usec)
-#define USB_NACK_DELAY   50    // USB NACK delay (usec)
-#define USB_RETRY_LIMIT  3     // retry limit for a transfer
+#define USB_SETTLE_DELAY      200   // settle delay (msec)
+#define USB_XFER_TIMEOUT      5000  // USB transfer timeout (msec), per section 9.2.6.1 of USB 2.0 spec
+#define USB_ACK_TIMEOUT       25    // USB ACK timeout (msec)
+#define USB_NACK_DELAY        50    // USB NACK delay (usec)
+#define USB_RETRY_DELAY       150   // USB timeout retry delay (usec)
+#define USB_RETRY_LIMIT       3     // retry limit for a transfer
 
 /* USB state machine states */
 #define USB_STATE_MASK                                      0xf0
@@ -79,7 +79,7 @@ typedef struct {
       uint8_t    direction:  1;    //          Direction of data X-fer
     } __attribute__((packed));
   } __attribute__((packed)) ReqType_u;
-  uint8_t    bRequest;		   //   1      Request
+  uint8_t    bRequest;             //   1      Request
   union {
     uint16_t    wValue;            //   2/3    Depends on bRequest
     struct {
@@ -133,10 +133,10 @@ typedef struct {
 
 // entry used for list of connected devices
 typedef struct usb_device_entry {
-  const usb_device_class_config_t *class;  // pointer to class handlers
-  ep_t ep0;                            // information about endpoint 0
-  uint8_t bAddress;	                   // device address
-  uint8_t parent;                          // parent device address
+  const usb_device_class_config_t *class; // pointer to class handlers
+  ep_t ep0;                               // information about endpoint 0
+  uint8_t bAddress;	                      // device address
+  uint8_t parent;                         // parent device address
   uint8_t port;
   uint16_t vid;
   uint16_t pid;
@@ -185,14 +185,14 @@ typedef struct usb_device_entry {
 typedef struct usb_device_descriptor {
   uint8_t  bLength;            // Length of this descriptor.
   uint8_t  bDescriptorType;    // DEVICE descriptor type (USB_DESCRIPTOR_DEVICE).
-  uint16_t bcdUSB;	       // USB Spec Release Number (BCD).
+  uint16_t bcdUSB;             // USB Spec Release Number (BCD).
   uint8_t  bDeviceClass;       // Class code (assigned by the USB-IF). 0xFF-Vendor specific.
   uint8_t  bDeviceSubClass;    // Subclass code (assigned by the USB-IF).
   uint8_t  bDeviceProtocol;    // Protocol code (assigned by the USB-IF). 0xFF-Vendor specific.
   uint8_t  bMaxPacketSize0;    // Maximum packet size for endpoint 0.
-  uint16_t idVendor;	       // Vendor ID (assigned by the USB-IF).
-  uint16_t idProduct;	       // Product ID (assigned by the manufacturer).
-  uint16_t bcdDevice;	       // Device release number (BCD).
+  uint16_t idVendor;           // Vendor ID (assigned by the USB-IF).
+  uint16_t idProduct;          // Product ID (assigned by the manufacturer).
+  uint16_t bcdDevice;          // Device release number (BCD).
   uint8_t  iManufacturer;      // Index of String Descriptor describing the manufacturer.
   uint8_t  iProduct;           // Index of String Descriptor describing the product.
   uint8_t  iSerialNumber;      // Index of String Descriptor with the device's serial number.
@@ -226,39 +226,39 @@ typedef struct {
 
 /* Interface descriptor structure */
 typedef struct {
-  uint8_t bLength;               // Length of this descriptor.
-  uint8_t bDescriptorType;       // INTERFACE descriptor type (USB_DESCRIPTOR_INTERFACE).
-  uint8_t bInterfaceNumber;      // Number of this interface (0 based).
-  uint8_t bAlternateSetting;     // Value of this alternate interface setting.
-  uint8_t bNumEndpoints;         // Number of endpoints in this interface.
-  uint8_t bInterfaceClass;       // Class code (assigned by the USB-IF).  0xFF-Vendor specific.
-  uint8_t bInterfaceSubClass;    // Subclass code (assigned by the USB-IF).
-  uint8_t bInterfaceProtocol;    // Protocol code (assigned by the USB-IF).  0xFF-Vendor specific.
-  uint8_t iInterface;            // Index of String Descriptor describing the interface.
+  uint8_t bLength;             // Length of this descriptor.
+  uint8_t bDescriptorType;     // INTERFACE descriptor type (USB_DESCRIPTOR_INTERFACE).
+  uint8_t bInterfaceNumber;    // Number of this interface (0 based).
+  uint8_t bAlternateSetting;   // Value of this alternate interface setting.
+  uint8_t bNumEndpoints;       // Number of endpoints in this interface.
+  uint8_t bInterfaceClass;     // Class code (assigned by the USB-IF).  0xFF-Vendor specific.
+  uint8_t bInterfaceSubClass;  // Subclass code (assigned by the USB-IF).
+  uint8_t bInterfaceProtocol;  // Protocol code (assigned by the USB-IF).  0xFF-Vendor specific.
+  uint8_t iInterface;          // Index of String Descriptor describing the interface.
 } __attribute__((packed)) usb_interface_descriptor_t;
 
 /* Endpoint descriptor structure */
 typedef struct {
-  uint8_t bLength;               // Length of this descriptor.
-  uint8_t bDescriptorType;       // ENDPOINT descriptor type (USB_DESCRIPTOR_ENDPOINT).
-  uint8_t bEndpointAddress;      // Endpoint address. Bit 7 indicates direction (0=OUT, 1=IN).
-  uint8_t bmAttributes;          // Endpoint transfer type.
-  uint8_t wMaxPacketSize[2];     // Maximum packet size.
-  uint8_t bInterval;             // Polling interval in frames.
+  uint8_t bLength;             // Length of this descriptor.
+  uint8_t bDescriptorType;     // ENDPOINT descriptor type (USB_DESCRIPTOR_ENDPOINT).
+  uint8_t bEndpointAddress;    // Endpoint address. Bit 7 indicates direction (0=OUT, 1=IN).
+  uint8_t bmAttributes;        // Endpoint transfer type.
+  uint8_t wMaxPacketSize[2];   // Maximum packet size.
+  uint8_t bInterval;           // Polling interval in frames.
 } __attribute__((packed)) usb_endpoint_descriptor_t;
 
 /* String index 0 descriptor structure */
 typedef struct {
-  uint8_t  bLength;               // Length of this descriptor.
-  uint8_t  bDescriptorType;       // STRING descriptor type (USB_DESCRIPTOR_STRING).
-  uint16_t wLANGID[];             // Supported language codes
+  uint8_t  bLength;            // Length of this descriptor.
+  uint8_t  bDescriptorType;    // STRING descriptor type (USB_DESCRIPTOR_STRING).
+  uint16_t wLANGID[];          // Supported language codes
 } __attribute__((packed)) usb_string0_descriptor_t;
 
 /* String descriptor structure */
 typedef struct {
-  uint8_t  bLength;               // Length of this descriptor.
-  uint8_t  bDescriptorType;       // STRING descriptor type (USB_DESCRIPTOR_STRING).
-  uint16_t bString[];           // Unicode Encoded String
+  uint8_t  bLength;            // Length of this descriptor.
+  uint8_t  bDescriptorType;    // STRING descriptor type (USB_DESCRIPTOR_STRING).
+  uint16_t bString[];          // Unicode Encoded String
 } __attribute__((packed)) usb_string_descriptor_t;
 
 /* Standard Device Requests */

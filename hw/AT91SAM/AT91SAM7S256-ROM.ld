@@ -21,6 +21,8 @@
      on AT91SAM7S-EK equipped with AT91SAM7S256
 */
 
+ENTRY(_startup)
+
 /* Memory Definitions */
 
 MEMORY
@@ -76,8 +78,10 @@ SECTIONS
 
   .data : AT (_etext)
   {
+    . = ALIGN(4);
     _data = . ;
-    *(.data)
+    *(.data*)
+    *(.gnu.linkonce.d*)
     SORT(CONSTRUCTORS)
     . = ALIGN(4);
     *(.ramsection)         /* "RAM-Functions" */ /* added by mthomas */
@@ -91,13 +95,15 @@ SECTIONS
 
   .bss :
   {
+    . = ALIGN(4);
     __bss_start = . ;
     __bss_start__ = . ;
-    *(.bss)
+    *(.bss*)
     *(COMMON)
-  }
-  . = ALIGN(4);
-  __bss_end__ = . ;
+    . = ALIGN(4);
+    __bss_end__ = . ;
+  } >DATA
+
   __end__ = . ;
   _end = .;
   PROVIDE (end = .);

@@ -257,7 +257,7 @@ FAST static uint8_t usb_xbox_poll(usb_device_t *dev) {
 		return 0;
 	if (timer_check(dev->xbox_info.qLastPollTime, dev->xbox_info.interval)) {
 		uint16_t read = dev->xbox_info.inEp.maxPktSize;
-		uint8_t buf[dev->xbox_info.inEp.maxPktSize];
+		uint8_t ALIGNED(4) buf[dev->xbox_info.inEp.maxPktSize];
 		// clear buffer
 		memset(buf, 0, dev->xbox_info.inEp.maxPktSize);
 		uint8_t rcode = usb_in_transfer(dev, &(dev->xbox_info.inEp), &read, buf);

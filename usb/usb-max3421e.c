@@ -1,20 +1,21 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "timer.h"
 #include "max3421e.h"
+#include "timer.h"
+#include "debug.h"
 #include "usb.h"
 
 static uint8_t usb_task_state;
 static uint8_t bmHubPre;
 
 void usb_reset_state() {
-  puts(__FUNCTION__);
-  bmHubPre = 0;
+	usb_debugf("%s()", __FUNCTION__);
+	bmHubPre = 0;
 }
 
 void usb_hw_init() {
-	puts(__FUNCTION__);
+	usb_debugf("%s()", __FUNCTION__);
 
 	max3421e_init();   // init underlaying hardware layer
 
@@ -47,34 +48,29 @@ FAST static uint8_t usb_wait_irq() {
 	max3421e_write_u08( MAX3421E_HIRQ,
 		MAX3421E_HXFRDNIRQ | MAX3421E_SNDBAVIRQ );
 
-	return hrUNDEF;
+	return USB_ERROR_TRANSFER_TIMEOUT;
 }
 
-FAST static uint8_t usb_set_address(usb_device_t *dev, ep_t *ep,
-			uint16_t *nak_limit) {
-  //  iprintf("  %s(addr=%x, ep=%d)\n", __FUNCTION__, addr, ep);
+FAST static uint8_t usb_set_address(
+	usb_device_t *dev, ep_t *ep, uint16_t *nak_limit) {
+
 	*nak_limit = ( 1U << ( ( ep->bmNakPower > USB_NAK_MAX_POWER )
 		? USB_NAK_MAX_POWER : ep->bmNakPower) ) - 1;
 
-  /*
-    iprintf("\nAddress: %x\n", addr);
-    iprintf(" EP: %d\n", ep);
-    iprintf(" NAK Power: %d\n",(*ppep)->bmNakPower);
-    iprintf(" NAK Limit: %d\n", nak_limit);
-  */
+	max3421e_write_u08( MAX3421E_PERADDR, dev->bAddress);
 
-	max3421e_write_u08( MAX3421E_PERADDR, dev->bAddress); // set peripheral address
+	uint8_t mode = max3421e_read_u08( MAX3421E_MODE ),
+		new_mode = mode;
 
-	uint8_t mode = max3421e_read_u08( MAX3421E_MODE );
+	if( dev->lowspeed ) {
+		new_mode |= ( MAX3421E_LOWSPEED | bmHubPre );
+	} else {
+		new_mode &= ~( MAX3421E_HUBPRE | MAX3421E_LOWSPEED );
+	}
 
-	// Set bmLOWSPEED and bmHUBPRE in case of low-speed device,
-	// reset them otherwise
-	uint8_t new_mode = (dev->lowspeed) ?
-				mode | MAX3421E_LOWSPEED | bmHubPre :
-				mode & ~(MAX3421E_HUBPRE | MAX3421E_LOWSPEED);
-
-	if ( mode != new_mode )
+	if( mode != new_mode ) {
 		max3421e_write_u08( MAX3421E_MODE, new_mode);
+	}
 
 	return 0;
 }
@@ -95,7 +91,7 @@ FAST static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_lim
 
 	unsigned long timeout = timer_get_msec();
 
-	while( !timer_check(timeout, USB_XFER_TIMEOUT) )  {
+	while( !timer_check(timeout, USB_XFER_TIMEOUT) ) {
 		// launch the transfer
 		max3421e_write_u08( MAX3421E_HXFR, ( token|ep ));
 
@@ -105,7 +101,7 @@ FAST static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_lim
 		switch( rcode ) {
 		case hrNAK:
 			nak_count++;
-			if( nak_limit && ( nak_count == nak_limit ))
+			if( nak_limit && (nak_count == nak_limit) )
 				return( rcode );
 			delay_usec( USB_NACK_DELAY );
 			break;
@@ -187,7 +183,7 @@ FAST static uint8_t usb_InTransfer(ep_t *pep, uint16_t nak_limit,
 /* rcode 0 if no errors. rcode 01-0f is relayed from dispatchPkt(). Rcode f0 means RCVDAVIRQ error, */
 /* fe USB xfer timeout */
 FAST uint8_t usb_in_transfer( usb_device_t *dev, ep_t *ep, uint16_t *nbytesptr, uint8_t* data) {
-	uint16_t nak_limit = 0;
+	uint16_t nak_limit = USB_NAK_DEFAULT;
 
 	uint8_t rcode = usb_set_address(dev, ep, &nak_limit);
 	if( rcode ) return rcode;
@@ -270,7 +266,7 @@ FAST static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 /* Handles NAK bug per Maxim Application Note 4000 for single buffer transfer   */
 /* rcode 0 if no errors. rcode 01-0f is relayed from HRSL                       */
 FAST uint8_t usb_out_transfer(usb_device_t *dev, ep_t *ep, uint16_t nbytes, const uint8_t* data ) {
-	uint16_t nak_limit = 0;
+	uint16_t nak_limit = USB_NAK_DEFAULT;
 
 	uint8_t rcode = usb_set_address(dev, ep, &nak_limit);
 	if (rcode) return rcode;
@@ -294,7 +290,7 @@ FAST uint8_t usb_ctrl_req(usb_device_t *dev, uint8_t bmReqType,
 	bool direction = false;     //request direction, IN or OUT
 	uint8_t rcode;
 	setup_pkt_t setup_pkt;
-	uint16_t nak_limit;
+	uint16_t nak_limit = USB_NAK_DEFAULT;
 
 	rcode = usb_set_address(dev, &(dev->ep0), &nak_limit);
 	if (rcode)
@@ -341,7 +337,7 @@ FAST void usb_poll() {
 	uint8_t rcode;
 	uint8_t tmpdata;
 	static msec_t delay = 0;
-	static bool lowspeed = false;
+	bool lowspeed = false;
 
 	// poll underlaying hardware layer
 	tmpdata = max3421e_poll();
