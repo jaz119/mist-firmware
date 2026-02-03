@@ -48,7 +48,6 @@ uint8_t rstval = 0;
 #define CMD_HDRID 0xAACA
 
 extern DWORD clmt[128];
-extern adfTYPE df[4];
 
 char minimig_ver_beta;
 char minimig_ver_major;
@@ -950,7 +949,7 @@ unsigned char fpga_init(const char *name) {
     SPI_MINIMIGV1_HACK
   } while( ((ct == 0) || (ct == 0xff)) && !CheckTimer(time));
 
-  iprintf("ident = %x\n", ct);
+  iprintf("core id: 0x%X\n", ct);
 
   user_io_detect_core_type();
   user_io_init_core();

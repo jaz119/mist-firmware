@@ -151,7 +151,7 @@ static uint8_t tiny_rtc_init(usb_device_t *dev, usb_device_descriptor_t *dev_des
   if (dev_desc->bDeviceClass != USB_CLASS_VENDOR_SPECIFIC)
     return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 
-  usbrtc_debugf("vid/pid = %x/%x", dev_desc->idVendor, dev_desc->idProduct);
+  usbrtc_debugf("vid/pid = 0x%x/0x%x", dev_desc->idVendor, dev_desc->idProduct);
 
   if((dev_desc->idVendor != 0x0403) || (dev_desc->idProduct != 0xc631)) {
     usbrtc_debugf("Not a i2c-tiny-usb device");

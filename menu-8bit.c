@@ -33,12 +33,6 @@
 
 extern char s[OSD_BUF_SIZE];
 
-// TODO: remove these extern hacks to private variables
-extern unsigned char menusub;
-extern char fs_pFileExt[13];
-extern hardfileTYPE  hardfiles[4];
-
-
 //////////////////////////
 /////// 8-bit menu ///////
 //////////////////////////
@@ -164,8 +158,8 @@ static char RomFileSelected(uint8_t idx, const char *SelectedName) {
 			data_io_file_tx_processor(&file, ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName), SelectedName, data_processor_id);
 		} else {
 			data_io_file_tx(&file, ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName));
-			f_close(&file);
 		}
+		f_close(&file);
 	}
 	// close menu afterwards (but allow custom processor to have its own menu)
 	if (romtype != ROM_PROCESSED) CloseMenu();
@@ -235,7 +229,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 		return 1;
 	}
 	p = user_io_8bit_get_string(idx);
-	menu_debugf("Option %d: %s\n", idx, p);
+	debugf("Option %d: %s", idx, p);
 	if (idx > 1 && !p) return 0;
 
 	// check if there's a file type supported
@@ -306,7 +300,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			// 'P' is a prefix fo F,S,O,T,R
 			page = getIdx(p);
 			p+=2;
-			menu_debugf("P is prefix for: %s\n", p);
+			debugf("P is prefix for: %s", p);
 		}
 	}
 
@@ -329,7 +323,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 				if (*pos == 'p') {
 					substrcpy(data_processor_id, pos + 1, 0);
 					romtype = ROM_PROCESSED;
-					menu_debugf("Found data_io processor %s\n", data_processor_id);
+					debugf("Found data_io processor %s", data_processor_id);
 					break;
 				}
 				pos++;
@@ -398,7 +392,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	if(p && (p[0] == 'T')) {
 		if (action == MENU_ACT_SEL || action == MENU_ACT_PLUS || action == MENU_ACT_MINUS) {
 			unsigned long long mask = (unsigned long long)1<<getIdx(p);
-			menu_debugf("Option %s %llx\n", p, status ^ mask);
+			debugf("Option %s %llx", p, status ^ mask);
 			// change bit
 			user_io_8bit_set_status(status ^ mask, mask);
 			// ... and change it again in case of a toggle bit
@@ -419,7 +413,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			preset = strtoll(s, NULL, 0);
 			substrcpy(s, p, 3);
 			mask = strtoll(s, NULL, 0);
-			menu_debugf("Option %s %llx %llx\n", p, preset, mask);
+			debugf("Option %s %llx %llx", p, preset, mask);
 			// change bit with reset
 			user_io_8bit_set_status(preset | UIO_STATUS_RESET, mask | UIO_STATUS_RESET);
 			// release reset
@@ -439,12 +433,12 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			// check if next value available
 			substrcpy(s, p, 2+x);
 			if(!strlen(s)) x = 0;
-			//menu_debugf("Option %s %llx %llx %x %x\n", p, status, mask, x2, x);
+			//debugf("Option %s %llx %llx %x %x", p, status, mask, x2, x);
 			user_io_8bit_set_status(setStatus(p, status, x), ~0);
 		} else if (action == MENU_ACT_GET) {
 			unsigned char x = getStatus(p, status);
 
-			menu_debugf("Option %s %llx %llx\n", p, x, status);
+			debugf("Option %s %llx %llx", p, x, status);
 
 			// get currently active option
 			substrcpy(s, p, 2+x);
@@ -461,7 +455,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			s[0] = ' ';
 			substrcpy(s+1, p, 1);
 			strcat(s, ":");
-			l = 26-l-strlen(s); 
+			l = 26-l-strlen(s);
 			while(l-- >= 0) strcat(s, " ");
 			substrcpy(s+strlen(s), p, 2+x);
 		} else {
@@ -473,12 +467,12 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	if(p && (p[0] == 'R')) {
 		if (action == MENU_ACT_SEL) {
 			int len = strtol(p+1,0,0);
-			menu_debugf("Option %s %d\n", p, len);
+			debugf("Option %s %d", p, len);
 			if (len) {
 				FIL file;
 
 				if (!user_io_create_config_name(s, "RAM", CONFIG_ROOT)) {
-					menu_debugf("Saving RAM file");
+					debugf("Saving RAM file");
 					if (f_open(&file, s, FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {
 						data_io_file_rx(&file, -1, len);
 						f_close(&file);

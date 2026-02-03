@@ -105,7 +105,7 @@
 #include <inttypes.h>
 
 /*functions*/
-FAST void OsdSetTitle(char *s,int arrow);	// arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
+void OsdSetTitle(char *s,int arrow);	// arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
 void OsdWrite(unsigned char n, char *s, unsigned char inver, unsigned char stipple);
 FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char inver, unsigned char stipple, char offset); // Used for scrolling "Exit" text downwards...
 FAST void OsdPrintText(unsigned char line, char *text, unsigned long start, unsigned long width, unsigned long xoffset, unsigned char yoffset, unsigned char invert, unsigned char stipple);
@@ -132,7 +132,7 @@ void OsdDisableMenuButton(unsigned char disable);
 unsigned char GetASCIIKey(unsigned char c);
 void OsdWriteDoubleSize(unsigned char n, char *s, unsigned char pass);
 //void OsdDrawLogo(unsigned char n, char row);
-FAST void OsdDrawLogo(unsigned char n, char row,char superimpose);
+void OsdDrawLogo(unsigned char n, char row,char superimpose);
 FAST void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset);
 void ScrollReset();
 void StarsInit();
@@ -147,4 +147,3 @@ void OsdCoreNameSet(const char* str);
 char* OsdCoreName();
 
 #endif
-

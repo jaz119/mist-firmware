@@ -18,7 +18,6 @@
 static char enable_cache = 0;
 static LBA_t cache_sector;
 static LBA_t database;
-extern char fat_device;
 
 void disk_cache_set(char enable, LBA_t base) {
 	cache_sector = -1;

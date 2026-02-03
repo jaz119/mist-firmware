@@ -24,6 +24,11 @@ typedef struct
     char          name[22]; /*floppy name*/
 } adfTYPE;
 
+#define FLOPPIES 4
+
+extern adfTYPE df[FLOPPIES];
+extern unsigned char drives;
+
 void SectorGapToFpga(void);
 void SectorHeaderToFpga(unsigned char n, unsigned char dsksynch, unsigned char dsksyncl);
 //unsigned short SectorToFpga(unsigned char sector, unsigned char track, unsigned char dsksynch, unsigned char dsksyncl);
@@ -36,4 +41,3 @@ void UpdateDriveStatus(void);
 void HandleFDD(unsigned char c1, unsigned char c2);
 
 #endif
-

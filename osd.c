@@ -42,8 +42,7 @@ This is the Minimig OSD (on-screen-display) handler.
 #include "logo.h"
 #include "state.h"
 #include "user_io.h"
-
-extern unsigned char charfont[128][8];
+#include "font.h"
 
 // conversion table of Amiga keyboard scan codes to ASCII codes
 static const char keycode_table[128] =
@@ -146,7 +145,7 @@ FAST static void rotatechar(unsigned char *in,unsigned char *out)
 	}
 }
 
-FAST void OsdSetTitle(char *s,int a)
+void OsdSetTitle(char *s,int a)
 {
 	// Compose the title, condensing character gaps
 	arrow=a;
@@ -241,8 +240,7 @@ FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigne
   OsdPrintText(n, text, 22, OSDLINELEN-3*8, 0, offset, invert, stipple);
 }
 
-
-FAST void OsdDrawLogo(unsigned char n, char row,char superimpose) {
+void OsdDrawLogo(unsigned char n, char row,char superimpose) {
   unsigned short i;
   const unsigned char *p;
   int linelimit=OSDLINELEN;

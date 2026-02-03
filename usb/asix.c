@@ -348,7 +348,7 @@ static uint8_t usb_asix_init(usb_device_t *dev, usb_device_descriptor_t *dev_des
   if (dev_desc->bDeviceClass != USB_CLASS_VENDOR_SPECIFIC)
     return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 
-  asix_debugf("vid/pid = %x/%x", dev_desc->idVendor, dev_desc->idProduct);
+  asix_debugf("vid/pid = 0x%x/0x%x", dev_desc->idVendor, dev_desc->idProduct);
 
   // search for vid/pid in supported device list
   for(i=0;asix_devs[i].type &&
@@ -567,7 +567,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
 
     if (rcode) {
       if (rcode != hrNAK)
-	iprintf("%s() error: %x\n", __FUNCTION__, rcode);
+	iprintf("%s() error: 0x%x\n", __FUNCTION__, rcode);
     } else {
       //            iprintf("ASIX: int %d bytes\n", read);
       //            hexdump(buf, read, 0);
@@ -594,7 +594,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
     uint32_t status = user_io_eth_get_status();
 
     if(status != old_status) {
-      asix_debugf("status changed to cmd %x, eq=%d, prx=%d, ptx=%d, len=%d",
+      asix_debugf("status changed to cmd 0x%x, eq=%d, prx=%d, ptx=%d, len=%d",
 		  status >> 24, (status & 0x40000)?1:0, (status & 0x20000)?1:0,
 		  (status & 0x10000)?1:0, status & 0xffff);
       old_status = status;
@@ -630,7 +630,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
       //  asix_debugf("bulk out %d of %d (ep %d), off %d",
       //      bytes2send, tx_cnt, info->ep[2].maxPktSize, tx_offset);
       rcode = usb_out_transfer(dev, &(info->ep[2]), bytes2send, tx_buf + tx_offset);
-      //      asix_debugf("%s() error: %x", __FUNCTION__, rcode);
+      //      asix_debugf("%s() error: 0x%x", __FUNCTION__, rcode);
 
       tx_offset += bytes2send;
 
@@ -657,7 +657,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
 
       if (rcode) {
 	if (rcode != hrNAK)
-	  asix_debugf("%s() error: %x", __FUNCTION__, rcode);
+	  asix_debugf("%s() error: 0x%x", __FUNCTION__, rcode);
       } else {
 	rx_cnt += read;
 
@@ -694,7 +694,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
 
 	  if((rx_buf[4] == 0xff)&&(rx_buf[5] == 0xff)&&(rx_buf[6] == 0xff)&&
 	     (rx_buf[7] == 0xff)&&(rx_buf[8] == 0xff)&&(rx_buf[9] == 0xff)) {
-	    //	    iprintf("BROADCAST MAC %x/%x\n", rx_buf[16], rx_buf[17]);
+	    //	    iprintf("BROADCAST MAC 0x%x/0x%x\n", rx_buf[16], rx_buf[17]);
 
 	    // accept broadcasts only for arp
 	    if((rx_buf[16] == 0x08) && (rx_buf[17] == 0x06))

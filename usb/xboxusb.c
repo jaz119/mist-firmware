@@ -121,7 +121,7 @@ uint8_t usb_xbox_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
 	usb_configuration_descriptor_t conf_desc;
 
 	dev->xbox_info.bPollEnable = false;
-	usb_debugf("%s(%x)", __FUNCTION__, dev->bAddress);
+	usb_debugf("%s(%u)", __FUNCTION__, dev->bAddress);
 	vid = dev->vid;
 	pid = dev->pid;
 

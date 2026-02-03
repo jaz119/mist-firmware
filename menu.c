@@ -90,16 +90,9 @@ static menu_key_event_t menu_key_callback;
 static menu_select_file_t menu_select_callback;
 
 extern const char version[];
-
 extern char s[OSD_BUF_SIZE];
-
 extern unsigned long storage_size;
 
-extern FILINFO  DirEntries[MAXDIRENTRIES];
-extern unsigned char sort_table[MAXDIRENTRIES];
-extern unsigned char nDirEntries;
-extern unsigned char maxDirEntries;
-extern unsigned char iSelectedEntry;
 char DirEntryInfo[MAXDIRENTRIES][5]; // disk number info of dir entries
 char DiskInfo[5]; // disk number info of selected entry
 static char *SelectedName;
@@ -1034,7 +1027,7 @@ void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect,
 {
 	// this function displays file selection menu
 
-	menu_debugf("%s - %s\n", pFileExt, fs_pFileExt);
+	debugf("%s - %s", pFileExt, fs_pFileExt);
 
 	if (strncmp(pFileExt, fs_pFileExt, 12) != 0) // check desired file extension
 	{ // if different from the current one go to the root directory and init entry buffer
@@ -1046,7 +1039,7 @@ void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect,
 		ScanDirectory(SCAN_INIT, pFileExt, Options);
 	}
 
-	menu_debugf("pFileExt = %3s\n", pFileExt);
+	debugf("pFileExt = %3s", pFileExt);
 	strcpy(fs_pFileExt, pFileExt);
 	fs_ShowExt = ((strlen(fs_pFileExt)>3 && strncmp(fs_pFileExt, "RBFARC", 6)) || strchr(fs_pFileExt, '*') || strchr(fs_pFileExt, '?'));
 	fs_Options = Options;
@@ -1295,7 +1288,7 @@ void HandleUI(void)
 				menu_item.page = page_idx;
 				if (idx >= firstline) {
 					while(menu_item_callback(itemidx++, 0, &menu_item)) {
-						menu_debugf("menu_ng: idx: %d, item: %d, '%s', stipple %d page %d\n",idx, itemidx-1, menu_item.item, menu_item.stipple, menu_item.page);
+						debugf("menu_ng: idx: %d, item: %d, '%s', stipple %d page %d",idx, itemidx-1, menu_item.item, menu_item.stipple, menu_item.page);
 						if (menu_item.page == page_idx) {
 							valid = 1;
 							if (menu_page.stdexit && idx == osdlines-1)
@@ -1360,7 +1353,7 @@ void HandleUI(void)
 			if (menu_page.timer) page_timer = GetTimer(menu_page.timer);
 			menustate = MENU_NG2;
 			parentstate=MENU_NG1;
-			menu_debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x\n", menuidx[0], menuidx[menu_last], menusub, menumask);
+			debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x", menuidx[0], menuidx[menu_last], menusub, menumask);
 		}
 		break;
 
@@ -1397,7 +1390,7 @@ void HandleUI(void)
 			}
 
 			if (scroll_down) {
-				menu_debugf("menu_ng: scroll down\n");
+				debugf("menu_ng: scroll down");
 				idx = menuidx[menu_last]+1;
 				while(menu_item_callback(idx, 0, &menu_item)) {      // are more items there?
 					if (menu_item.page == page_idx) {            // same page?
@@ -1433,7 +1426,7 @@ void HandleUI(void)
 			}
 
 			if (scroll_up) {
-				menu_debugf("menu_ng: scroll up\n");
+				debugf("menu_ng: scroll up");
 				if (menuidx[0] > 0) {
 					idx = menuidx[0] - 1;
 					while(menu_item_callback(idx, 0, &menu_item)) {// are more items there?

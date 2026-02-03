@@ -144,7 +144,7 @@ static void pl2303_settings_dev(usb_device_t *dev, uint32_t rate, uint8_t bits, 
       pl2303_debugf("New line coding %ld %d/%d/%d", rate, bits, parity, stop);
 
       uint8_t rcode = pl2303_SetLineCoding(dev, &lc);
-      if(rcode) pl2303_debugf("%s() failed #%x", __FUNCTION__, rcode);
+      if(rcode) pl2303_debugf("%s() failed 0x%X", __FUNCTION__, rcode);
     }
   }
 }
@@ -169,7 +169,7 @@ static int8_t pl2303_tx_dev(usb_device_t *dev, uint8_t *data, uint8_t len) {
 
   // transmit data
   uint8_t rcode = usb_out_transfer(dev, &(info->ep[info->ep_bulk_out_idx]), len, data);
-  if(rcode) pl2303_debugf("%s() failed #%x", __FUNCTION__, rcode);
+  if(rcode) pl2303_debugf("%s() failed 0x%x", __FUNCTION__, rcode);
 
   if(rcode == hrNAK)
     pl2303_debugf("%s() NAK", __FUNCTION__);
@@ -390,7 +390,7 @@ static uint8_t pl2303_poll(usb_device_t *dev) {
 
     if (rcode) {
       if (rcode != hrNAK)
-	pl2303_debugf("%s() int error: %x", __FUNCTION__, rcode);
+	pl2303_debugf("%s() int error: 0x%x", __FUNCTION__, rcode);
     } else {
       pl2303_debugf("int %d bytes", read);
       hexdump(buf, read, 0);
@@ -426,7 +426,7 @@ static uint8_t pl2303_poll(usb_device_t *dev) {
       rcode = usb_in_transfer(dev, &(info->ep[info->ep_bulk_in_idx]), &read, rx_buf+rx_buf_fill);
       if(rcode) {
 	if (rcode != hrNAK)
-	  pl2303_debugf("%s() rx error: %x", __FUNCTION__, rcode);
+	  pl2303_debugf("%s() rx error: 0x%x", __FUNCTION__, rcode);
       } else {
 #ifdef PL2303_STAT
 	info->rx_cnt += read;

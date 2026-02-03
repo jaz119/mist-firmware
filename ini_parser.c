@@ -176,7 +176,7 @@ static int ini_get_section(const ini_cfg_t* cfg, char* buf, const char* alter_se
     if (!strcmp(buf, cfg->sections[i].name)) {
       ini_parser_debugf("Got SECTION '%s' with ID %d", buf, cfg->sections[i].id);
       return cfg->sections[i].id;
-    }  
+    }
   }
 
   if(alter_section && !strcasecmp(buf, alter_section)) {
@@ -281,7 +281,7 @@ static void* ini_get_var(const ini_cfg_t* cfg, int cur_section, char* buf, int t
 
 
 //// ini_parse() ////
-void ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
+bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
 {
   char line[INI_LINE_SIZE] = {0};
   int section = INI_SECTION_INVALID_ID;
@@ -292,12 +292,12 @@ void ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
 
   // open ini file
   #ifdef INI_PARSER_TEST
-  if ((ini_fp = fopen(cfg->filename, "rb")) == NULL) { 
+  if ((ini_fp = fopen(cfg->filename, "rb")) == NULL) {
   #else
   if (f_open(&ini_file, cfg->filename, FA_READ) != FR_OK) {
   #endif
     ini_parser_debugf("Can't open file %s !", cfg->filename);
-    return;
+    return false;
   }
 
   #ifdef INI_PARSER_TEST
@@ -314,6 +314,7 @@ void ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
   #endif
 
   ini_pt = 0;
+  int vars = 0;
 
   // parse ini
   while (1) {
@@ -328,6 +329,7 @@ void ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
       } else {
         // otherwise this is a variable, get it
         ini_get_var(cfg, section, line, tag);
+        vars++;
       }
     }
     // if end of file, stop
@@ -340,6 +342,7 @@ void ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
   #else
   f_close(&ini_file);
   #endif
+  return (vars > 0);
 }
 
 

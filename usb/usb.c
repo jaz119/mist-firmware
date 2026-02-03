@@ -51,7 +51,7 @@ static const usb_device_class_config_t *class_list[] = {
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	uint8_t rcode = 0;
 
-	usb_debugf("%s(parent=%x, port=%d, lowspeed=%d)",
+	usb_debugf("%s(parent=0x%x, port=%d, lowspeed=%d)",
 		__FUNCTION__, parent, port, lowspeed);
 
 	// find an empty device entry
@@ -111,7 +111,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		// so read all of them here (and show them on the console)
 		if (!usb_get_string_descr(d, sizeof(str), 0, 0, &str.str_desc)) { // supported languages descriptor
 			uint16_t wLangId = str.str0_desc.wLANGID[0];
-			usb_debugf("wLangId: %04", wLangId);
+			usb_debugf("wLangId: 0x%04X", wLangId);
 
 			// Some gamepads (Retrobit) breaks if its strings are queried like below, so don't do it until it can be done safely.
 #if 0
@@ -137,7 +137,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 					s[i] = ff_uni2oem(str.str_desc.bString[i], FF_CODE_PAGE);
 				}
 				s[i] = 0;
-				usb_debugf("Serial no.: %s", s);
+				usb_debugf("Serial no: %s", s);
 			}
 #endif
 		}
@@ -153,8 +153,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 			if (!rcode) {
 				d->class = class_list[c];
 
-				time = GetRTTC() - time;
-				iprintf("USB device accepted, %ums\n", time);
+				iprintf("USB device accepted, %u ms\n", GetRTTC() - time);
 				// ok, device accepted by class
 
 				return 0;
@@ -170,12 +169,12 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 }
 
 uint8_t usb_release_device(uint8_t parent, uint8_t port) {
-	usb_debugf("%s(parent=%x, port=%d)", __FUNCTION__, parent, port);
+	usb_debugf("%s(parent=0x%x, port=%d)", __FUNCTION__, parent, port);
 
 	uint8_t i;
 	for(i=0; i<USB_NUMDEVICES; i++) {
 		if(usb_devices[i].bAddress && usb_devices[i].parent == parent && usb_devices[i].port == port) {
-			usb_debugf("  -> device with address %x", usb_devices[i].bAddress);
+			usb_debugf("  -> device with address %u", usb_devices[i].bAddress);
 
 			// check if this is a hub (parent of some other device)
 			// and release its kids first

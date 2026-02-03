@@ -20,8 +20,6 @@
 
 typedef enum { IDLE, X_NAME, EXP_SOH1, EXP_SOH, BLKNO, DATA, CHK, U_NAME } state_t;
 
-extern unsigned char sector_buffer[SECTOR_BUFFER_SIZE];
-
 static state_t state = IDLE;
 
 static unsigned char block;
@@ -84,7 +82,7 @@ void xmodem_rx_byte(unsigned char byte) {
       filename[0] = 0;   // no valid filename yet
       filelen = 0;
 
-      // now expect either x+return or a filename 
+      // now expect either x+return or a filename
       state = ((byte == 'x') || (byte == 'X'))?X_NAME:U_NAME;
       count = 0;
     }
@@ -114,7 +112,7 @@ void xmodem_rx_byte(unsigned char byte) {
 	  state = IDLE;
 	}
       } else {
-	if(user_io_core_type() != CORE_TYPE_8BIT) 
+	if(user_io_core_type() != CORE_TYPE_8BIT)
 	  iprintf("UPLOAD: Only supported by 8 bit cores\n");
 	else {
 	  char *p = user_io_8bit_get_string(0);
@@ -123,7 +121,7 @@ void xmodem_rx_byte(unsigned char byte) {
 	  else {
 	    if(FileOpenCompat(&file, filename, FA_READ | FA_WRITE))
 	      iprintf("UPLOAD: File open failed\n");
-	    else 
+	    else
 	      data_io_file_tx(&file, 1, 0);
 	  }
 	}
@@ -142,19 +140,19 @@ void xmodem_rx_byte(unsigned char byte) {
 	if(((byte >= 'A')&&(byte <= 'Z')) ||
 	   ((byte >= '0')&&(byte <= '9')) ||
 	   (byte == '_')) {
-	  filename[count++] = byte; 
+	  filename[count++] = byte;
 	}
 
 	// jump to extension if '.' was seen
 	if((byte == '.') && (count < 8))
 	  while(count < 8)
-	    filename[count++] = ' '; 
+	    filename[count++] = ' ';
 
 	// ignore spaces before filename and end file
 	// name parsing else
 	if((byte == ' ') && (count > 0)) {
 	  // fill 8+3 filename to 11 chars
-	  if(filename[0]) 
+	  if(filename[0])
 	    while(count < 11)
 	      filename[count++] = ' ';
 	}
@@ -165,7 +163,7 @@ void xmodem_rx_byte(unsigned char byte) {
       }
     }
     break;
-    
+
     // waiting for start of header SOH
   case EXP_SOH1:  // send NAK's while waiting for block 1
   case EXP_SOH:   // don't send NAK's while waiting for other blocks
@@ -179,17 +177,17 @@ void xmodem_rx_byte(unsigned char byte) {
       state = IDLE;
 
       // partially filled sector in buffer?
-      if(sector_count) 
+      if(sector_count)
 	if(FileWriteBlock(&file, sector_buffer) != FR_OK)
 	  iprintf("XMODEM: write failed\n");
-      
+
       // close file
       // end writing file, so cluster chain may be trimmed
       if(f_close(&file) != FR_OK)
 	iprintf("XMODEM: End chain failed\n");
     }
     break;
-   
+
     // waiting for block no
   case BLKNO:
     // first byte = block no

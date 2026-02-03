@@ -11,6 +11,7 @@
 
 #include "attrs.h"
 #include "fat_compat.h"
+#include "hdd.h"
 
 #define UIO_STATUS      0x00
 #define UIO_BUT_SW      0x01
@@ -190,6 +191,7 @@
 #define UIO_PRIORITY_KEYBOARD 0
 #define UIO_PRIORITY_GAMEPAD  1
 
+extern hardfileTYPE  hardfiles[HARDFILES];
 
 // serial status data type returned from the core
 typedef struct {

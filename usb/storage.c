@@ -48,7 +48,7 @@ static uint8_t storage_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 	storage_debugf("iface is MASS_STORAGE/SCSI/BULK_ONLY");
 	is_good_interface = true;
       } else {
-	storage_debugf("Unsupported class/subclass/proto = %x/%x/%x",
+	storage_debugf("Unsupported class/subclass/proto = 0x%x/0x%x/0x%x",
 		       p->iface_desc.bInterfaceClass, p->iface_desc.bInterfaceSubClass,
 		       p->iface_desc.bInterfaceProtocol);
 	is_good_interface = false;
@@ -101,7 +101,7 @@ static uint8_t storage_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 static uint8_t clear_ep_halt(usb_device_t *dev, uint8_t index) {
   usb_storage_info_t *info = &(dev->storage_info);
 
-  iprintf("clear ep halt for %x\n", info->ep[index].epAddr);
+  iprintf("clear ep halt for %u\n", info->ep[index].epAddr);
 
   return usb_ctrl_req(dev, USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_ENDPOINT,
 		      USB_REQUEST_CLEAR_FEATURE, USB_FEATURE_ENDPOINT_HALT, 0, info->ep[index].epAddr, 0, NULL);
@@ -320,7 +320,7 @@ static uint8_t usb_storage_init(usb_device_t *dev, usb_device_descriptor_t *dev_
 
   if((dev_desc->bDeviceClass != USB_CLASS_USE_CLASS_INFO) &&
      (dev_desc->bDeviceClass != USB_CLASS_MASS_STORAGE)) {
-    storage_debugf("Unsupported device class %x", dev_desc->bDeviceClass);
+    storage_debugf("Unsupported device class 0x%x", dev_desc->bDeviceClass);
     return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
   }
 

@@ -248,6 +248,7 @@ RAMFUNC void WriteFirmware(char *name)
         size -= read_size;
     }
 
+    f_close(&file);
     DISKLED_OFF;
     MCUReset(); // restart
 

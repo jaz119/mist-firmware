@@ -100,30 +100,30 @@ unsigned char FindDrive(void) {
 		// get start of first partition
 		for(partitioncount=4;(partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount);
 
-		iprintf("Partition Count: %d\n",partitioncount);
-		int i;
-		for(i=0;i<partitioncount;++i) {
-			iprintf("Partition: %d",i);
-			iprintf("  Start: %d",partitions[i].startlba);
-			iprintf("  Size: %d\n",partitions[i].sectors);
-		}
+		iprintf("partitions count: %d\n", partitioncount);
 
+		for(int i=0;i<partitioncount;++i) {
+			iprintf("partition %d:",i);
+			iprintf("  start: %d", partitions[i].startlba);
+			iprintf("  size: %d\n", partitions[i].sectors);
+		}
 	}
+
 	strcpy(cwd, "/");
-	if (f_mount(&fs, "", 1) != FR_OK) return (0);
+	if (f_mount(&fs, "", 1) != FR_OK)
+		return (0);
 
 	// some debug output
-
-	iprintf("Partition type: ");
+	iprintf("partition type: ");
 	iprintf("%s\n", fs_type_to_string());
 	iprintf("fat_size: %u\n", fs.fsize);
 	iprintf("fat_number: %u\n", fs.n_fats);
 	iprintf("fat_start: %u\n", fs.fatbase);
-	iprintf("root_directory_start: %u\n", fs.dirbase);
+	iprintf("root_dir_start: %u\n", fs.dirbase);
 	iprintf("dir_entries: %u\n", fs.n_rootdir);
 	iprintf("data_start: %u\n", fs.database);
-	iprintf("cluster_size: %u\n", fs.csize);
-	iprintf("free_clusters: %u\n", fs.free_clst);
+	iprintf("free_clusters: %lu\n", fs.free_clst);
+	iprintf("cluster_size: %u KiB\n", fs.csize);
 
 	return(1);
 }

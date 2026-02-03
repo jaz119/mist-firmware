@@ -12,8 +12,6 @@
 #include "usb/hid.h"
 #include "usb/joymapping.h"
 
-extern FIL ini_file;
-
 // call data_io_rom_upload but reload sector_buffer afterwards since the io
 // operations in data_io_rom_upload may have overwritten the buffer
 // mode = 0: prepare for rom upload, mode = 1: rom upload, mode = 2, end rom upload

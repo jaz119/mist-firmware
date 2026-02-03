@@ -28,7 +28,6 @@ char DebugMode=0;
 static unsigned char *romkey = (sector_buffer + 512);
 
 extern unsigned char drives;
-extern adfTYPE df[4];
 
 static const ini_section_t config_ini_sections[] = {
   {1, "MINIMIG"}

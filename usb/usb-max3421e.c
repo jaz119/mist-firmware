@@ -308,7 +308,7 @@ FAST uint8_t usb_ctrl_req(usb_device_t *dev, uint8_t bmReqType,
 	setup_pkt.wLength                 = nbytes;
 
 	// transfer to setup packet FIFO
-	max3421e_write(MAX3421E_SUDFIFO, sizeof(setup_pkt_t), (uint8_t*)&setup_pkt );
+	max3421e_write( MAX3421E_SUDFIFO, sizeof(setup_pkt_t), (uint8_t*)&setup_pkt );
 
 	rcode = usb_dispatchPkt( tokSETUP, 0, nak_limit );     //dispatch packet
 	if( rcode ) //return HRSLT if not zero

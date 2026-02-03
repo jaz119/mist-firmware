@@ -67,8 +67,8 @@ int64_t arc_open(const char *fname)
 
 	arc_reset();
 	arc.mod = -1; // indicate error by default, valid ARC file will overrdide with the correct MOD value
-	ini_parse(&arc_ini_cfg, 0, 0);
-	iprintf("ARC CONF STR: %s\n",arc.conf);
+	if (ini_parse(&arc_ini_cfg, 0, 0))
+		iprintf("ARC CONF STR: %s\n", arc.conf);
 	return arc.mod;
 }
 

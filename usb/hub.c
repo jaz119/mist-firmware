@@ -209,7 +209,7 @@ static uint8_t usb_hub_port_status_change(usb_device_t *dev, uint8_t port, hub_e
     // Device connected event
   case USB_HUB_PORT_EVENT_CONNECT:
   case USB_HUB_PORT_EVENT_LS_CONNECT:
-    iprintf("usb: dev %x, port %d CONNECT\n", dev->bAddress, port);
+    iprintf("usb: dev %u, port %d CONNECT\n", dev->bAddress, port);
 
     if (bResetInitiated) {
       usb_debugf("reset already in progress");
@@ -297,7 +297,7 @@ FAST static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
   uint8_t ALIGNED(4) buf[8];
   uint16_t read = 1;
 
-  //   iprintf("%s(addr=%x)\n", __FUNCTION__, dev->bAddress);
+  //   iprintf("%s(addr=%u)\n", __FUNCTION__, dev->bAddress);
 
   rcode = usb_in_transfer(dev, &(info->ep), &read, buf);
   if(rcode)

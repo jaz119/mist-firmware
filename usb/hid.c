@@ -73,7 +73,7 @@ char hid_joystick_button_remap(char *s, char action, int tag) {
 			s+=10; while(*s && (*s != ',')) s++; s++;
 			joystick_button_remap[i].button = strtol(s, NULL, 10);
 
-			hid_debugf("parsed: %x/%x %d -> %d",
+			hid_debugf("parsed: 0x%x/0x%x %d -> %d",
 			joystick_button_remap[i].vid, joystick_button_remap[i].pid,
 			joystick_button_remap[i].offset, joystick_button_remap[i].button);
 
@@ -87,7 +87,7 @@ char hid_joystick_button_remap(char *s, char action, int tag) {
 
 //get HID report descriptor
 FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size)  {
-	//  hid_debugf("%s(%x, if=%d, size=%d)", __FUNCTION__, dev->bAddress, iface, size);
+	//  hid_debugf("%s(0x%x, if=%d, size=%d)", __FUNCTION__, dev->bAddress, iface, size);
 
 	uint8_t ALIGNED(4) buf[size];
 	usb_hid_info_t *info = &(dev->hid_info);
@@ -101,7 +101,7 @@ FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t 
 		// we got a report descriptor. Try to parse it
 		if(parse_report_descriptor(buf, size, &(info->iface[i].conf))) {
 			if(info->iface[i].conf.type == REPORT_TYPE_JOYSTICK) {
-				iprintf("Detected USB joystick%d\n", joystick_count());
+				iprintf("Detected USB joystick #%d\n", joystick_count());
 				info->iface[i].device_type = HID_DEVICE_JOYSTICK;
 				info->iface[i].jindex = joystick_add();
 			}
@@ -118,27 +118,27 @@ FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t 
 }
 
 static uint8_t hid_get_idle(usb_device_t *dev, uint8_t iface, uint8_t reportID, uint8_t *duration ) {
-  //  hid_debugf("%s(%x, if=%d id=%d, dur=%d)", __FUNCTION__, dev->bAddress, iface, reportID, duration);
+  //  hid_debugf("%s(%u, if=%d id=%d, dur=%d)", __FUNCTION__, dev->bAddress, iface, reportID, duration);
 	return( usb_ctrl_req( dev, HID_REQ_HIDIN, HID_REQUEST_GET_IDLE, reportID,
 	        0, iface, 0x0001, duration));
 }
 
 static uint8_t hid_set_idle(usb_device_t *dev, uint8_t iface, uint8_t reportID, uint8_t duration ) {
-  //  hid_debugf("%s(%x, if=%d id=%d, dur=%d)", __FUNCTION__, dev->bAddress, iface, reportID, duration);
+  //  hid_debugf("%s(%u, if=%d id=%d, dur=%d)", __FUNCTION__, dev->bAddress, iface, reportID, duration);
 
 	return( usb_ctrl_req( dev, HID_REQ_HIDOUT, HID_REQUEST_SET_IDLE, reportID,
 	        duration, iface, 0x0000, NULL));
 }
 
 static uint8_t hid_get_protocol(usb_device_t *dev, uint8_t iface, uint8_t *protocol) {
-  //  hid_debugf("%s(%x, if=%d proto=%d)", __FUNCTION__, dev->bAddress, iface, protocol);
+  //  hid_debugf("%s(%u, if=%d proto=%d)", __FUNCTION__, dev->bAddress, iface, protocol);
 
 	return( usb_ctrl_req( dev, HID_REQ_HIDIN, HID_REQUEST_GET_PROTOCOL, 0,
 	        0x00, iface, 0x0001, protocol));
 }
 
 static uint8_t hid_set_protocol(usb_device_t *dev, uint8_t iface, uint8_t protocol) {
-  //  hid_debugf("%s(%x, if=%d proto=%d)", __FUNCTION__, dev->bAddress, iface, protocol);
+  //  hid_debugf("%s(%u, if=%d proto=%d)", __FUNCTION__, dev->bAddress, iface, protocol);
 
 	return( usb_ctrl_req( dev, HID_REQ_HIDOUT, HID_REQUEST_SET_PROTOCOL, protocol,
 	        0x00, iface, 0x0000, NULL));
@@ -146,7 +146,7 @@ static uint8_t hid_set_protocol(usb_device_t *dev, uint8_t iface, uint8_t protoc
 
 static uint8_t hid_set_report(usb_device_t *dev, uint8_t iface, uint8_t report_type, uint8_t report_id,
 			      uint16_t nbytes, uint8_t* dataptr ) {
-  //  hid_debugf("%s(%x, if=%d data=%x)", __FUNCTION__, dev->bAddress, iface, dataptr[0]);
+  //  hid_debugf("%s(%u, if=%d data=0x%x)", __FUNCTION__, dev->bAddress, iface, dataptr[0]);
 
 	return( usb_ctrl_req(dev, HID_REQ_HIDOUT, HID_REQUEST_SET_REPORT, report_id,
 	        report_type, iface, nbytes, dataptr));
@@ -242,7 +242,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 					// only interrupt in endpoints are supported
 					if ((p->ep_desc.bmAttributes & 0x03) == 3 && (p->ep_desc.bEndpointAddress & 0x80) == 0x80) {
-						iprintf("endpoint %d, interval = %dms\n",
+						iprintf("endpoint %d, interval: %dms\n",
 						p->ep_desc.bEndpointAddress & 0x0F, p->ep_desc.bInterval);
 
 						// Fill in the endpoint info structure
@@ -293,7 +293,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 }
 
 FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
-	hid_debugf("%s(%x)", __FUNCTION__, dev->bAddress);
+	hid_debugf("%s(%u)", __FUNCTION__, dev->bAddress);
 
 	uint8_t rcode;
 	uint8_t i;
@@ -435,7 +435,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 
 		// enable boot mode if its not diabled
 		if(info->iface[i].has_boot_mode && !info->iface[i].ignore_boot_mode) {
-			hid_debugf("enabling boot mode");
+			iprintf("enabling boot mode\n");
 			hid_set_protocol(dev, info->iface[i].iface_idx, HID_BOOT_PROTOCOL);
 		} else
 			hid_set_protocol(dev, info->iface[i].iface_idx, HID_RPT_PROTOCOL);
@@ -666,7 +666,7 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 
 			// ---------- process mouse -------------
 			if(iface->device_type == HID_DEVICE_MOUSE) {
-				// iprintf("mouse %d %d %x\n", (int16_t)a[0], (int16_t)a[1], btn);
+				// iprintf("mouse %d %d 0x%x\n", (int16_t)a[0], (int16_t)a[1], btn);
 				// limit mouse movement to +/- 128
 				for(i=0;i<3;i++) {
 					if (i<2) {
@@ -883,10 +883,10 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 				uint8_t rcode = usb_in_transfer(dev, &(iface->ep), &read, buf);
 				if (rcode) {
 					if (rcode != hrNAK)
-						hid_debugf("%s(%d): error #%02X",
+						hid_debugf("%s(%d): error 0x%02X",
 							__FUNCTION__, dev->bAddress, rcode);
 				} else {
-					usb_process_iface (dev, iface, read, buf);
+					usb_process_iface(dev, iface, read, buf);
 				}
 				iface->qLastPollTime = timer_get_msec();
 			}

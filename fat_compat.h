@@ -21,8 +21,16 @@ struct MasterBootRecord
 	unsigned short Signature;		// This lets us detect an MBR (and the need for byteswapping).
 } __attribute__ ((packed));
 
+extern unsigned char nDirEntries;
+extern unsigned char maxDirEntries;
+extern FILINFO  DirEntries[MAXDIRENTRIES];
+extern unsigned char sort_table[MAXDIRENTRIES];
+
+extern unsigned char iSelectedEntry;
+
 extern struct PartitionEntry partitions[4];	// FirstBlock and LastBlock will be byteswapped as necessary
 extern int partitioncount;
+extern char fat_device;
 
 typedef struct
 {

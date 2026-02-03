@@ -15,18 +15,11 @@
 #include "misc_cfg.h"
 #include "cue_parser.h"
 
-extern unsigned char drives;
-extern adfTYPE df[4];
 static hardfileTYPE t_hardfile[HARDFILES]; // temporary copy of former hardfile configuration
 static unsigned char t_enable_ide[2]; // temporary copy of former IDE configuration
 static unsigned char t_ide_idx;
 
-extern configTYPE config;
 extern char s[OSD_BUF_SIZE];
-extern char minimig_ver_beta;
-extern char minimig_ver_major;
-extern char minimig_ver_minor;
-extern char minimig_ver_minion;
 
 const char *config_filter_msg[] =  {"none", "HORIZONTAL", "VERTICAL", "H+V"};
 const char *config_memory_chip_msg[] = {"0.5 MB", "1.0 MB", "1.5 MB", "2.0 MB"};
@@ -45,10 +38,6 @@ const char *config_audio_filter_msg[] = {"switchable", "always off", "always on"
 const char *config_power_led_off_msg[] = {"dim", "off"};
 
 const char *KickstartSelectedName;
-
-// TODO: remove these extern hacks to private variables
-extern char DiskInfo[5]; // disk number info of selected entry
-extern unsigned char menusub;
 
 ////////////////////////////
 /////// Minimig menu ///////

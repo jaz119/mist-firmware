@@ -80,7 +80,7 @@ int MSF2LBA(unsigned char m, unsigned char s, unsigned char f) {
   return (f + s * 75 + m * 60 * 75 - 150);
 }
 
-static char ParseMSF(const char *s, msf_t *msf) {
+static FAST char ParseMSF(const char *s, msf_t *msf) {
   char c;
 
   if (*s && CHAR_IS_NUM(*s)) msf->m = 10*(*s++ - '0'); else return 0;
@@ -318,7 +318,7 @@ char cue_parse(const char *filename, IDXFile *image)
   #ifndef CUE_PARSET_TEST
   if (!bin_valid)
     error = CUE_RES_BINERR;
-  else if (error) 
+  else if (error)
     f_close(&toc.file->file);
   else {
     IDXIndex(toc.file);

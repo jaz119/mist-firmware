@@ -4,6 +4,11 @@
 #include "timer.h"
 #include "fat_compat.h"
 
+extern char minimig_ver_beta;
+extern char minimig_ver_major;
+extern char minimig_ver_minor;
+extern char minimig_ver_minion;
+
 unsigned char fpga_init(const char *name);
 unsigned char ConfigureFpga(const char*);
 void SendFile(FIL *file);

@@ -165,7 +165,7 @@ FAST static bool mcp_i2c_wait_for(
 
     } while (rounds > 0);
 
-    usbrtc_debugf("%s: error #%X:#%X:#%X",
+    usbrtc_debugf("%s: error 0x%X:0x%X:0x%X",
         __FUNCTION__, resp->cmd_status, resp->i2c_engine_state,
         resp->i2c_cur_state);
 
@@ -184,7 +184,7 @@ static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
 
     if (rcode)
     {
-        usbrtc_debugf("%s: OUT: ep%d failed for #%X, error #%X",
+        usbrtc_debugf("%s: OUT: ep%d failed for 0x%X, error 0x%X",
             __FUNCTION__, info->ep_out.epAddr, cmd, rcode);
         return false;
     }
@@ -197,7 +197,7 @@ static bool mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     // check for command echo and status code
     if (rcode || *size != REPORT_SIZE || rpt[0] != cmd || rpt[1] != 0)
     {
-        usbrtc_debugf("%s: IN: ep%d failed for #%X, error #%X:#%X",
+        usbrtc_debugf("%s: IN: ep%d failed for 0x%X, error 0x%X:0x%X",
             __FUNCTION__, info->ep_in.epAddr, cmd, rcode, rpt[1]);
         return false;
     }
@@ -232,7 +232,7 @@ static bool mcp_set_i2c_clock(usb_device_t *dev, uint8_t *rpt, uint16_t clock)
             info->i2c_clock = clock;
             return true;
         } else {
-            usbrtc_debugf("%s: mcp2221 error #%X:#%X",
+            usbrtc_debugf("%s: mcp2221 error 0x%X:0x%X",
                 __FUNCTION__, resp->cmd_status, resp->set_i2c_speed);
         }
     }
@@ -340,7 +340,7 @@ static uint8_t mcp_init(
 
     // Use first config (actually there is only one)
     if ((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), 0, &buf.conf_desc))) {
-        usbrtc_debugf("mcp2221: failed to get config0, error #%X", rcode);
+        usbrtc_debugf("mcp2221: failed to get config0, error 0x%X", rcode);
         return rcode;
     }
 
@@ -361,7 +361,7 @@ static uint8_t mcp_init(
 
     // Parse HID descriptor
     if ((rcode = usb_hid_parse_conf(dev, buf.conf_desc.wTotalLength))) {
-        usbrtc_debugf("mcp2221: failed to parse HID config, error #%X", rcode);
+        usbrtc_debugf("mcp2221: failed to parse HID config, error 0x%X", rcode);
         return rcode;
     }
 
@@ -374,7 +374,7 @@ static uint8_t mcp_init(
 
     // Wait mcp2221 chip i2c bus for idle
     if (!mcp_i2c_wait_for(dev, buf.raw, I2C_IDLE, TIMEOUT_MS)) {
-        iprintf("mcp2221: state error #%X:#%X:#%X\n",
+        iprintf("mcp2221: state error 0x%X:0x%X:0x%X\n",
             buf.resp.cmd_status, buf.resp.i2c_engine_state,
             buf.resp.i2c_cur_state);
         return USB_ERROR_NO_SUCH_DEVICE;
@@ -420,7 +420,7 @@ static uint8_t mcp_release(usb_device_t *dev)
 static bool mcp_i2c_bulk_read(
     usb_device_t *dev, uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t length)
 {
-    usbrtc_debugf("%s(#%X, #%X, %u)",
+    usbrtc_debugf("%s(0x%X, 0x%X, %u)",
         __FUNCTION__, addr, reg, length);
 
     union ALIGNED(4) {
@@ -477,7 +477,7 @@ static bool mcp_i2c_bulk_read(
 static bool mcp_i2c_bulk_write(
     usb_device_t *dev, uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t length)
 {
-    usbrtc_debugf("%s(#%X, #%X, %u)",
+    usbrtc_debugf("%s(0x%X, 0x%X, %u)",
         __FUNCTION__, addr, reg, length);
 
     union ALIGNED(4) {

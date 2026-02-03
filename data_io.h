@@ -18,6 +18,8 @@
 
 #define MAX_DATA_IO_PROCESSORS 10
 
+extern char rom_direct_upload;
+
 typedef struct {
     char id[4];
     void (*file_tx_send)(FIL *file, int index, const char* name, const char* ext);

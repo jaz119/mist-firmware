@@ -62,6 +62,9 @@ typedef struct {
 #define MENU_DIALOG_YESNO 2
 #define MENU_DIALOG_TIMER 4
 
+extern unsigned char menusub;
+extern char fs_pFileExt[13];
+extern char DiskInfo[5]; // disk number info of selected entry
 
 typedef char (*menu_get_items_t)(uint8_t, char, menu_item_t*);
 typedef char (*menu_get_page_t)(uint8_t, char, menu_page_t*);

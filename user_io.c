@@ -60,8 +60,6 @@ static unsigned long emu_timer = 0;
 // keep state over core type and its capabilities
 static unsigned char core_type = CORE_TYPE_UNKNOWN;
 static char core_type_8bit_with_config_string = 0;
-// core supports direct ROM upload via SS4
-extern char rom_direct_upload;
 
 // extra features in the firmware requested by the core
 static uint32_t core_features = 0;
@@ -121,7 +119,7 @@ static uint32_t autofire_mask;
 static char autofire_joy;
 
 // ATA drives
-hardfileTYPE  hardfiles[4];
+hardfileTYPE  hardfiles[HARDFILES];
 
 static uint8_t i2c_flags;
 
@@ -392,7 +390,7 @@ void user_io_init_core() {
 			}
 			for (char root = 0; root <= 1; root++) {
 				if (!user_io_create_config_name(s, ext, root)) {
-					iprintf("Looking for %s\n", s);
+					debugf("Looking for %s", s);
 					if (f_open(&file, s, FA_READ) == FR_OK) {
 						data_io_file_tx(&file, i, ext);
 						f_close(&file);
@@ -403,7 +401,7 @@ void user_io_init_core() {
 		}
 
 		if(!user_io_create_config_name(s, "RAM", CONFIG_ROOT)) {
-			iprintf("Looking for %s\n", s);
+			debugf("Looking for %s", s);
 			// check if there's a <core>.ram present, send it via index -1
 			if (f_open(&file, s, FA_READ) == FR_OK) {
 				data_io_file_tx(&file, -1, "RAM");
@@ -421,7 +419,7 @@ void user_io_init_core() {
 
 		// check if there's a <core>.vhd present
 		if(!user_io_create_config_name(s, "VHD", CONFIG_ROOT | CONFIG_VHD)) {
-			iprintf("Looking for %s\n", s);
+			debugf("Looking for %s", s);
 			if (!(core_features & FEAT_IDE0))
 				 user_io_file_mount(s, 0);
 
@@ -430,7 +428,7 @@ void user_io_init_core() {
 				if(!user_io_create_config_name(s, "HD0", CONFIG_ROOT | CONFIG_VHD)) {
 					for (int i = 0; i < SD_IMAGES; i++) {
 						s[strlen(s)-1] = '0'+i;
-						iprintf("Looking for %s\n", s);
+						debugf("Looking for %s", s);
 						if ((core_features & (FEAT_IDE0 << (2*i))) == (FEAT_IDE0_ATA << (2*i))) {
 							iprintf("IDE %d: ATA Hard Disk\n", i);
 							hardfiles[i].enabled = HDF_FILE;
@@ -844,7 +842,7 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 			// build index for fast random access
 			IDXIndex(&sd_image[sd_index(index)]);
 		} else {
-			iprintf("error mounting %s (%d)\n", name, res);
+			debugf("error mounting %s (%d)", name, res);
 			return;
 		}
 	} else {
@@ -1033,7 +1031,7 @@ void user_io_send_buttons(char force) {
 	if((map != key_map) || force) {
 		key_map = map;
 		spi_uio_cmd8(UIO_BUT_SW, map);
-		iprintf("sending keymap\n");
+		debugf("sending keymap");
 	}
 }
 
@@ -2101,7 +2099,7 @@ static unsigned short modifier_keycode(unsigned char index) {
 }
 
 void user_io_osd_key_enable(char on) {
-	iprintf("OSD is now %s\n", on?"visible":"invisible");
+	debugf("OSD is now %s", on ? "visible" : "invisible");
 	osd_is_visible = on;
 }
 

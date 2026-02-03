@@ -40,7 +40,9 @@ CPFLAGS = --output-target=ihex
 MKUPG = mkupg
 
 # Libraries.
-LIBS       =
+LIBS    =
+
+.PRECIOUS: %.d
 
 # Our target.
 all: $(PRJ).hex $(PRJ).upg
@@ -89,8 +91,10 @@ $(PRJ).upg: $(PRJ).bin $(MKUPG)
 crt.o: hw/AT91SAM/Cstartup.S
 	$(AS) $(AFLAGS) -o $@ $< > crt.lst
 
-%.o: %.c
+%.o: %.c %.d
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+%.d: ;
 
 firmware.o: CFLAGS += -marm
 
@@ -100,3 +104,5 @@ sections: $(PRJ).elf
 release:
 	make $(PRJ).hex $(PRJ).bin $(PRJ).upg
 	cp $(PRJ).hex $(PRJ).bin $(PRJ).upg ../bin/firmware
+
+-include $(DEP)

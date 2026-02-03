@@ -9,7 +9,8 @@
 
 //// includes ////
 #include <inttypes.h>
-
+#include <stdbool.h>
+#include <FatFs/ff.h>
 
 //// type definitions ////
 typedef struct {
@@ -19,12 +20,14 @@ typedef struct {
 
 typedef enum {UINT8=0, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64,
 #ifdef INI_ENABLE_FLOAT
-	      FLOAT, 
+	      FLOAT,
 #endif
 	      STRING, CUSTOM_HANDLER} ini_vartypes_t;
 
 #define INI_LOAD 0
 #define INI_SAVE 1
+
+extern FIL ini_file;
 
 typedef char custom_handler_t(char*, char, int);
 
@@ -47,7 +50,7 @@ typedef struct {
 
 
 //// functions ////
-void ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag);
+bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag);
 void ini_save(const ini_cfg_t* cfg, int tag);
 
 #endif // __INI_PARSER_H__

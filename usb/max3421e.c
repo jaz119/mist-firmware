@@ -118,7 +118,7 @@ void max3421e_init() {
   max3421e_write_u08(MAX3421E_PINCTL, MAX3421E_FDUPSPI);
 
   // read and output version
-  iprintf("max3421e: chip rev: #%x\n", max3421e_read_u08(MAX3421E_REVISION));
+  iprintf("max3421e: chip rev: 0x%X\n", max3421e_read_u08(MAX3421E_REVISION));
 
   // enable pulldowns, set host mode
   max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST );

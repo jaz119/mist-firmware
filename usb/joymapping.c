@@ -173,7 +173,7 @@ char virtual_joystick_remap(char *s, char action, int tag) {
         if (count < 16) {
             //parse sub-tokens sequentially and assign 16-bit value to them
             joystick_mappers[i].mapping[count] = value;
-            hid_debugf("parsed: %x/%x %d -> %d",
+            hid_debugf("parsed: 0x%x/0x%x %d -> %d",
                       joystick_mappers[i].vid, joystick_mappers[i].pid,
                       count, joystick_mappers[i].mapping[count]);
         }
