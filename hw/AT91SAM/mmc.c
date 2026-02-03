@@ -50,23 +50,23 @@ RAMFUNC static void MMC_CRC(unsigned char c);
 RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg);
 static unsigned char MMC_CMD12(void);
 
-RAMFUNC unsigned char MMC_CheckCard() {
-  // check for removal of card
-  if((CardType != CARDTYPE_NONE) && !mmc_inserted()) {
+RAMFUNC bool MMC_CheckCard() {
+    // check for removal of card
+    if (mmc_inserted())
+        return (CardType != CARDTYPE_NONE);
+
     CardType = CARDTYPE_NONE;
-    return 0;
-  }
-  return 1;
+    return false;
 }
 
 RAMFUNC static char check_card() {
   // check of card has been removed and try to re-initialize it
   if(CardType == CARDTYPE_NONE) {
     iprintf("Card was removed, try to init it\n");
-    
+
     if(!mmc_inserted())
       return 0;
-    
+
     if(!MMC_Init())
       return 0;
   }
@@ -79,14 +79,20 @@ unsigned char MMC_Init(void)
     unsigned char n;
     unsigned char ocr[4];
 
-    if(!mmc_inserted()) {
+    if (!mmc_inserted()) {
       iprintf("No card inserted\r");
       return(CARDTYPE_NONE);
     }
 
+    WaitTimer(50);  // 20ms delay
     spi_slow();     // set slow clock
+
+    volatile unsigned int dummy;
+    dummy = *AT91C_SPI_RDR;
+    (void)dummy;
+
     DisableCard();  // CS = 1
-    SPI(0xff);      // DI = 1
+    for (n=0; n<10; n++) SPI(0xff); // 80 dummy clocks, DI = 1
     WaitTimer(20);  // 20ms delay
     for (n=0; n<10; n++) SPI(0xff); // 80 dummy clocks, DI = 1
     WaitTimer(20);  // 20ms delay
@@ -94,13 +100,15 @@ unsigned char MMC_Init(void)
 
     CardType = CARDTYPE_NONE;
 
-    for(n=0; n<16; n++) {
-      WaitTimer(1);
-      if (MMC_Command(CMD0, 0) == 0x01) break; // try to send CMD0 multiple times
+    for (n=0; n<32; n++) {
+      WaitTimer(5);
+      if (MMC_Command(CMD0, 0) == 0x01)
+        break; // try to send CMD0 multiple times
     }
-    if (n<16) // got CMD0 IDLE response
+
+    if (n<32) // got CMD0 IDLE response
     { // idle state
-        timeout = GetTimer(1000); // initialization timeout 1s, 4s doesn't work with the original arm timer
+        timeout = GetTimer(2000); // initialization timeout 2s, 4s doesn't work with the original arm timer
         if (MMC_Command(CMD8, 0x1AA) == 0x01) // check if the card can operate with 2.7-3.6V power
         {   // SDHC card
             for (n = 0; n < 4; n++)
@@ -126,6 +134,7 @@ unsigned char MMC_Init(void)
 
                             // set appropriate SPI speed
                             spi_fast();
+                            SPI(0xFF);
 
                             return(CardType);
                         }
@@ -162,6 +171,7 @@ unsigned char MMC_Init(void)
 
                             // set appropriate SPI speed
                             spi_fast();
+                            SPI(0xFF);
                             CardType = CARDTYPE_SD;
 
                             return(CardType);
@@ -194,6 +204,7 @@ unsigned char MMC_Init(void)
 
                 // set appropriate SPI speed
                 spi_fast_mmc();
+                SPI(0xFF);
                 CardType = CARDTYPE_MMC;
 
                 return(CardType);
@@ -207,36 +218,35 @@ unsigned char MMC_Init(void)
 
     DisableCard();
     iprintf("No memory card detected!\r");
-    return(CARDTYPE_NONE); 
+    return(CARDTYPE_NONE);
 }
 
 static unsigned char MMC_GetCXD(unsigned char cmd, unsigned char *ptr) {
   int i;
   EnableCard();
-  
+
   if (MMC_Command(cmd,0)) {
-    iprintf("CMD%d (GET_C%cD): invalid response 0x%02X \r", 
+    iprintf("CMD%d (GET_C%cD): invalid response 0x%02X\r",
 	    (cmd==CMD9)?9:10, (cmd==CMD9)?'S':'I', response);
     DisableCard();
     return(0);
   }
-  
+
   // now we are waiting for data token, it takes around 300us
   timeout = 0;
   while ((SPI(0xFF)) != 0xFE) {
     if (timeout++ >= 1000000) { // we can't wait forever
-      iprintf("CMD%d (GET_C%cD): no data token!\r", 
+      iprintf("CMD%d (GET_C%cD): no data token!\r",
 	      (cmd==CMD9)?9:10, (cmd==CMD9)?'S':'I');
       DisableCard();
       return(0);
     }
   }
-  
+
   for (i = 0; i < 16; i++)
     ptr[i]=SPI(0xFF);
-  
+
   DisableCard();
-  
   return(1);
 }
 
@@ -255,7 +265,7 @@ unsigned long MMC_GetCapacity()
 {
 	unsigned long result=0;
 	unsigned char CSDData[16];
- 
+
 	MMC_GetCSD(CSDData);
 
 	if ((CSDData[0] & 0xC0)==0x40)   //CSD Version 2.0 - SDHC
@@ -267,7 +277,7 @@ unsigned long MMC_GetCapacity()
 			return(result);
 	}
 	else
-	{    
+	{
 	  int blocksize=CSDData[5]&15;	// READ_BL_LEN
 	  blocksize=1<<(blocksize-9);		// Now a scalar:  physical block size / 512.
 	  result=(CSDData[6]&3)<<10;
@@ -293,16 +303,16 @@ RAMFUNC static unsigned char MMC_WaitBusy(unsigned long timeout)
 
 RAMFUNC static unsigned char MMC_ReceiveDataBlock(unsigned char *pReadBuffer)
 {
-    // now we are waiting for data token, it takes around 300us
-    timeout = 0;
-    while ((SPI(0xFF)) != 0xFE)
+    // now we are waiting for data token
+    timeout = GetTimer(50);
+    while (1)
     {
-        if (timeout++ >= 1000000) // we can't wait forever
-        {
-            //iprintf("CMD17/18 (READ_BLOCK): no data token!\r");
+        uint8_t token = SPI(0xFF);
+        if (token == 0xFE)
+            break;
+        if (token != 0xFF || CheckTimer(timeout))
             return(0);
-        }
-    }
+    };
 
     if (pReadBuffer == 0)
     {   // in this mode we do not receive data, instead the FPGA captures directly the data stream transmitted by the SD/MMC card
@@ -452,8 +462,7 @@ unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBu
 
     EnableCard();
 
-    if (MMC_Command(CMD25, lba))
-    {
+    if (MMC_Command(CMD25, lba)) {
         iprintf("CMD25 (WRITE_MULTIPLE_BLOCK): invalid response 0x%02X (lba=%lu)\r", response, lba);
         DisableCard();
         return(0);
@@ -462,6 +471,8 @@ unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBu
     do {
         if(!MMC_SendDataBlock(pWriteBuffer, 0xFC)) {
             iprintf("CMD25 (WRITE_MULTIPLE_BLOCK): error at lba=%lu, remaining blocks=%lu\n", lba, nBlockCount);
+            SPI(0xFD);
+            MMC_WaitBusy(500);
             DisableCard();
             return(0);
         }
@@ -500,7 +511,7 @@ RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg)
     // flush spi, give card a moment to wake up (needed for old 2GB Panasonic card)
     //    spi_n(0xff, 8);  // this is not flash save if not in ram
     // (wait for busy instead)
-    //for(b=0;b<8;b++) SPI(0xff); 
+    //for(b=0;b<8;b++) SPI(0xff);
     if (!MMC_WaitBusy(1000)) {
         return(0x80); // busy forever?
     }
@@ -523,16 +534,16 @@ RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg)
     c = (unsigned char)(arg >> 16);
     SPI(c);
     MMC_CRC(c);
-    
+
     c = (unsigned char)(arg >> 8);
     SPI(c);
     MMC_CRC(c);
-    
+
     c = (unsigned char)(arg);
     SPI(c);
     MMC_CRC(c);
 #endif
-    
+
     crc <<= 1;
     crc++;
     SPI(crc);

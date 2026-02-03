@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 // ------------ generic debugging -----------
-#if 1
+#if 0
 #define debugf(a, ...) iprintf("\033[0;37m" a "\033[0m\n", ##__VA_ARGS__)
 #else
 #define debugf(...)
@@ -75,13 +75,13 @@
 #define eth_info_wp eth_info
 
 // ------------ usb debugging -----------
-#if 1
+#if 0
 #define usb_debugf(a, ...) iprintf("\033[1;33mUSB: " a "\033[0m\n", ##__VA_ARGS__)
 #else
 #define usb_debugf(...)
 #endif
 
-#if 1
+#if 0
 #define hidp_debugf(a, ...)  iprintf("\033[1;34mHIDP: " a "\033[0m\n", ##__VA_ARGS__)
 #else
 #define hidp_debugf(...)

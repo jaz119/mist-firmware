@@ -82,7 +82,7 @@ void ResetMenu();
 void ClosePage();
 void ChangePage(char);
 
-void HandleUI(void);
+void HandleUI(uint8_t);
 void ErrorMessage(const char *message, unsigned char code);
 void InfoMessage(const char *message);
 

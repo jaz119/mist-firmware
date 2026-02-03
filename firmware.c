@@ -223,7 +223,7 @@ RAMFUNC void WriteFirmware(char *name)
 
         while (k--)
         {
-            if(size & 2048) DISKLED_ON
+            if(size & 2048) DISKLED_ON;
             else DISKLED_OFF;
 
             i = FLASH_PAGESIZE / 4;
@@ -248,7 +248,6 @@ RAMFUNC void WriteFirmware(char *name)
         size -= read_size;
     }
 
-    f_close(&file);
     DISKLED_OFF;
     MCUReset(); // restart
 

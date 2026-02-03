@@ -63,13 +63,13 @@ static unsigned char MMC_AppCommand(unsigned char cmd, unsigned long arg, unsign
 static unsigned char MMC_PIORead(unsigned char *buffer, int len);
 static unsigned char MMC_WaitTransferEnd() RAMFUNC;
 
-RAMFUNC unsigned char MMC_CheckCard() {
+RAMFUNC bool MMC_CheckCard() {
   // check for removal of card
-  if((CardType != CARDTYPE_NONE) && !mmc_inserted()) {
+    if (mmc_inserted())
+        return (CardType != CARDTYPE_NONE);
+
     CardType = CARDTYPE_NONE;
-    return 0;
-  }
-  return 1;
+    return false;
 }
 
 RAMFUNC static char check_card() {

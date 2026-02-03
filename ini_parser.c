@@ -342,6 +342,7 @@ bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
   #else
   f_close(&ini_file);
   #endif
+  iprintf("Config file '%s' loaded\n", cfg->filename);
   return (vars > 0);
 }
 

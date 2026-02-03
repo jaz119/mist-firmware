@@ -1,4 +1,4 @@
- /*
+/*
 Copyright 2005, 2006, 2007 Dennis van Weeren
 Copyright 2008, 2009 Jakub Bednarski
 Copyright 2012 Till Harbaum
@@ -52,13 +52,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "user_io.h"
 #include "data_io.h"
 #include "c64files.h"
+#include "archie.h"
 #include "snes.h"
 #include "zx_col.h"
 #include "arc_file.h"
 #include "serial_sink.h"
-#include "menu-8bit.h"
+#include "ini_parser.h"
 #include "font.h"
 #include "tos.h"
+#include "hdd.h"
 #include "usb.h"
 #include "debug.h"
 #include "mist_cfg.h"
@@ -84,39 +86,73 @@ DWORD clmt[128]; // fast seek cache
 
 unsigned long storage_size = 0;
 
-void FatalError(unsigned long error) {
-  unsigned long i;
+void FatalError(unsigned long error)
+{
+    unsigned long i;
+    iprintf("Fatal error: %lu\r", error);
 
-  iprintf("Fatal error: %lu\r", error);
+    while (true)
+    {
+        for (i = 0; i < error; i++)
+        {
+          DISKLED_ON;
+          WaitTimer(250);
 
-  while (1) {
-    for (i = 0; i < error; i++) {
-      DISKLED_ON;
-      WaitTimer(250);
-      DISKLED_OFF;
-      WaitTimer(250);
+          DISKLED_OFF;
+          WaitTimer(250);
+        }
+
+        WaitTimer(2000);
+        MCUReset();
     }
-    WaitTimer(1000);
-    MCUReset();
-  }
 }
 
-void HandleFpga(void) {
-  unsigned char  c1, c2;
+void HandleFpga(void)
+{
+    unsigned char  c1, c2;
 
-  EnableFpga();
-  c1 = SPI(0); // cmd request and drive number
-  c2 = SPI(0); // track number
-  SPI(0);
-  SPI(0);
-  SPI(0);
-  SPI(0);
-  DisableFpga();
+    EnableFpga();
+    c1 = SPI(0); // cmd request and drive number
+    c2 = SPI(0); // track number
+    SPI(0);
+    SPI(0);
+    SPI(0);
+    SPI(0);
+    DisableFpga();
 
-  HandleFDD(c1, c2);
-  HandleHDD(c1, c2, 1);
+    HandleFDD(c1, c2);
+    HandleHDD(c1, c2, 1);
 
-  UpdateDriveStatus();
+    UpdateDriveStatus();
+}
+
+static void forget_about_fs()
+{
+    // Floppies
+    for (int i=0; i<FLOPPIES; i++)
+    {
+        df[i].status = 0;
+        df[i].file.obj.fs = 0;
+    }
+
+    // Indexes
+    for (int i=0; i<SD_IMAGES; i++)
+    {
+        sd_image[i].valid = 0;
+        sd_image[i].clmt[0] = 0;
+        sd_image[i].file.obj.fs = 0;
+    }
+
+    // Hard disks
+    for (int i=0; i<HARDFILES; i++)
+    {
+        config.hardfile[i].present = 0;
+        config.hardfile[i].enabled = HDF_DISABLED;
+        hdf[i].type = HDF_DISABLED;
+    }
+
+    ini_file.obj.fs = 0;
+    purge_dir_cache();
 }
 
 extern void inserttestfloppy();
@@ -124,19 +160,20 @@ extern void inserttestfloppy();
 #ifdef USB_STORAGE
 int GetUSBStorageDevices()
 {
-  uint32_t to = GetTimer(2000);
+    uint32_t to = GetTimer(2000);
 
-  // poll usb 2 seconds or until a mass storage device becomes ready
-  while(!storage_devices && !CheckTimer(to))
-    usb_poll();
+    // poll usb 2 seconds or until a mass storage device becomes ready
+    while (!storage_devices && !CheckTimer(to))
+        usb_poll();
 
-  return storage_devices;
+    return storage_devices;
 }
 #endif
 
 FAST int main(void)
 {
     uint8_t mmc_ok = 0;
+    uint32_t last_try = 0;
 
 #ifdef __GNUC__
     __init_hardware();
@@ -149,7 +186,6 @@ FAST int main(void)
     DISKLED_ON;
 
     data_io_init();
-    page_plugin_init();
     c64files_init();
     snes_init();
     zx_init();
@@ -167,53 +203,55 @@ FAST int main(void)
     qspi_init();
 #endif
 
-    if(MMC_Init()) mmc_ok = 1;
-    else           spi_fast();
+    mmc_ok = MMC_Init();
 
-    iprintf("spiclk: %u MHz\r", GetSPICLK());
+    iprintf("spi_clock: %u MHz\r", GetSPICLK());
 
     usb_init();
 
     InitADC();
 
 #ifdef USB_STORAGE
-    if(UserButton()) USB_BOOT_VAR = (USB_BOOT_VAR == USB_BOOT_VALUE) ? 0 : USB_BOOT_VALUE;
+    if (UserButton())
+        USB_BOOT_VAR = (USB_BOOT_VAR == USB_BOOT_VALUE) ? 0 : USB_BOOT_VALUE;
 
-    if(USB_BOOT_VAR == USB_BOOT_VALUE)
-      if (!GetUSBStorageDevices()) {
-        if(!mmc_ok)
-          FatalError(ERROR_FILE_NOT_FOUND);
+    if (USB_BOOT_VAR == USB_BOOT_VALUE)
+    {
+      if (!GetUSBStorageDevices())
+      {
+          if (!mmc_ok)
+              FatalError(ERROR_FILE_NOT_FOUND);
       } else
-        fat_switch_to_usb();  // redirect file io to usb
-    else {
+          fat_switch_to_usb();  // redirect file io to usb
+    }
+    else
+    {
 #endif
-      if(!mmc_ok) {
+      if (!mmc_ok || !FindDrive())
+      {
 #ifdef USB_STORAGE
-        if(!GetUSBStorageDevices())
-          FatalError(ERROR_FILE_NOT_FOUND);
+          if (!GetUSBStorageDevices())
+              FatalError(ERROR_FILE_NOT_FOUND);
 
-        fat_switch_to_usb();  // redirect file io to usb
+          fat_switch_to_usb();  // redirect file io to usb
 #else
-        FatalError(ERROR_FILE_NOT_FOUND);
+          FatalError(ERROR_INVALID_DATA);
 #endif
       }
 #ifdef USB_STORAGE
     }
 #endif
 
-    if (!FindDrive())
-        FatalError(ERROR_INVALID_DATA);
-
     disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &storage_size);
     storage_size >>= 11;
-
-    eth_init();
 
     ChangeDirectoryName("/");
 
     arc_reset();
 
     font_load();
+
+    eth_init();
 
     user_io_init();
 
@@ -222,11 +260,16 @@ FAST int main(void)
 
     int64_t mod = -1;
 
-    if((USB_LOAD_VAR != USB_LOAD_VALUE) && !user_io_dip_switch1()) {
+    if ((USB_LOAD_VAR != USB_LOAD_VALUE) && !user_io_dip_switch1())
+    {
         mod = arc_open("/CORE.ARC");
-    } else {
+    }
+    else
+    {
         user_io_detect_core_type();
-        if(user_io_core_type() != CORE_TYPE_UNKNOWN && !user_io_create_config_name(s, "ARC", CONFIG_ROOT)) {
+
+        if(user_io_core_type() != CORE_TYPE_UNKNOWN && !user_io_create_config_name(s, "ARC", CONFIG_ROOT))
+        {
             // when loaded from USB, try to load the development ARC file
             iprintf("Load development ARC: %s\n", s);
             mod = arc_open(s);
@@ -234,57 +277,112 @@ FAST int main(void)
     }
 
     unsigned char err;
-    if(mod < 0 || !strlen(arc_get_rbfname())) {
+
+    if (mod < 0 || !strlen(arc_get_rbfname()))
+    {
         err = fpga_init(NULL); // error opening default ARC, try with default RBF
-    } else {
+    }
+    else
+    {
         user_io_set_core_mod(mod);
         strncpy(s, arc_get_rbfname(), sizeof(s)-5);
         strcat(s,".RBF");
         err = fpga_init(s);
     }
-    if (err != ERROR_NONE) FatalError(err);
+
+    if (err != ERROR_NONE)
+        FatalError(err);
 
     usb_dev_open();
 
-    while (1) {
-      mmc_ok = fat_medium_present();
+    // main loop
+    while (true)
+    {
+        uint8_t key = 0;
 
-      cdc_control_poll();
-      storage_control_poll();
+        if (mmc_ok)
+        {
+            if (storage_size && !mmc_inserted())
+            {
+                mmc_ok = false;
+                forget_about_fs();
+                storage_size = 0;
 
-      user_io_poll();
+                // force menu update
+                key = KEY_HOME;
+            }
+        }
+        else if (timer_check(last_try, 1000))
+        {
+            DISKLED_TOGGLE;
 
-      usb_poll();
+            if (MMC_Init()
+                && disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &storage_size) == 0
+                && FindDrive())
+            {
+                storage_size >>= 11;
+                mmc_ok = fat_medium_present();
 
-      eth_poll();
+                if (storage_size && mmc_ok)
+                {
+                    DISKLED_OFF;
+                    ChangeDirectoryName("/");
 
-      // MIST (atari) core supports the same UI as Minimig
-      if((user_io_core_type() == CORE_TYPE_MIST) ||
-         (user_io_core_type() == CORE_TYPE_MIST2)) {
-         if(!mmc_ok)
-             tos_eject_all();
+                    // apply config changes
+                    mist_ini_parse();
+                    user_io_send_buttons(false);
 
-         HandleUI();
-      }
+                    // force menu update
+                    key = KEY_HOME;
+                }
+            }
 
-      // call original minimig handlers if minimig core is found
-      if((user_io_core_type() == CORE_TYPE_MINIMIG) ||
-        (user_io_core_type() == CORE_TYPE_MINIMIG2)) {
-        if(!mmc_ok)
-            EjectAllFloppies();
+            last_try = timer_get_msec();
+        }
 
-        HandleFpga();
-        HandleUI();
-      }
+        cdc_control_poll();
+        storage_control_poll();
 
-      // 8 bit cores can also have a ui if a valid config string can be read from it
-      if((user_io_core_type() == CORE_TYPE_8BIT) &&
-        user_io_is_8bit_with_config_string())
-        HandleUI();
+        user_io_poll();
 
-      // Archie core will get its own treatment one day ...
-      if(user_io_core_type() == CORE_TYPE_ARCHIE)
-        HandleUI();
+        usb_poll();
+
+        eth_poll();
+
+        switch (user_io_core_type())
+        {
+            // MIST (atari) core supports the same UI as Minimig
+            case CORE_TYPE_MIST:
+            case CORE_TYPE_MIST2:
+                if (!mmc_ok)
+                    tos_eject_all();
+                break;
+
+            // call original minimig handlers if minimig core is found
+            case CORE_TYPE_MINIMIG:
+            case CORE_TYPE_MINIMIG2:
+                if (!mmc_ok)
+                    minimig_eject_all();
+                HandleFpga();
+                break;
+
+            case CORE_TYPE_ARCHIE:
+                if (!mmc_ok)
+                    archie_eject_all();
+                break;
+
+            // 8 bit cores can also have a ui if a valid config string can be read from it
+            case CORE_TYPE_8BIT:
+                if (!user_io_is_8bit_with_config_string())
+                    continue;
+                break;
+
+            default:
+                continue;
+        };
+
+        HandleUI(key ? key : OsdGetCtrl());
     }
+
     return 0;
 }

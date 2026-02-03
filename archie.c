@@ -26,7 +26,7 @@ static char floppy_name[MAX_FLOPPY][64];
 
 extern char s[OSD_BUF_SIZE];
 
-enum state { STATE_HRST, STATE_RAK1, STATE_RAK2, STATE_IDLE, 
+enum state { STATE_HRST, STATE_RAK1, STATE_RAK2, STATE_IDLE,
 	     STATE_WAIT4ACK1, STATE_WAIT4ACK2, STATE_HOLD_OFF } kbd_state;
 
 // archie keyboard controller commands
@@ -55,7 +55,7 @@ static unsigned char tx_queue_rptr, tx_queue_wptr;
 #define QUEUE_NEXT(a)  ((a+1)&(QUEUE_LEN-1))
 
 static unsigned long ack_timeout;
-static short mouse_x, mouse_y; 
+static short mouse_x, mouse_y;
 
 #define FLAG_SCAN_ENABLED  0x01
 #define FLAG_MOUSE_ENABLED 0x02
@@ -159,7 +159,7 @@ static void archie_kbd_enqueue(unsigned char state, unsigned char byte) {
   tx_queue[tx_queue_wptr][0] = state;
   tx_queue[tx_queue_wptr][1] = byte;
   tx_queue_wptr = QUEUE_NEXT(tx_queue_wptr);
-} 
+}
 
 static void archie_kbd_tx(unsigned char state, unsigned char byte) {
   archie_debugf("KBD TX %x (%x)", byte, state);
@@ -173,7 +173,7 @@ static void archie_kbd_tx(unsigned char state, unsigned char byte) {
 
 static void archie_kbd_send(unsigned char state, unsigned char byte) {
   // don't send if we are waiting for an ack
-  if((kbd_state != STATE_WAIT4ACK1)&&(kbd_state != STATE_WAIT4ACK2)) 
+  if((kbd_state != STATE_WAIT4ACK1)&&(kbd_state != STATE_WAIT4ACK2))
     archie_kbd_tx(state, byte);
   else
     archie_kbd_enqueue(state, byte);
@@ -225,7 +225,7 @@ void archie_init(void) {
     archie_debugf("Found RISCOS.EXT, uploading it");
     data_io_file_tx(&file, 0x02, 0);
     f_close(&file);
-  } else 
+  } else
     archie_debugf("RISCOS.EXT no found");
 
   // upload cmos file
@@ -272,7 +272,7 @@ void archie_kbd(unsigned short code) {
   // select prefix for up or down event
   unsigned char prefix = (code&0x8000)?KUDA:KDDA;
 
-  archie_kbd_send(STATE_WAIT4ACK1, prefix | (code>>4)); 
+  archie_kbd_send(STATE_WAIT4ACK1, prefix | (code>>4));
   archie_kbd_send(STATE_WAIT4ACK2, prefix | (code&0x0f));
 }
 
@@ -298,7 +298,7 @@ void archie_mouse(unsigned char b, char x, char y) {
   if((flags & FLAG_MOUSE_ENABLED) && (mouse_x || mouse_y)) {
     // send asap if no pending byte
     if(kbd_state == STATE_IDLE) {
-      archie_kbd_send(STATE_WAIT4ACK1, mouse_x & 0x7f); 
+      archie_kbd_send(STATE_WAIT4ACK1, mouse_x & 0x7f);
       archie_kbd_send(STATE_WAIT4ACK2, mouse_y & 0x7f);
       mouse_x = mouse_y = 0;
     }
@@ -315,7 +315,7 @@ void archie_mouse(unsigned char b, char x, char y) {
       uint8_t mask = (1<<s);
       if((b&mask) != (buts&mask)) {
 	unsigned char prefix = (b&mask)?KDDA:KUDA;
-	archie_kbd_send(STATE_WAIT4ACK1, prefix | 0x07); 
+	archie_kbd_send(STATE_WAIT4ACK1, prefix | 0x07);
 	archie_kbd_send(STATE_WAIT4ACK2, prefix | remap[s]);
       }
     }
@@ -327,7 +327,7 @@ static void archie_check_queue(void) {
   if(tx_queue_rptr == tx_queue_wptr)
     return;
 
-  archie_kbd_tx(tx_queue[tx_queue_rptr][0], tx_queue[tx_queue_rptr][1]); 
+  archie_kbd_tx(tx_queue[tx_queue_rptr][0], tx_queue[tx_queue_rptr][1]);
   tx_queue_rptr = QUEUE_NEXT(tx_queue_rptr);
 }
 
@@ -357,7 +357,7 @@ void archie_handle_kbd(void) {
   if(kbd_state <= STATE_RAK2) {
     if(CheckTimer(ack_timeout)) {
       archie_debugf("KBD timeout in reset state");
-      
+
       archie_kbd_send(STATE_RAK1, HRST);
       ack_timeout = GetTimer(20);  // 20ms timeout
     }
@@ -367,7 +367,7 @@ void archie_handle_kbd(void) {
   if(spi_in() == 0xa1) {
     unsigned char data = spi_in();
     DisableIO();
-    
+
     archie_debugf("KBD RX %x", data);
 
     switch(data) {
@@ -383,16 +383,16 @@ void archie_handle_kbd(void) {
       if(kbd_state == STATE_RAK1) {
 	archie_kbd_send(STATE_RAK2, RAK1);
 	ack_timeout = GetTimer(20);  // 20ms timeout
-      } else 
+      } else
 	kbd_state = STATE_HRST;
       break;
 
       // arm sends reset ack 2
     case RAK2:
-      if(kbd_state == STATE_RAK2) { 
+      if(kbd_state == STATE_RAK2) {
 	archie_kbd_send(STATE_IDLE, RAK2);
 	ack_timeout = GetTimer(20);  // 20ms timeout
-      } else 
+      } else
 	kbd_state = STATE_HRST;
       break;
 
@@ -444,7 +444,7 @@ void archie_handle_kbd(void) {
 	archie_debugf("KBD Disabling mouse");
 	flags &= ~FLAG_MOUSE_ENABLED;
       }
-      
+
       // wait another 10ms before sending next byte
 #ifdef HOLD_OFF_TIME
       archie_debugf("KBD starting hold off");
@@ -590,4 +590,19 @@ static char archie_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 void archie_setup_menu()
 {
 	SetupMenu(archie_getmenupage, archie_getmenuitem, NULL);
+}
+
+void archie_eject_all()
+{
+  for (int i=0; i<MAX_FLOPPY; i++) {
+    floppy_name[i][0] = 0;
+  }
+
+  for (int i=0; i<SD_IMAGES; i++) {
+    f_close(&sd_image[i].file);
+    sd_image[i].valid = 0;
+  }
+
+  config.hardfile[0].present = 0;
+  config.hardfile[1].present = 0;
 }

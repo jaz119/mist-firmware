@@ -60,10 +60,6 @@ extern bool bHDMIMode;
 extern BYTE HPD;
 #endif
 
-// test features (not used right now)
-// #define ALLOW_TEST_MENU 0 //remove to disable in prod version
-
-
 static uint8_t menu_last, scroll_down, scroll_up;
 static uint8_t page_idx, last_page[4], last_menusub[4], last_menu_first[4], page_level;
 static menu_item_t menu_item;
@@ -137,22 +133,22 @@ unsigned char fs_MenuSelect;
 static uint8_t setup_phase = 0;
 static joymapping_t mapping;
 static const char *buttons [16] = {
-  "RIGHT",
-  "LEFT",
-  "DOWN",
-  "UP",
-  "A",
-  "B",
-  "SELECT(C)",
-  "START",
-  "X",
-  "Y",
-  "L",
-  "R",
-  "L2",
-  "R2",
-  "L3",
-  "R3"
+	"RIGHT",
+	"LEFT",
+	"DOWN",
+	"UP",
+	"A",
+	"B",
+	"SELECT(C)",
+	"START",
+	"X",
+	"Y",
+	"L",
+	"R",
+	"L2",
+	"R2",
+	"L3",
+	"R3"
 };
 
 // prints input as a string of binary (on/off) values
@@ -254,11 +250,11 @@ static void get_joystick_state_usb( char s[32], unsigned char joy_num ) {
 	return;
 }
 
-static void append_joystick_usbid ( char *usb_id, unsigned int usb_vid, unsigned int usb_pid ) {
+static void append_joystick_usbid( char *usb_id, unsigned int usb_vid, unsigned int usb_pid ) {
 	siprintf(usb_id, "VID:%04X PID:%04X", usb_vid, usb_pid);
 }
 
-static void get_joystick_id ( char usb_id[32], unsigned char joy_num ) {
+static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 	/*
 	Builds a string containing the USB VID/PID information of a joystick
 	*/
@@ -438,7 +434,11 @@ static char KeyEvent_System(uint8_t key) {
 }
 
 static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
-	if (action == MENU_PAGE_EXIT) return 0;
+	if (action == MENU_PAGE_EXIT) {
+		ScanDirectory(SCAN_INIT, fs_pFileExt, fs_Options);
+		menustate = MENU_FILE_SELECT1;
+		return 0;
+	}
 
 	page->timer = 0;
 	page->stdexit = MENU_STD_EXIT;
@@ -452,6 +452,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			break;
 		case 1:
 			page->title = "FW & Core";
+			page->timer = 1000;
 			break;
 		case 2:
 			page->title = "Clock";
@@ -459,6 +460,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			break;
 		case 3:
 			page->title = "Inputs";
+			page->timer = 100;
 			break;
 		case 4:
 		case 5:
@@ -483,7 +485,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			break;
 		case 10:
 			page->title = "Status";
-			page->timer = 10;
+			page->timer = 500;
 			break;
 	}
 	return 0;
@@ -777,10 +779,14 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 				// page 10 - System status
 				case 47:
 					siprintf(s, " Boot device:    %11s", fat_uses_mmc() ? "    SD card" : "USB storage");
+					item->active = fat_medium_present();
+					item->stipple = !item->active;
 					item->item = s;
 					break;
 				case 48:
 					siprintf(s, " Medium: %7s / %7luMB", fs_type_to_string(), storage_size);
+					item->active = fat_medium_present();
+					item->stipple = !item->active;
 					item->item = s;
 					break;
 				case 49: {
@@ -788,6 +794,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s, " Keyboard:");
 					keyboard_count ? siprintf(s + 10, " %8u", keyboard_count) : siprintf(s + 10, "     none");
 					siprintf(s + 19, " detected");
+					item->active = keyboard_count;
+					item->stipple = !item->active;
 					item->item = s;
 					}
 					break;
@@ -796,19 +804,28 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s, " Mouse:");
 					mouse_count ? siprintf(s + 7, " %11u", mouse_count) : siprintf(s + 7, "        none");
 					siprintf(s + 19, " detected");
+					item->active = mouse_count;
+					item->stipple = !item->active;
 					item->item = s;
 					}
 					break;
 				case 51: {
 					uint8_t *mac = asix_get_mac();
+					item->active = false;
+#ifdef CONFIG_CHIP_SAMV71
 					siprintf(s, " Net(USB):");
+#else
+					siprintf(s, " Network: ");
+#endif
 					if (mac) {
 						siprintf(s + 10, " %02x:%02x:%02x:%02x:%02x:%02x",
 							mac[0], mac[1], mac[2],
 							mac[3], mac[4], mac[5]);
+						item->active = true;
 					} else {
 						siprintf(s + 10, "     none detected");
 					}
+					item->stipple = !item->active;
 					item->item = s;
 					}
 					break;
@@ -817,6 +834,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s, " Serial:");
 					pl2303_count ? siprintf(s + 8, " %10u", pl2303_count) : siprintf(s + 8, "       none");
 					siprintf(s + 19, " detected");
+					item->active = pl2303_count;
+					item->stipple = !item->active;
 					item->item = s;
 					}
 					break;
@@ -1022,7 +1041,6 @@ void ChangePage(char idx) {
 static void PrintDirectory(void);
 static void ScrollLongName(void);
 
-
 void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect, char chdir)
 {
 	// this function displays file selection menu
@@ -1062,9 +1080,9 @@ void SetupMenu(menu_get_page_t menu_page_cb, menu_get_items_t menu_item_cb, menu
 	menustate = parentstate = MENU_NG;
 }
 
-void HandleUI(void)
+void HandleUI(uint8_t key)
 {
-	unsigned char i, c, up, down, select, backsp, menu, right, left, plus, minus;
+	unsigned char i, up, down, select, backsp, menu, right, left, plus, minus;
 	static unsigned char ctrl = false;
 	static unsigned char lalt = false;
 	static long helptext_timer;
@@ -1073,9 +1091,6 @@ void HandleUI(void)
 	int osdlines = OsdLines();
 	int firstline = osdlines <= 8 ? 0 : 2;
 	uint8_t keys[6] = {0,0,0,0,0,0};
-
-	// get user control codes
-	c = OsdGetCtrl();
 
 	// decode and set events
 	menu = false;
@@ -1088,7 +1103,7 @@ void HandleUI(void)
 	minus=false;
 	backsp=false;
 
-	switch (c)
+	switch (key)
 	{
 		case KEY_CTRL :
 			ctrl = true;
@@ -1160,7 +1175,7 @@ void HandleUI(void)
 			break;
 	}
 
-	if(menu || select || up || down || left || right )
+	if(menu || select || up || down || left || right)
 	{
 		helpstate=0;
 		helptext_timer=GetTimer(HELPTEXT_DELAY);
@@ -1221,7 +1236,6 @@ void HandleUI(void)
 			}
 		}
 	}
-
 
 	// Switch to current menu screen
 	switch (menustate)
@@ -1364,16 +1378,16 @@ void HandleUI(void)
 				StateKeyboardPressed(keys);
 				for(i=0; i<6; i++) {
 					if(keys[i]==0x29) { //ESC
-						if (c==KEY_SPACE) stdexit = 1;
+						if (key == KEY_SPACE) stdexit = 1;
 					}
 				}
 			} else if (menu_page.stdexit == MENU_STD_SPACE_EXIT) {
-				if (c==KEY_SPACE) stdexit = 1;
+				if (key == KEY_SPACE) stdexit = 1;
 			} else if (menu || (menu_page.stdexit && select && menusub == osdlines - 1)) {
 				stdexit = 1;
 			}
 
-			if (c == KEY_PGDN) {
+			if (key == KEY_PGDN) {
 				if (menusub < (osdlines - 1 - (menu_page.stdexit?1:0))) {
 					unsigned char save_menusub = menusub;
 					menusub = osdlines - 1 - (menu_page.stdexit?1:0);
@@ -1408,7 +1422,7 @@ void HandleUI(void)
 				menustate = parentstate;
 			}
 
-			if (c == KEY_PGUP) {
+			if (key == KEY_PGUP) {
 				if (menusub > firstline) {
 					unsigned char save_menusub = menusub;
 					menusub = firstline;
@@ -1453,8 +1467,8 @@ void HandleUI(void)
 				menustate = parentstate;
 				break;
 			}
-			if (c && menu_key_callback) {
-				if (menu_key_callback(c)) break;
+			if (key && menu_key_callback) {
+				if (menu_key_callback(key)) break;
 			}
 
 			action = MENU_ACT_NONE;
@@ -1579,13 +1593,13 @@ void HandleUI(void)
 
 			ScrollLongName(); // scrolls file name if longer than display line
 
-			if (c == KEY_HOME)
+			if (key == KEY_HOME)
 			{
 				ScanDirectory(SCAN_INIT, fs_pFileExt, fs_Options);
 				menustate = MENU_FILE_SELECT1;
 			}
 
-			if (c == KEY_BACK)
+			if (key == KEY_BACK)
 			{
 				if (iCurrentDirectory) // if not root directory
 				{
@@ -1599,13 +1613,13 @@ void HandleUI(void)
 				}
 			}
 
-			if ((c == KEY_PGUP) || (c == KEY_LEFT))
+			if ((key == KEY_PGUP) || (key == KEY_LEFT))
 			{
 				ScanDirectory(SCAN_PREV_PAGE, fs_pFileExt, fs_Options);
 				menustate = MENU_FILE_SELECT1;
 			}
 
-			if ((c == KEY_PGDN) || (c == KEY_RIGHT))
+			if ((key == KEY_PGDN) || (key == KEY_RIGHT))
 			{
 				ScanDirectory(SCAN_NEXT_PAGE, fs_pFileExt, fs_Options);
 				menustate = MENU_FILE_SELECT1;
@@ -1623,7 +1637,7 @@ void HandleUI(void)
 				menustate = MENU_FILE_SELECT1;
 			}
 
-			if ((i = GetASCIIKey(c)))
+			if ((i = GetASCIIKey(key)))
 			{ // find an entry beginning with given character
 				if (nDirEntries)
 				{
@@ -1776,7 +1790,7 @@ void HandleUI(void)
 }
 
 
-static void ScrollLongName(void)
+FAST static void ScrollLongName(void)
 {
 	// this function is called periodically when file selection window is displayed
 	// it checks if predefined period of time has elapsed and scrolls the name if necessary
@@ -1802,8 +1816,7 @@ static void ScrollLongName(void)
 	}
 }
 
-
-static char* GetDiskInfo(char* lfn, long len)
+FAST static char* GetDiskInfo(char* lfn, long len)
 {
 // extracts disk number substring from file name
 // if file name contains "X of Y" substring where X and Y are one or two digit number
@@ -1924,8 +1937,12 @@ static void PrintDirectory(void)
         }
         else
         {
-            if (i == 0 && nDirEntries == 0) // selected directory is empty
-                strcpy(s, "          No files!");
+            if (i == 0 && nDirEntries == 0) { // selected directory is empty
+                if (fat_medium_present())
+                    strcpy(s, "          No files");
+                else
+                    strcpy(s, "     No media detected");
+            }
         }
 
         OsdWrite(i, s, i == iSelectedEntry,0); // display formatted line text

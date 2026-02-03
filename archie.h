@@ -16,5 +16,6 @@ void archie_set_floppy(char i, const unsigned char *);
 void archie_save_config(void);
 void archie_save_cmos(void);
 void archie_setup_menu(void);
+void archie_eject_all();
 
 #endif // ARCHIE_H

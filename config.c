@@ -626,7 +626,7 @@ unsigned char SaveConfiguration(char *filename)
   return(0);
 }
 
-void EjectAllFloppies() {
+void minimig_eject_all() {
   for(int i=0;i<drives;i++)
     df[i].status = 0;
 

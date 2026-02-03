@@ -115,14 +115,14 @@ static void data_io_file_tx_send(FIL *file) {
       // upload directly from the SD-Card if the core supports that
       bytes2send = (file->obj.objsize + 511) & 0xfffffe00;
       file->obj.objsize = bytes2send; // hack to foul FatFs think the last block is a full sector
-      DISKLED_ON
+      DISKLED_ON;
       f_read(file, 0, bytes2send, &br);
-      DISKLED_OFF
+      DISKLED_OFF;
       bytes2send = 0;
     } else {
-      DISKLED_ON
+      DISKLED_ON;
       f_read(file, sector_buffer, chunk, &br);
-      DISKLED_OFF
+      DISKLED_OFF;
 
 #ifdef HAVE_QSPI
       if (user_io_get_core_features() & FEAT_QSPI) {
@@ -249,9 +249,9 @@ static void data_io_file_rx_receive(FIL *file, unsigned int len) {
 
     DisableFpga();
     bytes2receive -= chunk;
-    DISKLED_ON
+    DISKLED_ON;
     f_write(file, sector_buffer, chunk, &bw);
-    DISKLED_OFF
+    DISKLED_OFF;
   }
 }
 

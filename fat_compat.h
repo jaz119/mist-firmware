@@ -2,7 +2,6 @@
 #define _FAT16_H_INCLUDED
 
 #include "spi.h"
-
 #include "FatFs/ff.h"
 
 #define MAXDIRENTRIES 16
@@ -130,5 +129,6 @@ void fat_switch_to_usb(void);
 char *fs_type_to_string(void);
 int8_t fat_medium_present(void);
 int8_t fat_uses_mmc(void);
+void purge_dir_cache();
 
 #endif

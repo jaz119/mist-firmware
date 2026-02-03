@@ -117,12 +117,12 @@ static int SectorSend(uint8_t* header)
 	if (header) {
 		memcpy(sector_buffer + 12, header, 4);
 	}
-	DISKLED_ON
+	DISKLED_ON;
 	if (toc.tracks[neocdd.index].sector_size == 2048)
 		f_read(&toc.file->file, sector_buffer+16, 2048, &br);
 	else
 		f_read(&toc.file->file, sector_buffer, 2352, &br);
-	DISKLED_OFF
+	DISKLED_OFF;
 
 	SendData(sector_buffer, len, toc.tracks[neocdd.index].type);
 	return 0;

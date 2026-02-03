@@ -89,7 +89,7 @@ static void substrcpy(char *d, char *s, char idx) {
 	*d = 0;
 }
 
-static char* GetExt(char *ext) {
+FAST static char* GetExt(char *ext) {
 	static char extlist[32];
 	char *p = extlist;
 

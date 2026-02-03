@@ -420,7 +420,7 @@ static void cdrom_playaudio()
     cdrom.audiostatus = AUDIO_ERROR;
     return;
   }
-  DISKLED_ON
+  DISKLED_ON;
   int offset = (cdrom.currentlba - toc.tracks[track].start) * toc.tracks[track].sector_size + toc.tracks[track].offset;
   f_lseek(&toc.file->file, offset);
   f_read(&toc.file->file, sector_buffer, 2352, &br);
@@ -433,7 +433,7 @@ static void cdrom_playaudio()
   SPI(0x00);
   spi_write(sector_buffer, 2352);
   DisableFpga();
-  DISKLED_OFF
+  DISKLED_OFF;
   if (cdrom.currentlba == cdrom.endlba)
     cdrom.audiostatus = AUDIO_COMPLETE;
   else

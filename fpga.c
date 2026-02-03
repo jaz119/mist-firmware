@@ -320,9 +320,9 @@ RAMFUNC unsigned char ConfigureFpga(const char *name)
         if ((i & (SECTOR_BUFFER_SIZE-1)) == 0)
         {
             if (i & (1<<13))
-                DISKLED_OFF
+                DISKLED_OFF;
             else
-                DISKLED_ON
+                DISKLED_ON;
 
             if ((i & (SECTOR_BUFFER_SIZE*4-1)) == 0)
                 iprintf("*");

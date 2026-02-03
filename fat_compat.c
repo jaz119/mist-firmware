@@ -351,7 +351,11 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 		iSelectedEntry = 0;
 		for (i = 0; i < maxDirEntries; i++)
 			sort_table[i] = i;
-		if (f_opendir(&dir, ".") != FR_OK) return 0;
+		int err = f_opendir(&dir, ".");
+		if (err != FR_OK) {
+			iprintf("%s: error %d\n", __FUNCTION__, err);
+			return 0;
+		}
 	}
 	else
 	{
@@ -610,4 +614,12 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 		}
 	}
 	return rc;
+}
+
+void purge_dir_cache() {
+	nDirEntries = 0;
+	iSelectedEntry = 0;
+	for (int i = 0; i < maxDirEntries; i++)
+		sort_table[i] = i;
+	dir.obj.fs = 0;
 }

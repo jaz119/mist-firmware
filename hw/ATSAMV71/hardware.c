@@ -77,6 +77,7 @@ void __init_hardware()
     PIOA->PIO_ABCDSR[0] |= PIO_PA25D_MCCK;
     PIOA->PIO_ABCDSR[1] |= PIO_PA25D_MCCK | PIO_PA30C_MCDA0 | PIO_PA31C_MCDA1 | PIO_PA26C_MCDA2 | PIO_PA27C_MCDA3 | PIO_PA28C_MCCDA;
     PIOD->PIO_PER = SD_CD | SD_WP;
+    PIOD->PIO_ODR = SD_CD | SD_WP;
     PIOD->PIO_PPDDR = SD_CD | SD_WP;
     //PIOD->PIO_PUER = SD_CD | SD_WP; // not needed if external pullups are there
 
@@ -95,7 +96,7 @@ void __init_hardware()
     PIOA->PIO_PDR = PIO_PA11A_QSPI0_CS | PIO_PA12A_QSPI0_IO1 | PIO_PA13A_QSPI0_IO0 | PIO_PA14A_QSPI0_SCK | PIO_PA17A_QSPI0_IO2;
     PIOD->PIO_PDR = PIO_PD31A_QSPI0_IO3;
 
-    // MAX3421e INT
+    // MAX3421e INT input
     PIOD->PIO_PER = USB_INT;
     PIOD->PIO_ODR = USB_INT;
     PIOD->PIO_PUER = USB_INT;
@@ -292,14 +293,6 @@ void WaitTimer(unsigned long time)
 {
     time = GetTimer(time);
     while (!CheckTimer(time));
-}
-
-inline char mmc_inserted() {
-    return !(PIOD->PIO_PDSR & SD_CD);
-}
-
-inline char mmc_write_protected() {
-    return !!(PIOD->PIO_PDSR & SD_WP);
 }
 
 inline unsigned long GetRTTC() {

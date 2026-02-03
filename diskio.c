@@ -33,26 +33,18 @@ DSTATUS disk_status (
 	BYTE pdrv		/* Physical drive nmuber to identify the drive */
 )
 {
-	DSTATUS stat;
-	int result;
-
 //	switch (pdrv) {
 	switch (fat_device) {
 
 	case DEV_MMC :
-		result = MMC_CheckCard();
+		return MMC_CheckCard() ? 0 : STA_NOINIT;
 
-		// translate the reslut code here
-                stat = result ? 0 : STA_NOINIT;
-		return stat;
 #ifdef USB_STORAGE
 	case DEV_USB :
-		//result = USB_disk_status();
-
+		// int result = USB_disk_status();
 		// translate the reslut code here
 		return 0;
 #endif
-
 	}
 
 	return STA_NOINIT;
@@ -107,6 +99,9 @@ DRESULT disk_read (
 {
 	DRESULT res;
 	int result;
+
+	if (disk_status(pdrv) != 0)
+		return RES_NOTRDY;
 
 	//iprintf("disk_read: %d LBA: %d count: %d\n", pdrv, sector, count);
 	if(enable_cache && cache_sector != -1 && sector >= cache_sector && (sector + count - 1) <= (cache_sector + SECTOR_BUFFER_SIZE/512 - 1)) {

@@ -55,7 +55,7 @@ void __init_hardware(void)
     *AT91C_PIOA_SODR = USB_PUP;
 #endif
 
-    // MAX3421e INT
+    // MAX3421e INT input
     AT91C_BASE_PIOA->PIO_PER = USB_INT;
     AT91C_BASE_PIOA->PIO_ODR = USB_INT;
     AT91C_BASE_PIOA->PIO_PPUER = USB_INT;
@@ -69,15 +69,17 @@ void __init_hardware(void)
     *AT91C_PIOA_PPUER = JOY1;
 #endif
 
-#ifdef SD_WP
-    // enable SD card signals
+    // enable SD card signals inputs
+    *AT91C_PIOA_PER = SD_WP | SD_CD;
+    *AT91C_PIOA_ODR = SD_WP | SD_CD;
     *AT91C_PIOA_PPUER = SD_WP | SD_CD;
-#endif
 
     *AT91C_PIOA_SODR = MMC_SEL | FPGA0 | FPGA1 | FPGA2; // set output data register
 
     // output enable register
+    *AT91C_PIOA_PER = DISKLED;
     *AT91C_PIOA_OER = DISKLED | MMC_SEL | FPGA0 | FPGA1 | FPGA2;
+
     // pull-up disable register
     *AT91C_PIOA_PPUDR = DISKLED | MMC_SEL | FPGA0 | FPGA1 | FPGA2;
 
@@ -111,7 +113,7 @@ void __init_hardware(void)
 #endif
 
     // Enable peripheral clock in the PMC
-    AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PIOA;
+    *AT91C_PMC_PCER = 1 << AT91C_ID_PIOA;
 }
 
 // A buffer of 256 bytes makes index handling pretty trivial

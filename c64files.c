@@ -131,9 +131,9 @@ static char c64_idx_getmenuitem(uint8_t idx, char action, menu_item_t *item)
 		FRESULT res;
 		char *p;
 		// Send header
-		DISKLED_ON
+		DISKLED_ON;
 		res = f_read(&tapfile, sector_buffer, 20, &br);
-		DISKLED_OFF
+		DISKLED_OFF;
 		if (res != FR_OK) {
 			f_close(&tapfile);
 			CloseMenu();
@@ -147,9 +147,9 @@ static char c64_idx_getmenuitem(uint8_t idx, char action, menu_item_t *item)
 		// Send data
 		if (f_lseek(&tapfile, offset) == FR_OK) {
 			while(1) {
-				DISKLED_ON
+				DISKLED_ON;
 				res = f_read(&tapfile, sector_buffer, SECTOR_BUFFER_SIZE, &br);
-				DISKLED_OFF
+				DISKLED_OFF;
 				if (res == FR_OK) {
 					EnableFpga();
 					SPI(DIO_FILE_TX_DAT);

@@ -35,8 +35,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DMA_CH_QSPI_REC      4
 
 #define DISKLED              PIO_PD28
-#define DISKLED_ON           PIOD->PIO_CODR = DISKLED;
-#define DISKLED_OFF          PIOD->PIO_SODR = DISKLED;
+#define DISKLED_ON           ( PIOD->PIO_CODR = DISKLED )
+#define DISKLED_OFF          ( PIOD->PIO_SODR = DISKLED )
+#define DISKLED_TOGGLE       { if (PIOD->PIO_ODSR & DISKLED) { DISKLED_ON; } else { DISKLED_OFF; } }
 
 #define USB_SEL              PIO_PD25
 #define USB_INT              PIO_PD24
@@ -150,8 +151,13 @@ static inline uint8_t usb_irq_active() {
   return !(PIOD->PIO_PDSR & USB_INT);
 }
 
-char mmc_inserted();
-char mmc_write_protected();
+static inline char mmc_inserted() {
+    return !(PIOD->PIO_PDSR & SD_CD);
+}
+
+static inline char mmc_write_protected() {
+    return !!(PIOD->PIO_PDSR & SD_WP);
+}
 
 void USART_Init(unsigned long baudrate);
 void USART_Write(unsigned char c);
