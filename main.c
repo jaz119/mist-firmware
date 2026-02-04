@@ -316,6 +316,7 @@ FAST int main(void)
         {
             DISKLED_TOGGLE;
 
+            // trying to remount card
             if (MMC_Init()
                 && disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &storage_size) == 0
                 && FindDrive())

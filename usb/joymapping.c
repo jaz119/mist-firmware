@@ -30,8 +30,8 @@ This file defines how to handle mapping in the MiST controllers in various ways:
 #include "timer.h"
 #include "debug.h"
 #include "joymapping.h"
-#include "../user_io.h"
-#include "../mist_cfg.h"
+#include "user_io.h"
+#include "mist_cfg.h"
 
 // up to 8 buttons can be remapped
 #define MAX_VIRTUAL_JOYSTICK_REMAP 8

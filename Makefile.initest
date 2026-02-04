@@ -4,10 +4,11 @@ SRC = ini_test.c mist_cfg.c ini_parser.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 
-CFLAGS = -Wno-attributes
-CPPFLAGS  = -DINI_PARSER_TEST
+DFLAGS  = -DFF_FS_TINY=1 -DFF_MAX_LFN=64 -DFF_LFN_BUF=64
+DFLAGS += -DINI_PARSER_TEST -DCONFIG_CHIP_SAMV71
+DFLAGS += -Diprintf=printf -D_strnicmp=strncasecmp -Dsiprintf=sprintf
+CFLAGS  = $(DFLAGS) -Wno-attributes -I. -Iusb -Ihw/AT91SAM -g -O0
 
-# Our target.
 all: $(PRJ)
 
 $(PRJ): $(OBJ)

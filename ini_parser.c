@@ -1,16 +1,14 @@
 // ini_parser.c
 // 2015, rok.krajnc@gmail.com
 
-
 //#define INI_PARSER_TEST
 
-
-//// includes ////
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 #include "ini_parser.h"
+
 #ifndef INI_PARSER_TEST
 #include "debug.h"
 #include "fat_compat.h"
@@ -21,11 +19,11 @@
 
 #define INI_BUF_SIZE            512
 #define INI_LINE_SIZE           140
+#define INI_VALUE_SIZE          130
 
 #define INI_SECTION_START       '['
 #define INI_SECTION_END         ']'
 #define INI_SECTION_INVALID_ID  0
-
 
 //// macros ////
 #define CHAR_IS_NUM(c)          (((c) >= '0') && ((c) <= '9'))
@@ -42,7 +40,6 @@
 #define CHAR_IS_QUOTE(c)        (((c) == '"'))
 #define CHAR_TO_UPPERCASE(c)    ({ char _c = (c); if (CHAR_IS_ALPHA_LOWER(_c)) _c = _c - 'a' + 'A'; _c;})
 #define CHAR_TO_LOWERCASE(c)    ({ char _c = (c); if (CHAR_IS_ALPHA_UPPER(_c)) _c = _c - 'A' + 'a'; _c;})
-
 
 //// debug func ////
 #ifdef INI_PARSER_TEST
@@ -100,7 +97,6 @@ static void ini_putch(char c)
   }
 }
 
-
 //// ini_findch() ////
 static char ini_findch(char c)
 {
@@ -130,7 +126,6 @@ static int ini_getline(char* line)
   line[i] = '\0';
   return c==0 ? INI_EOT : literal ? 1 : 0;
 }
-
 
 //// ini_putline() ////
 static void ini_putline(char* line)
@@ -186,7 +181,6 @@ static int ini_get_section(const ini_cfg_t* cfg, char* buf, const char* alter_se
 
   return INI_SECTION_INVALID_ID;
 }
-
 
 //// ini_get_var() ////
 static void* ini_get_var(const ini_cfg_t* cfg, int cur_section, char* buf, int tag)
@@ -279,7 +273,6 @@ static void* ini_get_var(const ini_cfg_t* cfg, int cur_section, char* buf, int t
   return (void*)0;
 }
 
-
 //// ini_parse() ////
 bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
 {
@@ -346,13 +339,12 @@ bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
   return (vars > 0);
 }
 
-
 //// ini_save() ////
 void ini_save(const ini_cfg_t* cfg, int tag)
 {
   int section, var;
   char line[INI_LINE_SIZE] = {0};
-  char val[INI_LINE_SIZE] = {0};
+  char val[INI_VALUE_SIZE] = {0};
 
   ini_pt = 0;
   // open ini file
@@ -386,7 +378,7 @@ void ini_save(const ini_cfg_t* cfg, int tag)
             siprintf(line, "%s=0x%x\n", cfg->vars[var].name, *(uint32_t*)(cfg->vars[var].var));
             break;
           case UINT64:
-            siprintf(line, "%s=0x%llx\n", cfg->vars[var].name, *(uint64_t*)(cfg->vars[var].var));
+            siprintf(line, "%s=0x%lx\n", cfg->vars[var].name, *(uint64_t*)(cfg->vars[var].var));
             break;
           case INT8:
             siprintf(line, "%s=%d\n", cfg->vars[var].name, *(int8_t*)(cfg->vars[var].var));
@@ -415,7 +407,6 @@ void ini_save(const ini_cfg_t* cfg, int tag)
             ini_putline(line);
       }
     }
-
   }
 
   // in case the buffer is not written yet, write it now
@@ -433,5 +424,4 @@ void ini_save(const ini_cfg_t* cfg, int tag)
   #else
   f_close(&ini_file);
   #endif
-
 }

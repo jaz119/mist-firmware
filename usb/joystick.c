@@ -21,9 +21,9 @@
 
 #include "usb.h"
 #include "debug.h"
-#include "../utils.h"
-#include "../mist_cfg.h"
-#include "../state.h"
+#include "utils.h"
+#include "mist_cfg.h"
+#include "state.h"
 
 static unsigned char joysticks = 0;      // number of detected usb joysticks
 
