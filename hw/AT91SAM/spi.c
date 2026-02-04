@@ -5,8 +5,8 @@ void spi_init() {
     // Enable the peripheral clock in the PMC
     AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_SPI;
 
-    // Enable SPI interface
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN;
+    // Reset SPI
+    *AT91C_SPI_CR = AT91C_SPI_SWRST;
 
     // SPI Mode Register
     *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16);
@@ -24,6 +24,9 @@ void spi_init() {
     // PA9 (CONF_DATA0) and PA31 (MMC) are both NPCS1. Give them to the SPI only when transfer is required.
     // Set them to high level by default.
     *AT91C_PIOA_SODR = FPGA0 | MMC_SEL;
+
+    // Enable SPI interface
+    *AT91C_SPI_CR = AT91C_SPI_SPIEN;
 }
 
 RAMFUNC void spi_wait4xfer_end() {
