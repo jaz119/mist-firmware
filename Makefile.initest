@@ -9,6 +9,7 @@ DFLAGS += -DINI_PARSER_TEST -DCONFIG_CHIP_SAMV71
 DFLAGS += -Diprintf=printf -D_strnicmp=strncasecmp -Dsiprintf=sprintf
 CFLAGS  = $(DFLAGS) -Wno-attributes -I. -Iusb -Ihw/AT91SAM -g -O0
 
+# Our target.
 all: $(PRJ)
 
 $(PRJ): $(OBJ)

@@ -986,7 +986,7 @@ unsigned char fpga_init(const char *name) {
       DisableOsd();
       WaitTimer(100); // video sync delay
       BootInit();
-      WaitTimer(250);
+      WaitTimer(200);
       char rtl_ver[45];
       siprintf(rtl_ver, "**** MINIMIG-AGA%s v%d.%d.%d for MiST ****", minimig_ver_beta ? " BETA" : "", minimig_ver_major, minimig_ver_minor, minimig_ver_minion);
       BootPrintEx(rtl_ver);
@@ -1002,10 +1002,8 @@ unsigned char fpga_init(const char *name) {
     ChangeDirectoryName("/");
 
     //eject all disk
-    df[0].status = 0;
-    df[1].status = 0;
-    df[2].status = 0;
-    df[3].status = 0;
+    for (int n = 0; n < FLOPPIES; n++)
+        df[n].status = 0;
 
     config.kickstart[0]=0;
     SetConfigurationFilename(arc_get_cfg_file_n());

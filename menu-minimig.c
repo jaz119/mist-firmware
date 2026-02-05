@@ -26,7 +26,7 @@ const char *config_memory_chip_msg[] = {"0.5 MB", "1.0 MB", "1.5 MB", "2.0 MB"};
 const char *config_memory_slow_msg[] = {"none  ", "0.5 MB", "1.0 MB", "1.5 MB"};
 const char *config_scanlines_msg[] = {"off", "dim", "black"};
 const char *config_dither_msg[] = {"off", "SPT", "RND", "S+R"};
-const char *config_memory_fast_msg[] = {"none  ", "2.0 MB", "4.0 MB","8.0 MB","Maximum"};
+const char *config_memory_fast_msg[] = {"none  ", "2.0 MB", "4.0 MB", "8.0 MB", "Maximum"};
 const char *config_hdf_msg[] = {"Disabled", "Hardfile (disk img)", "MMC/SD card", "MMC/SD partition 1", "MMC/SD partition 2", "MMC/SD partition 3", "MMC/SD partition 4"};
 const char *config_chipset_msg[] = {"OCS-A500", "OCS-A1000", "ECS", "---", "---", "---", "AGA", "---"};
 const char *config_turbo_msg[] = {"none", "CHIPRAM", "KICK", "BOTH"};
@@ -50,7 +50,7 @@ const char *config_memory_fast_txt()
     return config_memory_fast_msg[(config.memory >> 4 & 0x03) + 1];
 }
 
-static void _strncpy(char* pStr1, const char* pStr2, size_t nCount)
+FAST static void _strncpy(char* pStr1, const char* pStr2, size_t nCount)
 {
 // customized strncpy() function to fill remaing destination string part with spaces
 
@@ -490,76 +490,76 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 
 				// Page 5 - Chipset
 				case 32:
-					strcpy(s, "         CPU : ");
+					strcpy(s, "  CPU      : ");
 					strcat(s, config_cpu_msg[config.cpu & 0x03]);
 					item->item = s;
 					break;
 				case 33:
-					strcpy(s, "       Turbo : ");
+					strcpy(s, "  Turbo    : ");
 					strcat(s, config_turbo_msg[(config.cpu >> 2) & 0x03]);
 					item->item = s;
 					break;
 				case 34:
-					strcpy(s, "       Video : ");
+					strcpy(s, "  Video    : ");
 					strcat(s, config.chipset & CONFIG_NTSC ? "NTSC" : "PAL");
 					item->item = s;
 					break;
 				case 35:
-					strcpy(s, "     Chipset : ");
+					strcpy(s, "  Chipset  : ");
 					strcat(s, config_chipset_msg[(config.chipset >> 2) & (minimig_v1()?3:7)]);
 					item->item = s;
 					break;
 				case 36:
-					strcpy(s, "     CD32Pad : ");
+					strcpy(s, "  CD32Pad  : ");
 					strcat(s, config_cd32pad_msg[(config.autofire >> 2) & 1]);
 					item->item = s;
 					break;
 				case 37:
-					strcpy(s, "    Joystick : ");
+					strcpy(s, "  Joystick : ");
 					strcat(s, config_joystick_msg[(config.autofire >> 3) & 1]);
 					item->item = s;
 					break;
 
 				// Page 6 - Memory
 				case 39:
-					strcpy(s, "      CHIP  : ");
+					strcpy(s, "  CHIP  : ");
 					strcat(s, config_memory_chip_msg[config.memory & 0x03]);
 					item->item = s;
 					break;
 				case 40:
-					strcpy(s, "      SLOW  : ");
+					strcpy(s, "  SLOW  : ");
 					strcat(s, config_memory_slow_msg[config.memory >> 2 & 0x03]);
 					item->item = s;
 					break;
 				case 41:
-					strcpy(s, "      FAST  : ");
+					strcpy(s, "  FAST  : ");
 					strcat(s, config_memory_fast_txt());
 					item->item = s;
 					break;
 				case 43:
-					strcpy(s, "      ROM   : ");
+					strcpy(s, "  ROM   : ");
 					strncat(s, config.kickstart, sizeof(config.kickstart));
 					item->item = s;
 					break;
 				case 44:
-					strcpy(s, "      HRTmon: ");
+					strcpy(s, "  HRTmon: ");
 					strcat(s, (config.memory&0x40) ? "enabled " : "disabled");
 					item->item = s;
 					break;
 
 				// Page 7 - Video
 				case 46:
-					strcpy(s, "   Lores Filter : ");
+					strcpy(s, "  Lores Filter : ");
 					strcat(s, config_filter_msg[config.filter.lores & 0x03]);
 					item->item = s;
 					break;
 				case 47:
-					strcpy(s, "   Hires Filter : ");
+					strcpy(s, "  Hires Filter : ");
 					strcat(s, config_filter_msg[config.filter.hires & 0x03]);
 					item->item = s;
 					break;
 				case 48:
-					strcpy(s, "   Scanlines    : ");
+					strcpy(s, "  Scanlines    : ");
 					strcat(s, config_scanlines_msg[(config.scanlines&0x3) % 3]);
 					item->item = s;
 					break;
@@ -567,7 +567,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					if(minimig_v1()) {
 						item->active = 0;
 					} else {
-						strcpy(s, "   Dither       : ");
+						strcpy(s, "  Dither       : ");
 						strcat(s, config_dither_msg[(config.scanlines>>2) & 0x03]);
 						item->item = s;
 					}

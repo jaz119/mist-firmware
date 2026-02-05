@@ -48,7 +48,7 @@ LIBS    =
 all: $(PRJ).hex $(PRJ).upg
 
 clean:
-	rm -f *.d *.o *.hex *.elf *.map *.lst core *~ */*.d */*.o */*/*.d */*/*.o $(MKUPG) *.bin *.upg *.exe
+	rm -f *.d *.o *.hex *.elf *.map *.lst *.out core *~ */*.d */*.o */*/*.d */*/*.o $(MKUPG) *.bin *.upg *.exe
 
 INTERFACE=interface/ftdi/olimex-arm-usb-tiny-h.cfg
 #INTERFACE=interface/busblaster.cfg

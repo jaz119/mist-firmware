@@ -331,7 +331,6 @@ FAST int main(void)
 
                     // apply config changes
                     mist_ini_parse();
-                    user_io_send_buttons(false);
 
                     // force menu update
                     key = KEY_HOME;

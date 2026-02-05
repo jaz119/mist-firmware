@@ -471,7 +471,7 @@ static void ApplyConfiguration(char reloadkickstart)
 
   // Whether or not we uploaded a kickstart image we now need to set various parameters from the config.
   for (int i = 0; i < HARDFILES; i++) {
-    if(OpenHardfile(i, true)) {
+    if (OpenHardfile(i, true)) {
       switch(hdf[i].type) {
         // Customise message for SD card acces
         case (HDF_FILE | HDF_SYNTHRDB):
@@ -515,16 +515,14 @@ static void ApplyConfiguration(char reloadkickstart)
   BootPrint(s);
   siprintf(s, "Fast RAM size : %s", config_memory_fast_txt());
   BootPrint(s);
-
   siprintf(s, "Floppy drives : %u", config.floppy.drives + 1);
   BootPrint(s);
   siprintf(s, "Floppy speed  : %s", config.floppy.speed ? "fast": "normal");
   BootPrint(s);
-
   BootPrint("");
-
   siprintf(s, "\nA600 IDE HDC is %s/%s.", config.enable_ide[0] ? "enabled" : "disabled", config.enable_ide[1] ? "enabled" : "disabled");
   BootPrint(s);
+
   for (int i = 0; i < HARDFILES; i++) {
     siprintf(s, "%s %s HDD is %s.",
       (i & 0x02) ? "Secondary" : "Primary", (i & 0x01) ? "Slave" : "Master",
@@ -570,7 +568,7 @@ static void ApplyConfiguration(char reloadkickstart)
 
     if(reloadkickstart) {
       iprintf("Reloading kickstart ...\r");
-      WaitTimer(500);
+      WaitTimer(250);
       EnableOsd();
       SPI(OSD_CMD_RST);
       rstval |= (SPI_RST_CPU | SPI_CPU_HLT); // reset #3
@@ -597,7 +595,6 @@ static void ApplyConfiguration(char reloadkickstart)
     rstval = 0; // 68K CPU ready to go
     SPI(rstval);
     DisableOsd();
-    delay_usec(50);
   }
 }
 
