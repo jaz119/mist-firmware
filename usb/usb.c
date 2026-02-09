@@ -5,7 +5,7 @@
 #include "usb.h"
 #include "debug.h"
 
-static usb_device_t usb_devices[USB_NUMDEVICES];
+ALIGNED(4) static usb_device_t usb_devices[USB_NUMDEVICES];
 
 usb_device_t *usb_get_devices() {
 	return usb_devices;
@@ -57,7 +57,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	// find an empty device entry
 	uint8_t i;
 	usb_device_descriptor_t dev_desc;
-	union {
+	ALIGNED(4) union {
 		usb_string0_descriptor_t str0_desc;
 		usb_string_descriptor_t str_desc;
 		uint8_t buf[255];

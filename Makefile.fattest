@@ -6,7 +6,7 @@ DEP = $(SRC:.c=.d)
 
 DFLAGS  = -DFF_FS_TINY=1 -DFF_MAX_LFN=64 -DFF_LFN_BUF=64
 DFLAGS += -DFAT_TEST -Diprintf=printf -D_strnicmp=strncasecmp
-CFLAGS  = $(DFLAGS) -Wno-attributes -I. -Iusb -Ihw/AT91SAM -g -O0
+CFLAGS  = $(DFLAGS) -Wall -Wno-pointer-sign -Wno-attributes -I. -Iusb -Ihw/AT91SAM -g -O0
 
 # Our target.
 all: $(PRJ)

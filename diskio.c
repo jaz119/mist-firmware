@@ -61,7 +61,6 @@ DSTATUS disk_initialize (
 )
 {
 	DSTATUS stat;
-	int result;
 
 //	switch (pdrv) {
 	switch (fat_device) {
@@ -201,9 +200,6 @@ DRESULT disk_ioctl (
 	void *buff		/* Buffer to send/receive control data */
 )
 {
-	DRESULT res;
-	int result;
-
 //	switch (pdrv) {
 	switch (fat_device) {
 	case DEV_MMC :

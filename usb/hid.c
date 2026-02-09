@@ -242,7 +242,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 					// only interrupt in endpoints are supported
 					if ((p->ep_desc.bmAttributes & 0x03) == 3 && (p->ep_desc.bEndpointAddress & 0x80) == 0x80) {
-						iprintf("endpoint %d, interval: %dms\n",
+						iprintf("endpoint %d, interval: %d ms\n",
 						p->ep_desc.bEndpointAddress & 0x0F, p->ep_desc.bInterval);
 
 						// Fill in the endpoint info structure

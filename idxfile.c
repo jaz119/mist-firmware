@@ -2,7 +2,7 @@
 #include "idxfile.h"
 #include "hardware.h"
 
-IDXFile sd_image[SD_IMAGES];
+ALIGNED(4) IDXFile sd_image[SD_IMAGES];
 
 void IDXIndex(IDXFile *pIDXF) {
     // builds index to speed up hard file seek

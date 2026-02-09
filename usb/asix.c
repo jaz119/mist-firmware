@@ -19,10 +19,10 @@
 
 #define MAX_FRAMELEN 1536
 
-static unsigned char rx_buf[MAX_FRAMELEN+64];
+ALIGNED(4) static unsigned char rx_buf[MAX_FRAMELEN+64];
 static uint16_t rx_cnt;
 
-static unsigned char tx_buf[4+MAX_FRAMELEN];
+ALIGNED(4) static unsigned char tx_buf[4+MAX_FRAMELEN];
 static uint16_t tx_cnt, tx_offset;
 
 bool eth_present = 0;

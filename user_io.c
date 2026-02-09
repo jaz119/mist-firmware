@@ -362,10 +362,10 @@ void user_io_init_core() {
 		// try to load config
 
 		if(!user_io_create_config_name(s, "CFG", CONFIG_ROOT)) {
-			iprintf("Loading config %s\n", s);
+			debugf("Loading config %s", s);
 
 			if (f_open(&file, s, FA_READ) == FR_OK)  {
-				iprintf("Found config\n");
+				debugf("Found config");
 				if(f_size(&file) <= 8) {
 					((unsigned long long*)sector_buffer)[0] = 0;
 					f_read(&file, sector_buffer, f_size(&file), &br);

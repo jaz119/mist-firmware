@@ -38,11 +38,11 @@ static const unsigned short supported_devices[][2] = {
 // this needs to be at least 64 bytes (the max packet size), otherwise we might loose data
 // since we cannot prevent the device to return less than these bytes
 #define RX_BUF_SIZE 128
-static uint8_t rx_buf[RX_BUF_SIZE];
+ALIGNED(4) static uint8_t rx_buf[RX_BUF_SIZE];
 static uint8_t rx_buf_fill;
 
 #define TX_BUF_SIZE 128
-static uint8_t tx_buf[TX_BUF_SIZE];
+ALIGNED(4) static uint8_t tx_buf[TX_BUF_SIZE];
 static uint8_t tx_buf_fill;
 
 static uint8_t adapter_count = 0;

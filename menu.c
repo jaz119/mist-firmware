@@ -116,8 +116,8 @@ char helptext_custom[450]; // spacer(32) + corename(64) + minimig version(16) + 
 // file selection menu variables
 char fs_pFileExt[13] = "xxx";
 unsigned char fs_ShowExt = 0;
-unsigned char fs_Options;
-unsigned char fs_MenuSelect;
+unsigned char fs_Options = 0;
+unsigned char fs_MenuSelect = 0;
 
 #define STD_EXIT       "            exit"
 #define STD_SPACE_EXIT "        SPACE to exit"
