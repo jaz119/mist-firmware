@@ -5,27 +5,28 @@ on: push
 jobs:
     build-firmware:
         runs-on: ubuntu-latest
-        container:
-            image: ghcr.io/retrofun/mist-firmware-builder
+        permissions:
+            contents: write
         steps:
-          - name: Checkout
-            id: checkout
+          - name: Checkout code
             uses: actions/checkout@v4
-
+          - name: Install arm-none-eabi-gcc
+            uses: carlosperate/arm-none-eabi-gcc-action@v1
+            with:
+                release: 'latest'
           - name: Build
             id: build
-            run: BASE=/opt/arm-none-eabi/bin/arm-none-eabi make
-
-          - name: Get current date
-            id: date
-            run: echo "date=$(date '+%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
-
-          - name: Save artifacts
-            id: artifacts
-            uses: actions/upload-artifact@v4
+            run: make BASE=arm-none-eabi
+          - name: Update Release
+            uses: softprops/action-gh-release@v2
             with:
-              name: mist-firmware-binaries-${{ steps.date.outputs.date }}
-              path: |
-                firmware.bin
-                firmware.hex
-                firmware.upg
+                tag_name: latest-${{ github.ref_name }}
+                name: "Latest Build: ${{ github.ref_name }}"
+                body: "The latest build from the branch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}"
+                fail_on_unmatched_files: true
+                files: |
+                    firmware.bin
+                    firmware.hex
+                    firmware.upg
+            env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
