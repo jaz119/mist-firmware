@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "fdd.h"
 #include "user_io.h"
 #include "config.h"
+#include "debug.h"
 #include "boot.h"
 #include "osd.h"
 #include "fpga.h"
@@ -47,6 +48,8 @@ uint8_t rstval = 0;
 
 #define CMD_HDRID 0xAACA
 
+static FIL file;
+
 extern DWORD clmt[128];
 
 char minimig_ver_beta;
@@ -54,7 +57,7 @@ char minimig_ver_major;
 char minimig_ver_minor;
 char minimig_ver_minion;
 
-char BootPrint(const char *text);
+FAST char BootPrint(const char *text);
 
 #ifdef XILINX_CCLK
 
@@ -116,12 +119,11 @@ FAST static inline void ShiftFpga(unsigned char data)
 
 // Xilinx FPGA configuration
 // was before unsigned char ConfigureFpga(void)
-RAMFUNC unsigned char ConfigureFpga(const char *name)
+FAST unsigned char ConfigureFpga(const char *name)
 {
     unsigned long  t;
     unsigned long  n;
     unsigned char *ptr;
-    FIL file;
     UINT br;
 
     // set outputs
@@ -253,11 +255,10 @@ FAST static inline void ShiftFpga(unsigned char data)
 }
 
 // Altera FPGA configuration
-RAMFUNC unsigned char ConfigureFpga(const char *name)
+FAST unsigned char ConfigureFpga(const char *name)
 {
     unsigned long i;
     unsigned char *ptr;
-    FIL file;
     UINT br;
 
     // set outputs
@@ -399,7 +400,7 @@ RAMFUNC unsigned char ConfigureFpga(const char *name)
 #endif
 
 
-void SendFile(FIL *file)
+FAST void SendFile(FIL *file)
 {
     unsigned char  c1, c2;
     unsigned long  j;
@@ -449,7 +450,7 @@ void SendFile(FIL *file)
 }
 
 
-void SendFileEncrypted(FIL *file,unsigned char *key,int keysize)
+FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize)
 {
     UINT br;
     unsigned char  c1, c2;
@@ -514,8 +515,8 @@ const char applymemdetectionpatchstr[] = "Applying Kickstart 1.x memory detectio
 
 const char *kickfoundstr = NULL, *applypatchstr = NULL;
 
-void PatchKick1xMemoryDetection() {
-
+void PatchKick1xMemoryDetection()
+{
   if (!strncmp(sector_buffer + 0x18, "exec 33.192 (8 Oct 1986)", 24)) {
     kick1xfoundstr[13] = '2';
     kickfoundstr = kick1xfoundstr;
@@ -540,7 +541,7 @@ out:
 }
 
 // SendFileV2 (for minimig_v2)
-void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size)
+FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size)
 {
   UINT br;
   int i,j;
@@ -603,7 +604,7 @@ void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int siz
 
 
 // draw on screen
-char BootDraw(char *data, unsigned short len, unsigned short offset)
+FAST char BootDraw(char *data, unsigned short len, unsigned short offset)
 {
   DEBUG_FUNC_IN();
 
@@ -627,7 +628,7 @@ char BootDraw(char *data, unsigned short len, unsigned short offset)
         c3 = SPI(0);
         c4 = SPI(0);
 
-	//	iprintf("FPGA state: %d %d (%d %d) %d %d\n", c1, c2, x, y, c3, c4);
+        // iprintf("FPGA state: %d %d (%d %d) %d %d\n", c1, c2, x, y, c3, c4);
 
         if (c1 & CMD_RDTRK)
         {
@@ -684,10 +685,10 @@ char BootDraw(char *data, unsigned short len, unsigned short offset)
 
 
 // print message on the boot screen
-char BootPrint(const char *text)
+FAST char BootPrint(const char *text)
 {
     if(!minimig_v1()) {
-      iprintf("%s\n", text);
+      debugf("%s", text);
       return 0;
     }
 
@@ -765,7 +766,7 @@ char BootPrint(const char *text)
     return 0;
 }
 
-char PrepareBootUpload(unsigned char base, unsigned char size)
+FAST char PrepareBootUpload(unsigned char base, unsigned char size)
 // this function sends given file to Minimig's memory
 // base - memory base address (bits 23..16)
 // size - memory size (bits 23..16)
@@ -824,7 +825,7 @@ char PrepareBootUpload(unsigned char base, unsigned char size)
     return -1;
 }
 
-void BootExit(void)
+FAST void BootExit(void)
 {
     unsigned char c1, c2, c3, c4;
 
@@ -863,7 +864,7 @@ void BootExit(void)
     }
 }
 
-void ClearMemory(unsigned long base, unsigned long size)
+FAST void ClearMemory(unsigned long base, unsigned long size)
 {
     unsigned char c1, c2, c3, c4;
 
@@ -919,7 +920,7 @@ unsigned char GetFPGAStatus(void)
 }
 
 
-unsigned char fpga_init(const char *name) {
+FAST unsigned char fpga_init(const char *name) {
   int loaded_from_usb = USB_LOAD_VAR;
   unsigned char ct;
 
@@ -1016,11 +1017,11 @@ unsigned char fpga_init(const char *name) {
 
     tos_upload(NULL);
 
-    // end of mist setup
-  }
+  } // end of mist setup
 
   if(user_io_core_type() == CORE_TYPE_ARCHIE) {
     puts("Running archimedes setup");
   } // end of archimedes setup
+
   return ERROR_NONE;
 }

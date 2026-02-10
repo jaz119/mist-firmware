@@ -9,16 +9,16 @@ extern char minimig_ver_major;
 extern char minimig_ver_minor;
 extern char minimig_ver_minion;
 
-unsigned char fpga_init(const char *name);
-unsigned char ConfigureFpga(const char*);
-void SendFile(FIL *file);
-void SendFileEncrypted(FIL *file,unsigned char *key,int keysize);
-void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size);
-char BootDraw(char *data, unsigned short len, unsigned short offset);
-char BootPrint(const char *text);
-char PrepareBootUpload(unsigned char base, unsigned char size);
-void BootExit(void);
-void ClearMemory(unsigned long base, unsigned long size);
+FAST unsigned char fpga_init(const char *name);
+FAST unsigned char ConfigureFpga(const char*);
+FAST void SendFile(FIL *file);
+FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize);
+FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size);
+FAST char BootDraw(char *data, unsigned short len, unsigned short offset);
+FAST char BootPrint(const char *text);
+FAST char PrepareBootUpload(unsigned char base, unsigned char size);
+FAST void BootExit(void);
+FAST void ClearMemory(unsigned long base, unsigned long size);
 unsigned char GetFPGAStatus(void);
 
 // minimig reset stuff
@@ -29,4 +29,3 @@ unsigned char GetFPGAStatus(void);
 extern uint8_t rstval;
 
 #endif
-

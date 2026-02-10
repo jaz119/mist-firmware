@@ -29,27 +29,6 @@ void spi_init() {
     *AT91C_SPI_CR = AT91C_SPI_SPIEN;
 }
 
-RAMFUNC void spi_wait4xfer_end() {
-  while (!(*AT91C_SPI_SR & AT91C_SPI_TXEMPTY));
-
-  /* Clear any data left in the receiver */
-  (void)*AT91C_SPI_RDR;
-  (void)*AT91C_SPI_RDR;
-}
-
-void EnableFpga()
-{
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN;
-    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x03 << 16); // NPCS2
-}
-
-void DisableFpga()
-{
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN | AT91C_SPI_LASTXFER;
-    spi_wait4xfer_end();
-    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
-}
-
 void EnableOsd()
 {
     *AT91C_SPI_CR = AT91C_SPI_SPIEN;
@@ -63,49 +42,7 @@ void DisableOsd()
     *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
 }
 
-void EnableIO() {
-    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN;
-    AT91C_BASE_PIOA->PIO_PDR = FPGA3;
-}
-
-void DisableIO() {
-    spi_wait4xfer_end();
-    AT91C_BASE_PIOA->PIO_PER = FPGA3;
-}
-
-void EnableDMode() {
-  *AT91C_PIOA_CODR = FPGA2;    // enable FPGA2 output
-}
-
-void DisableDMode() {
-  *AT91C_PIOA_SODR = FPGA2;    // disable FPGA2 output
-}
-
-RAMFUNC void EnableCard() {
-    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
-    AT91C_BASE_PIOA->PIO_PDR = MMC_SEL;
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN;
-}
-
-RAMFUNC void DisableCard() {
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN | AT91C_SPI_LASTXFER;
-    spi_wait4xfer_end();
-    AT91C_BASE_PIOA->PIO_PER = MMC_SEL;
-}
-
-void spi_max_start() {
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN;
-    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x0E << 16); // NPCS0
-}
-
-void spi_max_end() {
-    *AT91C_SPI_CR = AT91C_SPI_SPIEN | AT91C_SPI_LASTXFER;
-    spi_wait4xfer_end();
-    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
-}
-
-FAST void spi_block(unsigned short num) {
+RAMFUNC void spi_block(unsigned short num) {
   unsigned short i;
   unsigned long t;
 
@@ -192,43 +129,6 @@ RAMFUNC unsigned char SPI(unsigned char outByte) {
   *AT91C_SPI_TDR = outByte;
   while (!(*AT91C_SPI_SR & AT91C_SPI_RDRF));
   return((unsigned char)*AT91C_SPI_RDR);
-}
-
-/* generic helper */
-void spi16(unsigned short parm) {
-  SPI(parm >> 8);
-  SPI(parm >> 0);
-}
-
-void spi16le(unsigned short parm) {
-  SPI(parm >> 0);
-  SPI(parm >> 8);
-}
-
-void spi24(unsigned long parm) {
-  SPI(parm >> 16);
-  SPI(parm >> 8);
-  SPI(parm >> 0);
-}
-
-void spi32(unsigned long parm) {
-  SPI(parm >> 24);
-  SPI(parm >> 16);
-  SPI(parm >> 8);
-  SPI(parm >> 0);
-}
-
-// little endian: lsb first
-void spi32le(unsigned long parm) {
-  SPI(parm >> 0);
-  SPI(parm >> 8);
-  SPI(parm >> 16);
-  SPI(parm >> 24);
-}
-
-void spi_n(unsigned char value, unsigned short cnt) {
-  while(cnt--)
-    SPI(value);
 }
 
 /* OSD related SPI functions */

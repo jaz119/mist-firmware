@@ -117,10 +117,10 @@ void __init_hardware(void)
 }
 
 // A buffer of 256 bytes makes index handling pretty trivial
-volatile static unsigned char tx_buf[256];
+volatile static unsigned char tx_buf[256] ALIGNED(4);
 volatile static unsigned char tx_rptr, tx_wptr;
 
-volatile static unsigned char rx_buf[256];
+volatile static unsigned char rx_buf[256] ALIGNED(4);
 volatile static unsigned char rx_rptr, rx_wptr;
 
 FAST static void Usart0IrqHandler(void) {

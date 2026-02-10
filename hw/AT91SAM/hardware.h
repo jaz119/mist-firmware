@@ -171,12 +171,6 @@ static inline char SetRTC(unsigned char *d) {
 RAMFUNC void UnlockFlash();
 RAMFUNC void WriteFlash(int page);
 
-#ifdef FPGA3
-// the MiST has the user inout on the arm controller
-void EnableIO(void);
-void DisableIO(void);
-#endif
-
 #define DEBUG_FUNC_IN()
 #define DEBUG_FUNC_OUT()
 

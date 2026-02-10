@@ -21,8 +21,8 @@ typedef struct {
 } archie_config_t;
 
 static archie_config_t config;
-
 static char floppy_name[MAX_FLOPPY][64];
+static FIL file;
 
 extern char s[OSD_BUF_SIZE];
 

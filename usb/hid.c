@@ -39,7 +39,8 @@ unsigned char get_mice(void) {
 //      - the layout of physical buttons might be random
 //      In general it's easier to use virtual joystick mapping, but this gives a lower-level of control if needed.
 //
-static struct {
+
+ALIGNED(4) static struct {
   uint16_t vid;   // vendor id
   uint16_t pid;   // product id
   uint8_t offset; // bit index within report
@@ -50,7 +51,7 @@ void hid_joystick_button_remap_init(void) {
 	memset(joystick_button_remap, 0, sizeof(joystick_button_remap));
 }
 
-char hid_joystick_button_remap(char *s, char action, int tag) {
+FAST char hid_joystick_button_remap(char *s, char action, int tag) {
 	uint8_t i;
 
 	hid_debugf("%s(%s)", __FUNCTION__, s);
@@ -157,6 +158,9 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 	usb_hid_info_t *info = &(dev->hid_info);
 	uint8_t rcode;
 	bool isGoodInterface = false;
+
+	if (len > 512)
+		return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 
 	union buf_u {
 	    usb_configuration_descriptor_t conf_desc;
@@ -300,8 +304,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 	uint16_t vid, pid;
 
 	usb_hid_info_t *info = &(dev->hid_info);
-
-	usb_configuration_descriptor_t conf_desc;
+	static usb_configuration_descriptor_t conf_desc;
 
 	// reset status
 	info->bPollEnable = false;
@@ -632,8 +635,8 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 
 			uint8_t btn = 0, jmap = 0;
 			uint8_t btn_extra = 0;
-			int16_t a[MAX_AXES];
-			static int16_t rem[MAX_AXES];
+			ALIGNED(4) int16_t a[MAX_AXES];
+			ALIGNED(4) static int16_t rem[MAX_AXES];
 			uint8_t idx, i;
 
 			// skip report id if present
@@ -728,8 +731,8 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 
 					//  iprintf("HAT = %d\n", hat);
 
-					static const uint8_t hat2x[] = { 127,255,255,255,127,  0,  0,  0 };
-					static const uint8_t hat2y[] = {   0,  0,127,255,255,255,127,  0 };
+					ALIGNED(4) static const uint8_t hat2x[] = { 127,255,255,255,127,  0,  0,  0 };
+					ALIGNED(4) static const uint8_t hat2y[] = {   0,  0,127,255,255,255,127,  0 };
 
 					uint16_t units = conf->joystick_mouse.hat.logical.max - conf->joystick_mouse.hat.logical.min;
 

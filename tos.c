@@ -892,7 +892,7 @@ static void tos_upload_mist1(const char *name) {
 
     while(1) {
       int j;
-      char b2[512];
+      ALIGNED(4) static char b2[512];
 
       for(j=0;j<512;j++) {
         buffer[j] ^= 0x55;
@@ -963,7 +963,7 @@ static void tos_upload_mist1(const char *name) {
 #if 0
     // verify
     if(user_io_dip_switch1()) {
-      char b2[512];
+      ALIGNED(4) static char b2[512];
       int j, ok;
 
       f_lseek(&file, 0);

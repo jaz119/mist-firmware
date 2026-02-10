@@ -114,8 +114,6 @@ SECTIONS
    *(.internal_ram_top)
    }> STACK
 
-
-
   /* Stabs debugging sections.  */
   .stab          0 : { *(.stab) }
   .stabstr       0 : { *(.stabstr) }
@@ -152,4 +150,5 @@ SECTIONS
 
 }
 
-ASSERT(__bss_end__ <= 0x0020F000, "RAM overflow: .bss reached STACK!")
+ASSERT(__bss_end__ <= ORIGIN(STACK), "error: .bss overflow into STACK region")
+ASSERT(. <= (ORIGIN(STACK) + LENGTH(STACK)), "error: RAM Top overflow (.int_data too large)")

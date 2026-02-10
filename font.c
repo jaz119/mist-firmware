@@ -5,7 +5,7 @@
 #include "fat_compat.h"
 #include "charrom.h"
 
-unsigned char charfont[128][8];
+ALIGNED(4) unsigned char charfont[128][8];
 
 char char_row(char c, char row) {
 	char r=0;

@@ -8,6 +8,7 @@
 #include "boot.h"
 #include "hardware.h"
 #include "timer.h"
+#include "debug.h"
 #include "osd.h"
 #include "spi.h"
 #include "fat_compat.h"
@@ -16,6 +17,7 @@
 
 static void mem_upload_init(unsigned long addr) {
   spi_osd_cmd32le_cont(OSD_CMD_WR, addr);
+  delay_usec(1);
 }
 
 static void mem_upload_fini() {
@@ -316,14 +318,13 @@ void BootInit()
 }
 
 //// BootPrint() ////
-void BootPrintEx(char * str)
+FAST void BootPrintEx(char * str)
 {
   char buf[2];
   unsigned char i,j;
   unsigned char len;
 
-  iprintf(str);
-  iprintf("\r");
+  debugf("%s", str);
 
   len = strlen(str);
   len = (len>80) ? 80 : len;

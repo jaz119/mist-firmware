@@ -6,14 +6,14 @@
 #include "spi.h"
 #include "mist_cfg.h"
 
-void max3421e_write_u08(uint8_t reg, uint8_t data) {
+RAMFUNC void max3421e_write_u08(uint8_t reg, uint8_t data) {
   spi_max_start();
   spi8(reg | MAX3421E_WRITE);
   spi8(data);
   spi_max_end();
 }
 
-uint8_t max3421e_read_u08(uint8_t reg) {
+RAMFUNC uint8_t max3421e_read_u08(uint8_t reg) {
   spi_max_start();
   spi8(reg);
   uint8_t ret = spi_in();
@@ -21,7 +21,7 @@ uint8_t max3421e_read_u08(uint8_t reg) {
   return ret;
 }
 
-const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data) {
+RAMFUNC const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data) {
   spi_max_start();
   spi8(reg | MAX3421E_WRITE);
   spi_write(data, n);
@@ -30,7 +30,7 @@ const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data) {
 }
 
 // discard data if NULL ptr was provided
-uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data) {
+RAMFUNC uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data) {
   spi_max_start();
   spi8(reg);
 

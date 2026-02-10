@@ -123,7 +123,7 @@ FRESULT FileReadBlockEx(FIL *file, unsigned char *pBuffer, unsigned int len);
 FRESULT FileWriteBlock(FIL *file, unsigned char *pBuffer);
 RAMFUNC FRESULT FileReadNextBlock (FIL *file, void *pBuffer) RAMFUNC;
 
-const char *GetExtension(const char *fileName);
+FAST const char *GetExtension(const char *fileName);
 char ScanDirectory(unsigned long mode, char *extension, unsigned char options);
 void ChangeDirectoryName(const char *name);
 

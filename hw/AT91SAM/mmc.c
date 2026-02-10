@@ -50,7 +50,7 @@ RAMFUNC static void MMC_CRC(unsigned char c);
 RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg);
 static unsigned char MMC_CMD12(void);
 
-RAMFUNC bool MMC_CheckCard() {
+bool MMC_CheckCard() {
     // check for removal of card
     if (mmc_inserted())
         return (CardType != CARDTYPE_NONE);
@@ -221,7 +221,7 @@ unsigned char MMC_Init(void)
     return(CARDTYPE_NONE);
 }
 
-static unsigned char MMC_GetCXD(unsigned char cmd, unsigned char *ptr) {
+RAMFUNC static unsigned char MMC_GetCXD(unsigned char cmd, unsigned char *ptr) {
   int i;
   EnableCard();
 
@@ -360,7 +360,7 @@ RAMFUNC unsigned char MMC_Read(unsigned long lba, unsigned char *pReadBuffer)
 }
 
 // read multiple 512-byte blocks
-unsigned char MMC_ReadMultiple(unsigned long lba, unsigned char *pReadBuffer, unsigned long nBlockCount)
+RAMFUNC unsigned char MMC_ReadMultiple(unsigned long lba, unsigned char *pReadBuffer, unsigned long nBlockCount)
 {
     // if pReadBuffer is NULL then use direct to the FPGA transfer mode (FPGA2 asserted)
 
@@ -395,7 +395,7 @@ unsigned char MMC_ReadMultiple(unsigned long lba, unsigned char *pReadBuffer, un
     return(1);
 }
 
-static char MMC_SendDataBlock(const unsigned char *pWriteBuffer, unsigned char token)
+RAMFUNC static char MMC_SendDataBlock(const unsigned char *pWriteBuffer, unsigned char token)
 {
     // wait until not busy
     if (!MMC_WaitBusy(500)) {
@@ -428,7 +428,7 @@ static char MMC_SendDataBlock(const unsigned char *pWriteBuffer, unsigned char t
 }
 
 // write 512-byte block
-unsigned char MMC_Write(unsigned long lba, const unsigned char *pWriteBuffer)
+RAMFUNC unsigned char MMC_Write(unsigned long lba, const unsigned char *pWriteBuffer)
 {
     // check of card has been removed and try to re-initialize it
     if(!check_card()) return 0;
@@ -451,7 +451,7 @@ unsigned char MMC_Write(unsigned long lba, const unsigned char *pWriteBuffer)
 }
 
 // write 512-byte block
-unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBuffer, unsigned long nBlockCount)
+RAMFUNC unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBuffer, unsigned long nBlockCount)
 {
     //iprintf("MMC_WriteMultiple (lba=%d, count=%d)\n", lba, nBlockCount);
     // check of card has been removed and try to re-initialize it
@@ -558,7 +558,7 @@ RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg)
 
 
 // stop multi block data transmission
-static unsigned char MMC_CMD12(void)
+RAMFUNC static unsigned char MMC_CMD12(void)
 {
     SPI(CMD12); // command
     SPI(0x00);

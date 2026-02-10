@@ -357,7 +357,7 @@ void user_io_init_core() {
 		// send a reset
 		user_io_8bit_set_status(UIO_STATUS_RESET, ~0);
 
-		FIL file;
+		static FIL file;
 		UINT br;
 		// try to load config
 
@@ -600,7 +600,7 @@ void user_io_eth_send_mac(uint8_t *mac) {
 
 // set SD card info in FPGA (CSD, CID)
 void user_io_sd_set_config(void) {
-	unsigned char data[33];
+	ALIGNED(4) unsigned char data[33];
 
 	// get CSD and CID from SD card
 	if (fat_uses_mmc()) {

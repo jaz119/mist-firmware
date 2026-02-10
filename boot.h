@@ -6,6 +6,7 @@
 #ifndef __BOOT_H__
 #define __BOOT_H__
 
+#include "attrs.h"
 
 //// defines ////
 #define SCREEN_WIDTH    640
@@ -36,8 +37,7 @@
 
 //// functions ////
 void BootInit();
-void BootPrintEx(char * str);
+FAST void BootPrintEx(char * str);
 void BootHome();
 
 #endif // __BOOT_H__
-

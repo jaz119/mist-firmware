@@ -14,15 +14,15 @@
 
 void disk_cache_set(char enable, LBA_t base);
 
-unsigned char sector_buffer[SECTOR_BUFFER_SIZE]; // sector buffer for one CDDA sector (or 4 SD sector)
-struct PartitionEntry partitions[4];             // lbastart and sectors will be byteswapped as necessary
+ALIGNED(4) unsigned char sector_buffer[SECTOR_BUFFER_SIZE]; // sector buffer for one CDDA sector (or 4 SD sector)
+ALIGNED(4) struct PartitionEntry partitions[4];             // lbastart and sectors will be byteswapped as necessary
 int partitioncount;
 
 FATFS fs;
 char fat_device = 0;
 uint32_t      iPreviousDirectory = 0;
 
-char cwd[FF_MAX_LFN];
+ALIGNED(4) char cwd[FF_MAX_LFN];
 
 int8_t fat_uses_mmc(void) {
 	return(fat_device == 0);
@@ -263,7 +263,6 @@ FRESULT FileWriteBlock(FIL *file, unsigned char *pBuffer) {
 	UINT bw;
 	return (f_write(file, pBuffer, 512, &bw));
 }
-
 
 FILINFO       DirEntries[MAXDIRENTRIES];
 unsigned char sort_table[MAXDIRENTRIES];

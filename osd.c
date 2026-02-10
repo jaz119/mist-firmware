@@ -45,7 +45,7 @@ This is the Minimig OSD (on-screen-display) handler.
 #include "font.h"
 
 // conversion table of Amiga keyboard scan codes to ASCII codes
-static const char keycode_table[128] =
+ALIGNED(4) static const char keycode_table[128] =
 {
       0, '1','2','3','4','5','6','7','8','9','0', 0,  0,  0,  0,  0,
      'Q','W','E','R','T','Y','U','I','O','P', 0,  0,  0,  0,  0,  0,
@@ -63,9 +63,8 @@ struct star
 	int dx, dy;
 };
 
-struct star stars[64];
-
-static char linebuffer[256];
+ALIGNED(4) struct star stars[64];
+ALIGNED(4) static char linebuffer[256];
 
 FAST static int quickrand()
 {
@@ -126,7 +125,7 @@ static unsigned long scroll_timer=0;  // file/dir name scrolling timer
 extern char s[OSD_BUF_SIZE];
 
 static int arrow;
-static unsigned char titlebuffer[128];
+ALIGNED(4) static unsigned char titlebuffer[128];
 
 FAST static void rotatechar(unsigned char *in,unsigned char *out)
 {
