@@ -204,8 +204,8 @@ static char CueISOFileSelected(uint8_t idx, const char *SelectedName) {
 static char KickstartReload(uint8_t idx) {
 	if (idx == 0) {// yes
 		CloseMenu();
-		strncpy(config.kickstart, KickstartSelectedName, sizeof(config.kickstart));
-		config.kickstart[sizeof(config.kickstart) - 1] = 0;
+		sniprintf(config.kickstart, sizeof(config.kickstart) - 1, "%s/%s",
+			cwd, KickstartSelectedName);
 		if(minimig_v1()) {
 			OsdDisable();
 			OsdReset(RESET_BOOTLOADER);
@@ -538,7 +538,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 43:
 					strcpy(s, "  ROM   : ");
-					strncat(s, config.kickstart, sizeof(config.kickstart));
+					strncat(s, get_short_name(config.kickstart), sizeof(config.kickstart));
 					item->item = s;
 					break;
 				case 44:
@@ -776,7 +776,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					ConfigMemory(config.memory);
 					break;
 				case 43:
-					SelectFileNG("ROM", SCAN_LFN, KickstartSelected, 0);
+					SelectFileNG("ROM", SCAN_DIR | SCAN_LFN, KickstartSelected, 0);
 					break;
 				case 44:
 					config.memory ^= 0x40;

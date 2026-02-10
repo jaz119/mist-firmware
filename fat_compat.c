@@ -22,8 +22,7 @@ FATFS fs;
 char fat_device = 0;
 uint32_t      iPreviousDirectory = 0;
 
-#define PATHLEN 255
-static char cwd[PATHLEN];
+char cwd[FF_MAX_LFN];
 
 int8_t fat_uses_mmc(void) {
 	return(fat_device == 0);
@@ -81,6 +80,19 @@ void fnameconv(char dest[11+2], const char *src) {
 	strncpy(c, src+8, 3);
 	for(c+=2;*c==' ';c--); c++;
 	*c++='\0';
+}
+
+const char *get_short_name(const char *full_path)
+{
+	if (!full_path)
+		return NULL;
+
+	const char *slash = strrchr(full_path, '/');
+
+	if (slash)
+		return slash + 1;
+
+	return full_path;
 }
 
 // FindDrive() checks if a card is present and contains FAT formatted primary partition
@@ -149,7 +161,7 @@ void ChangeDirectoryName(const char *name) {
 		// Append to the end
 		int cwdlen = strlen(cwd);
 		int namelen = strlen(name);
-		if ((cwdlen + namelen) < (PATHLEN - 2)) {
+		if ((cwdlen + namelen) < (FF_MAX_LFN - 2)) {
 			strcpy(sector_buffer, cwd);
 			if(cwdlen>1) strcat(sector_buffer, "/");
 			strcat(sector_buffer, name);

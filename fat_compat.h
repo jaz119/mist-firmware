@@ -6,6 +6,8 @@
 
 #define MAXDIRENTRIES 16
 
+extern char cwd[FF_MAX_LFN];
+
 struct PartitionEntry
 {
 	unsigned char geometry[8];		// ignored
@@ -128,6 +130,7 @@ void ChangeDirectoryName(const char *name);
 void fat_switch_to_usb(void);
 char *fs_type_to_string(void);
 int8_t fat_medium_present(void);
+const char *get_short_name(const char *);
 int8_t fat_uses_mmc(void);
 void purge_dir_cache();
 
