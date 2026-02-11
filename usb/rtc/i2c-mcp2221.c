@@ -423,7 +423,7 @@ static bool mcp_i2c_bulk_read(
     usbrtc_debugf("%s(0x%X, 0x%X, %u)",
         __FUNCTION__, addr, reg, length);
 
-    union ALIGNED(4) {
+    ALIGNED(4) union {
         mcp_i2c_cmd_t cmd;
         mcp_i2c_resp_t resp;
         uint8_t raw[REPORT_SIZE];
@@ -480,7 +480,7 @@ static bool mcp_i2c_bulk_write(
     usbrtc_debugf("%s(0x%X, 0x%X, %u)",
         __FUNCTION__, addr, reg, length);
 
-    union ALIGNED(4) {
+    ALIGNED(4) union {
         mcp_i2c_cmd_t cmd;
         mcp_set_resp_t resp;
         uint8_t raw[REPORT_SIZE];

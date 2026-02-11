@@ -90,7 +90,7 @@ FAST char hid_joystick_button_remap(char *s, char action, int tag) {
 FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size)  {
 	//  hid_debugf("%s(0x%x, if=%d, size=%d)", __FUNCTION__, dev->bAddress, iface, size);
 
-	uint8_t ALIGNED(4) buf[size];
+	ALIGNED(4) uint8_t buf[size];
 	usb_hid_info_t *info = &(dev->hid_info);
 	uint8_t rcode = usb_ctrl_req( dev, HID_REQ_HIDREPORT, USB_REQUEST_GET_DESCRIPTOR, 0x00,
 			      HID_DESCRIPTOR_REPORT, info->iface[i].iface_idx, size, buf);
@@ -552,7 +552,7 @@ static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, ui
 
 	// check if keys have changed
 	if(iface->key_state != keys) {
-		uint8_t buf[6] = { 0,0,0,0,0,0 };
+		ALIGNED(4) uint8_t buf[6] = { 0,0,0,0,0,0 };
 		uint8_t p = 0;
 
 		// report up to 6 pressed keys
@@ -720,7 +720,6 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 
 						// apply dead range
 						if (a[i] > (128-mist_cfg.joystick_dead_range) && a[i] < (128+mist_cfg.joystick_dead_range)) a[i] = 128;
-
 					}
 				}
 
@@ -880,7 +879,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 				// report may not fit into one packet
 				if (iface->conf.report_size > read)
 					read = iface->conf.report_size;
-				uint8_t ALIGNED(4) buf[read+2];
+				ALIGNED(4) uint8_t buf[read+2];
 				// clear buffer
 				memset(buf, 0, iface->ep.maxPktSize);
 				uint8_t rcode = usb_in_transfer(dev, &(iface->ep), &read, buf);

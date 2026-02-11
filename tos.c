@@ -601,7 +601,7 @@ static void handle_fdc(unsigned char *buffer) {
 }
 
 static void mist_get_dmastate() {
-  unsigned char buffer[32];
+  ALIGNED(4) unsigned char buffer[32];
   unsigned int dma_address;
   unsigned char scnt;
 
@@ -651,7 +651,7 @@ static void mist_get_dmastate() {
 
 static void tos_write(char *str);
 static void tos_color_test() {
-  unsigned short buffer[COLORS][PLANES];
+  ALIGNED(4) unsigned short buffer[COLORS][PLANES];
 
   int y;
   for(y=0;y<13;y++) {

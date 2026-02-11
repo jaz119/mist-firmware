@@ -1,4 +1,3 @@
-#BASE ?= /opt/arm-none-eabi/bin/arm-none-eabi
 BASE ?= arm-none-eabi
 
 CC      = $(BASE)-gcc
@@ -34,7 +33,7 @@ DFLAGS += -DMIST -DUSB_STORAGE -DFF_FS_TINY=1 -DFF_MAX_LFN=64 -DFF_LFN_BUF=64
 CFLAGS  = $(DFLAGS) -march=armv4t -mtune=arm7tdmi -mthumb-interwork -mthumb -fno-common -Os --std=gnu99 -fsigned-char -DVDATE=\"`date +"%y%m%d"`\"
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -mthumb-interwork -mthumb -nostartfiles -Wl,-Map,$(PRJ).map,--cref -T$(LINKMAP) $(LIBDIR)
-LFLAGS += --specs=nano.specs
+LFLAGS += --specs=nano.specs --specs=nosys.specs
 CPFLAGS = --output-target=ihex
 
 MKUPG = mkupg

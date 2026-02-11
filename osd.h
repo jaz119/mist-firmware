@@ -105,9 +105,14 @@
 #include <inttypes.h>
 
 /*functions*/
-void OsdSetTitle(char *s,int arrow);	// arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
-void OsdWrite(unsigned char n, char *s, unsigned char inver, unsigned char stipple);
+FAST void OsdSetTitle(char *s,int arrow); // arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
 FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char inver, unsigned char stipple, char offset); // Used for scrolling "Exit" text downwards...
+
+static inline void OsdWrite(unsigned char n, char *s, unsigned char invert, unsigned char stipple)
+{
+  OsdWriteOffset(n, s, invert, stipple, 0);
+}
+
 FAST void OsdPrintText(unsigned char line, char *text, unsigned long start, unsigned long width, unsigned long xoffset, unsigned char yoffset, unsigned char invert, unsigned char stipple);
 void OsdClear(void);
 void OsdEnable(unsigned char mode);
@@ -132,7 +137,7 @@ void OsdDisableMenuButton(unsigned char disable);
 unsigned char GetASCIIKey(unsigned char c);
 void OsdWriteDoubleSize(unsigned char n, char *s, unsigned char pass);
 //void OsdDrawLogo(unsigned char n, char row);
-void OsdDrawLogo(unsigned char n, char row,char superimpose);
+FAST void OsdDrawLogo(unsigned char n, char row,char superimpose);
 FAST void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset);
 void ScrollReset();
 void StarsInit();

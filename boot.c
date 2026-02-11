@@ -319,7 +319,6 @@ void BootInit()
 //// BootPrint() ////
 FAST void BootPrintEx(char * str)
 {
-  char buf[2];
   unsigned char i,j;
   unsigned char len;
 

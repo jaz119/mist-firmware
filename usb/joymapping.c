@@ -533,7 +533,7 @@ FORCE_ARM bool virtual_joystick_keyboard( uint16_t vjoy ) {
 		return false;
 
 	// use button combinations as shortcut for certain keys
-	uint8_t buf[6] = { 0,0,0,0,0,0 };
+	ALIGNED(4) uint8_t buf[6] = { 0,0,0,0,0,0 };
 
 	// if OSD is open control it via USB joystick
 	if(user_io_osd_is_visible() && !mist_cfg.joystick_ignore_osd) {

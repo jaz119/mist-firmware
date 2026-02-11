@@ -264,7 +264,7 @@ unsigned char MMC_GetCID(unsigned char *cid) {
 unsigned long MMC_GetCapacity()
 {
 	unsigned long result=0;
-	unsigned char CSDData[16];
+	ALIGNED(4) unsigned char CSDData[16];
 
 	MMC_GetCSD(CSDData);
 

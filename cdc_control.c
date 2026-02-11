@@ -12,7 +12,7 @@
 #include "tos.h"
 #include "debug.h"
 
-static char buffer[32];
+ALIGNED(4) static char buffer[32];
 static unsigned char fill = 0;
 static unsigned long flush_timer = 0;
 
@@ -58,11 +58,11 @@ void cdc_control_poll(void) {
 
   if(usb_cdc_is_configured()) {
     uint16_t read, i;
-    char data[BULK_OUT_SIZE];
+    ALIGNED(4) char data[BULK_OUT_SIZE];
 
     // check for user input
     if((read = usb_cdc_read(data, BULK_OUT_SIZE)) != 0) {
-      
+
       switch(tos_get_cdc_control_redirect()) {
       case CDC_REDIRECT_RS232:
 	iprintf("RS232 forward:\n");
@@ -70,13 +70,13 @@ void cdc_control_poll(void) {
 
 	user_io_serial_tx(data, read);
 	break;
-	
+
       case CDC_REDIRECT_CONTROL:
 	for(i=0;i<read;i++) {
 	  // force lower case
 	  if((data[i] >= 'A') && (data[i] <= 'Z'))
 	    data[i] = data[i] - 'A' + 'a';
-	  
+
 	  switch(data[i]) {
 	  case '\r':
 	    cdc_puts("\n\033[7m <<< MIST board controller >>> \033[0m");

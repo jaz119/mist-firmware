@@ -3,6 +3,7 @@
 #include "pcecd.h"
 #include "cue_parser.h"
 #include "user_io.h"
+#include "attrs.h"
 #include "utils.h"
 #include "debug.h"
 
@@ -272,7 +273,7 @@ static void pcecd_command() {
 	msf_t msf;
 	int track;
 	uint8_t command[12];
-	uint8_t buf[32];
+	ALIGNED(4) uint8_t buf[32];
 	memset(buf, 0, 32);
 
 	int i;
@@ -571,7 +572,7 @@ static void pcecd_command() {
 }
 
 static void pcecd_data() {
-	uint8_t data[10];
+	ALIGNED(4) uint8_t data[10];
 
 	EnableFpga();
 	SPI(CD_DATA_GET);
@@ -579,6 +580,7 @@ static void pcecd_data() {
 	for (int i = 0; i < 10; i++)
 		data[i] = SPI(0);
 	DisableFpga();
+
 	pcecd_debugf("data: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
 		data[0], data[1], data[2], data[3], data[4],
 		data[5], data[6], data[7], data[8], data[9]);

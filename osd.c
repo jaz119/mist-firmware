@@ -144,7 +144,7 @@ FAST static void rotatechar(unsigned char *in,unsigned char *out)
 	}
 }
 
-void OsdSetTitle(char *s,int a)
+FAST void OsdSetTitle(char *s,int a)
 {
 	// Compose the title, condensing character gaps
 	arrow=a;
@@ -212,11 +212,6 @@ char OsdLines()
     return 8;
 }
 
-void OsdWrite(unsigned char n, char *s, unsigned char invert, unsigned char stipple)
-{
-  OsdWriteOffset(n, s, invert, stipple, 0);
-}
-
 // write a null-terminated string <s> to the OSD buffer starting at line <n>
 FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned char stipple,char offset)
 {
@@ -239,7 +234,7 @@ FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigne
   OsdPrintText(n, text, 22, OSDLINELEN-3*8, 0, offset, invert, stipple);
 }
 
-void OsdDrawLogo(unsigned char n, char row,char superimpose) {
+FAST void OsdDrawLogo(unsigned char n, char row,char superimpose) {
   unsigned short i;
   const unsigned char *p;
   int linelimit=OSDLINELEN;
@@ -680,10 +675,12 @@ unsigned char OsdKeyGet() {
    filename(until fits into the buffer)
 */
 static char lastcorename[65] = "CORE";
+
 void OsdCoreNameSet(const char* str) {
 	strncpy(lastcorename, str, sizeof(lastcorename));
 	lastcorename[sizeof(lastcorename)-1] = 0;
 }
+
 char* OsdCoreName() {
 	return lastcorename;
 }

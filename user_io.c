@@ -44,7 +44,7 @@ unsigned char key_remap_table[MAX_REMAP][2];
 #define BREAK  0x8000
 
 static char umounted; // 1st image is file or direct SD?
-static char cache_buffer[1024];
+ALIGNED(4) static char cache_buffer[1024];
 static uint8_t buffer_drive_index = 0;
 static uint32_t buffer_lba = 0xffffffff;
 
@@ -873,7 +873,7 @@ char *user_io_8bit_get_string(unsigned char index) {
 	unsigned char i, lidx = 0, j = 0, d = 0, arc = 0;
 	int arc_ptr = 0;
 	char dip[3];
-	static char buffer[128+1];  // max 128 bytes per config item
+	ALIGNED(4) static char buffer[128+1];  // max 128 bytes per config item
 	uint16_t start_chr;
 
 	// clear buffer
