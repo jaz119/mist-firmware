@@ -33,6 +33,7 @@ CFLAGS-firmware.o += -marm
 CFLAGS += $(CFLAGS-$@)
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -mthumb -nostartfiles -Wl,-Map,$(PRJ).map -T$(LINKMAP) $(LIBDIR)
+LFLAGS += --specs=nano.specs
 CPFLAGS = --output-target=ihex
 
 MKUPG = mkupg
