@@ -784,7 +784,11 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->item = s;
 					break;
 				case 48:
-					siprintf(s, " Medium: %7s / %7luMB", fs_type_to_string(), storage_size);
+					if (storage_size > 1024) {
+						siprintf(s, " Medium:      %6s / %3luGB", fs_type_to_string(), storage_size >> 10);
+					} else {
+						siprintf(s, " Medium:      %6s / %3luMB", fs_type_to_string(), storage_size);
+					}
 					item->active = fat_medium_present();
 					item->stipple = !item->active;
 					item->item = s;
@@ -1301,8 +1305,9 @@ void HandleUI(uint8_t key)
 				item = "";
 				menu_item.page = page_idx;
 				if (idx >= firstline) {
-					while(menu_item_callback(itemidx++, 0, &menu_item)) {
-						debugf("menu_ng: idx: %d, item: %d, '%s', stipple %d page %d",idx, itemidx-1, menu_item.item, menu_item.stipple, menu_item.page);
+					while (menu_item_callback(itemidx++, 0, &menu_item)) {
+						debugf("menu_ng: idx: %d, item: %d, '%s', stipple %d page %d",
+							idx, itemidx-1, menu_item.item, menu_item.stipple, menu_item.page);
 						if (menu_item.page == page_idx) {
 							valid = 1;
 							if (menu_page.stdexit && idx == osdlines-1)
@@ -1346,7 +1351,7 @@ void HandleUI(uint8_t key)
 					switch(menu_page.stdexit) {
 						case 1:
 							item = STD_EXIT;
-							if (!valid) menumask |= 1<<(osdlines-1);
+							menumask |= 1<<(osdlines-1);
 							break;
 						case 2:
 							item = STD_SPACE_EXIT;
@@ -1367,7 +1372,8 @@ void HandleUI(uint8_t key)
 			if (menu_page.timer) page_timer = GetTimer(menu_page.timer);
 			menustate = MENU_NG2;
 			parentstate=MENU_NG1;
-			debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x", menuidx[0], menuidx[menu_last], menusub, menumask);
+			debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x",
+				menuidx[0], menuidx[menu_last], menusub, menumask);
 		}
 		break;
 
