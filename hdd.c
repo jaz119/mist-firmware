@@ -1778,7 +1778,7 @@ unsigned char OpenHardfile(unsigned char unit, bool amiga)
 // GetHDFFileType()
 unsigned char GetHDFFileType(const char *filename)
 {
-  FIL rdbfile;
+  static FIL rdbfile;
   unsigned char res = HDF_FILETYPE_NOTFOUND;
 
   if (f_open(&rdbfile,filename, FA_READ) == FR_OK) {

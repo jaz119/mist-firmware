@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 extern DWORD clmt[128];
+static FIL file;
 
 FAST unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize) {
    int i, j;
@@ -56,7 +57,6 @@ FAST unsigned char CheckFirmware(char *name)
     unsigned long read_size;
 
     UPGRADE *pUpgrade = (UPGRADE*)sector_buffer;
-    FIL file;
 
     Error = ERROR_FILE_NOT_FOUND;
     if (f_open(&file, name, FA_READ) == FR_OK)
@@ -142,7 +142,6 @@ FAST unsigned char CheckFirmware(char *name)
 
 char *GetFirmwareVersion(char *name) {
   static char v[16];
-  FIL file;
 
   if ((f_open(&file, name, FA_READ) != FR_OK) || (f_size(&file) < sizeof(UPGRADE)))
     return NULL;
@@ -169,7 +168,6 @@ RAMFUNC void WriteFirmware(char *name)
     unsigned long page;
     unsigned long *pSrc;
     unsigned long *pDst;
-    FIL file;
 
     // Since the file may have changed in the meantime, it needs to be
     // opened again...

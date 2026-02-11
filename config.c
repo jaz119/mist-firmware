@@ -26,6 +26,7 @@ extern char s[OSD_BUF_SIZE];
 static char configfilename[13];
 char DebugMode=0;
 static unsigned char *romkey = (sector_buffer + 512);
+static FIL romfile, file;
 
 extern unsigned char drives;
 
@@ -94,21 +95,20 @@ char UploadKickstart(char *name)
 {
   FSIZE_t keysize=0;
   UINT br;
-  FIL romfile, keyfile;
 
   ResetMenu();
   ChangeDirectoryName("/");
 
   BootPrint("Checking for Amiga Forever key file:");
-  if(FileOpenCompat(&keyfile,"ROM     KEY", FA_READ) == FR_OK) {
-    keysize=f_size(&keyfile);
+  if(FileOpenCompat(&file,"ROM     KEY", FA_READ) == FR_OK) {
+    keysize=f_size(&file);
     if(keysize<(SECTOR_BUFFER_SIZE-512)) {
-      f_read(&keyfile, romkey, keysize, &br);
+      f_read(&file, romkey, keysize, &br);
       BootPrint("Loaded Amiga Forever key file");
     } else {
       BootPrint("Amiga Forever keyfile is too large!");
     }
-    f_close(&keyfile);
+    f_close(&file);
   }
   BootPrint("Loading file: ");
   BootPrint(name);
@@ -195,8 +195,6 @@ char UploadKickstart(char *name)
 //// UploadActionReplay() ////
 FAST char UploadActionReplay()
 {
-  FIL romfile;
-
   if(minimig_v1()) {
     if (FileOpenCompat(&romfile, "AR3     ROM", FA_READ) == FR_OK) {
       if (f_size(&romfile) == 0x40000) {
@@ -309,7 +307,6 @@ void SetConfigurationFilename(int config)
 //// ConfigurationExists() ////
 unsigned char ConfigurationExists(char *filename)
 {
-  FIL file;
   if(!filename) {
     // use slot-based filename if none provided
     filename=configfilename;
@@ -330,7 +327,6 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
   char result=0;
   unsigned char key, i;
   ini_cfg_t config_ini_cfg;
-  FIL file;
 
   if(!filename) {
     // use slot-based filename if none provided
@@ -603,7 +599,6 @@ static void ApplyConfiguration(char reloadkickstart)
 unsigned char SaveConfiguration(char *filename)
 {
   ini_cfg_t config_ini_cfg;
-  FIL file;
   UINT bw;
 
   if(!filename) {

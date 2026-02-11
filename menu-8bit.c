@@ -32,6 +32,7 @@
 #include "menu_info.h"
 
 extern char s[OSD_BUF_SIZE];
+static FIL file;
 
 //////////////////////////
 /////// 8-bit menu ///////
@@ -148,7 +149,6 @@ static unsigned long long getStatusMask(char *opt) {
 }
 
 static char RomFileSelected(uint8_t idx, const char *SelectedName) {
-	FIL file;
 	char ext_idx = user_io_ext_idx(SelectedName, fs_pFileExt);
 
 	iprintf("RomFileSelected romType=%d\n", romtype);
@@ -469,8 +469,6 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			int len = strtol(p+1,0,0);
 			debugf("Option %s %d", p, len);
 			if (len) {
-				FIL file;
-
 				if (!user_io_create_config_name(s, "RAM", CONFIG_ROOT)) {
 					debugf("Saving RAM file");
 					if (f_open(&file, s, FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {

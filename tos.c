@@ -36,7 +36,7 @@ typedef struct {
 } tos_config_t;
 
 static tos_config_t config;
-
+static FIL file;
 
 #define TOS_BASE_ADDRESS_192k    0xfc0000
 #define TOS_BASE_ADDRESS_256k    0xe00000
@@ -44,7 +44,7 @@ static tos_config_t config;
 #define VIDEO_BASE_ADDRESS       0x010000
 
 // two floppies
-static struct {
+ALIGNED(4) static struct {
   FIL file;
   char name[64];
   unsigned char sides;
@@ -52,6 +52,7 @@ static struct {
 } fdd_image[2];
 
 unsigned long hdd_direct = 0;
+
 // 0-1 floppy, 2-3 hdd
 char disk_inserted[4];
 
@@ -722,8 +723,6 @@ static void tos_clr() {
 }
 
 static void tos_load_cartridge_mist1() {
-  FIL file;
-
   // upload cartridge
   if(config.cart_img[0] && (f_open(&file, config.cart_img, FA_READ) == FR_OK)) {
     int i;
@@ -740,7 +739,6 @@ static void tos_load_cartridge_mist1() {
        mist_memory_set_address(CART_BASE_ADDRESS+512*i, 128, 0);
 
       mist_memory_write_block(sector_buffer);
-
     }
     DISKLED_OFF;
 
@@ -760,8 +758,6 @@ static void tos_load_cartridge_mist1() {
 }
 
 static void tos_load_cartridge_mist2() {
-  FIL file;
-
   // upload cartridge
   if(config.cart_img[0] && (f_open(&file, config.cart_img, FA_READ) == FR_OK)) {
     data_io_file_tx(&file, 0x02, 0);
@@ -796,15 +792,12 @@ char tos_cartridge_is_inserted() {
 
 
 static void tos_upload_mist2(const char *name) {
-  FIL file;
-
   // clear first 16k
   tos_debugf("Clear first 16k");
   data_io_fill_tx(0, 16*1024, 0x03);
 
   // upload and verify tos image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
-
     tos_debugf("%s:\n  size = %llu", config.tos_img, f_size(&file));
 
     if(f_size(&file) >= 256*1024)
@@ -842,7 +835,6 @@ static void tos_upload_mist2(const char *name) {
 }
 
 static void tos_upload_mist1(const char *name) {
-  FIL file;
   int i;
 
   // set video offset in fpga
@@ -859,7 +851,7 @@ static void tos_upload_mist1(const char *name) {
   // upload and verify tos image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
     int i;
-    char buffer[512];
+    ALIGNED(4) static char buffer[512];
     unsigned long time;
     unsigned long tos_base = TOS_BASE_ADDRESS_192k;
 
@@ -871,8 +863,8 @@ static void tos_upload_mist1(const char *name) {
       tos_debugf("WARNING: Unexpected TOS size!");
 
     int blocks = f_size(&file) / 512;
-    tos_debugf("  blocks = %d", blocks);
 
+    tos_debugf("  blocks = %d", blocks);
     tos_debugf("  address = $%08x", tos_base);
 
     // clear first 16k
@@ -1056,7 +1048,6 @@ static void tos_upload_mist1(const char *name) {
   mist_memory_set_address(0,0,0);
 
   ikbd_reset();
-
 }
 
 void tos_upload(const char *name) {
@@ -1326,7 +1317,6 @@ unsigned long tos_system_ctrl(void) {
 
 // load/init configuration
 void tos_config_load(char slot) {
-  FIL file;
   UINT br;
   char filename[11];
   static char last_slot = 0;
@@ -1362,7 +1352,6 @@ void tos_config_load(char slot) {
 
 // save configuration
 void tos_config_save(char slot) {
-  FIL file;
   UINT bw;
   char filename[11];
 
@@ -1382,7 +1371,6 @@ void tos_config_save(char slot) {
 
 // configuration file check
 char tos_config_exists(char slot) {
-  FIL file;
   char filename[11];
   FRESULT res;
 

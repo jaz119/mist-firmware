@@ -172,7 +172,7 @@ void psx_mount_cd(const unsigned char *name)
 		char sbi[len+3];
 		memcpy(sbi, name, len-1);
 		strcpy(&sbi[len-1], "SBI");
-		FIL sbi_f;
+		static FIL sbi_f;
 		iprintf("PSX: trying SBI file (%s)\n", sbi);
 		if(f_open(&sbi_f, sbi, FA_READ) == FR_OK) {
 			libcrypt_mask = psx_libCryptMask(&sbi_f);

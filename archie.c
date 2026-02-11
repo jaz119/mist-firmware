@@ -26,6 +26,8 @@ static FIL file;
 
 extern char s[OSD_BUF_SIZE];
 
+static FIL file;
+
 enum state { STATE_HRST, STATE_RAK1, STATE_RAK2, STATE_IDLE,
 	     STATE_WAIT4ACK1, STATE_WAIT4ACK2, STATE_HOLD_OFF } kbd_state;
 
@@ -86,7 +88,6 @@ char *archie_get_floppy_name(char i) {
 }
 
 void archie_save_config(void) {
-  FIL file;
   UINT bw;
 
   // save configuration data
@@ -108,8 +109,6 @@ void archie_set_floppy(char i, const unsigned char *name) {
 }
 
 void archie_save_cmos() {
-  FIL file;
-
   archie_debugf("Saving CMOS file");
   strcpy(s, "/");
   strcat(s, config.cmos_img);
@@ -120,8 +119,6 @@ void archie_save_cmos() {
 }
 
 void archie_set_cmos(const unsigned char *name) {
-  FIL file;
-
   if (!name) return;
   if(f_open(&file, name, FA_READ) == FR_OK) {
     archie_debugf("CMOS file %s with %llu bytes to send", name, f_size(&file));
@@ -135,8 +132,6 @@ void archie_set_cmos(const unsigned char *name) {
 }
 
 void archie_set_rom(const unsigned char *name) {
-  FIL file;
-
   if (!name) return;
   if(f_open(&file, name, FA_READ) == FR_OK) {
     archie_debugf("ROM file %s with %llu bytes to send", name, f_size(&file));
@@ -188,7 +183,6 @@ static void archie_kbd_reset(void) {
 }
 
 void archie_init(void) {
-  FIL file;
   UINT br;
   char i;
 

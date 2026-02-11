@@ -277,7 +277,7 @@ void data_io_file_rx(FIL *file, char index, unsigned int len) {
 
 void data_io_rom_upload(char *rname, char mode) {
 
-  FIL file;
+  static FIL file;
   FRESULT res;
   static char first = 1;
   char fname[67];
