@@ -27,7 +27,7 @@ const char *config_memory_slow_msg[] = {"none  ", "0.5 MB", "1.0 MB", "1.5 MB"};
 const char *config_scanlines_msg[] = {"off", "dim", "black"};
 const char *config_dither_msg[] = {"off", "SPT", "RND", "S+R"};
 const char *config_memory_fast_msg[] = {"none  ", "2.0 MB", "4.0 MB", "8.0 MB", "Maximum"};
-const char *config_hdf_msg[] = {"Disabled", "Hardfile (disk img)", "MMC/SD card", "MMC/SD partition 1", "MMC/SD partition 2", "MMC/SD partition 3", "MMC/SD partition 4"};
+const char *config_hdf_msg[] = {"Disabled", "Hardfile (hdf)", "MMC/SD card", "MMC/SD partition 1", "MMC/SD partition 2", "MMC/SD partition 3", "MMC/SD partition 4"};
 const char *config_chipset_msg[] = {"OCS-A500", "OCS-A1000", "ECS", "---", "---", "---", "AGA", "---"};
 const char *config_turbo_msg[] = {"none", "CHIPRAM", "KICK", "BOTH"};
 const char *config_cd32pad_msg[] =  {"OFF", "ON"};
@@ -117,26 +117,23 @@ static char FloppyFileSelected(uint8_t idx, const char *SelectedName) {
 }
 
 static char HardFileChanged(uint8_t idx) {
-
 	if (idx == 0) {// yes
-		// FIXME - waiting for user-confirmation increases the window of opportunity for file corruption!
 		for (int i = 0; i < HARDFILES; i++) {
 			if ((config.hardfile[i].enabled != t_hardfile[i].enabled)
 			    || (strncmp(config.hardfile[i].name, t_hardfile[i].name, sizeof(t_hardfile[0].name)) != 0))
 			{
+				memcpy(&config.hardfile[i], &t_hardfile[i], sizeof(config.hardfile[0]));
 				OpenHardfile(i, true);
 				//if((config.hardfile[0].enabled == HDF_FILE) && !FindRDB(0))
 				//	menustate = MENU_SYNTHRDB1;
 			}
 		}
-
+		config.enable_ide[0] = t_enable_ide[0];
+		config.enable_ide[1] = t_enable_ide[1];
 		ConfigIDE(config.enable_ide[0],        config.hardfile[0].present && config.hardfile[0].enabled, config.hardfile[1].present && config.hardfile[1].enabled);
 		ConfigIDE(config.enable_ide[1] | 0x02, config.hardfile[2].present && config.hardfile[2].enabled, config.hardfile[3].present && config.hardfile[3].enabled);
 		CloseMenu();
 		OsdReset(RESET_NORMAL);
-	} else { // no
-		memcpy(config.hardfile, t_hardfile, sizeof(t_hardfile)); // restore configuration
-		config.enable_ide[t_ide_idx] = t_enable_ide[t_ide_idx];
 	}
 	return 0;
 }
@@ -151,27 +148,27 @@ static char HardFileSelected(uint8_t idx, const char *SelectedName) {
 		return 0;
 
 	// Read RDB from selected drive and determine type...
-	strncpy(config.hardfile[hdf_idx].name, SelectedName, sizeof(config.hardfile[hdf_idx].name));
-	config.hardfile[hdf_idx].name[sizeof(config.hardfile[hdf_idx].name)-1] = 0;
+	sniprintf(t_hardfile[hdf_idx].name, sizeof(t_hardfile[hdf_idx].name) - 1, "%s/%s",
+		cwd, SelectedName);
 	switch(GetHDFFileType(SelectedName)) {
 		case HDF_FILETYPE_RDB:
-			config.hardfile[hdf_idx].enabled=HDF_FILE;
-			config.hardfile[hdf_idx].present = 1;
+			t_hardfile[hdf_idx].enabled=HDF_FILE;
+			t_hardfile[hdf_idx].present = 1;
 			break;
 		case HDF_FILETYPE_DOS:
-			config.hardfile[hdf_idx].enabled=HDF_FILE|HDF_SYNTHRDB;
-			config.hardfile[hdf_idx].present = 1;
+			t_hardfile[hdf_idx].enabled=HDF_FILE|HDF_SYNTHRDB;
+			t_hardfile[hdf_idx].present = 1;
 			break;
 		case HDF_FILETYPE_UNKNOWN:
-			config.hardfile[hdf_idx].present = 1;
-			if(config.hardfile[hdf_idx].enabled==HDF_FILE) // Warn if we can't detect the type
+			t_hardfile[hdf_idx].present = 1;
+			if(t_hardfile[hdf_idx].enabled==HDF_FILE) // Warn if we can't detect the type
 				DialogBox("\n No partition table found -\n Hardfile image may need\n to be prepped with\n HDToolbox, then formatted.", MENU_DIALOG_OK, 0);
 			else
 				DialogBox("\n No filesystem recognised.\n Hardfile may need formatting\n (or may simply be an\n unrecognised filesystem)", MENU_DIALOG_OK, 0);
 			break;
 		case HDF_FILETYPE_NOTFOUND:
 		default:
-			config.hardfile[hdf_idx].present = 0;
+			t_hardfile[hdf_idx].present = 0;
 	}
 	return 0;
 }
@@ -386,7 +383,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 				case 7:
 					siprintf(s, "   A600 %s IDE : %s",
 						t_ide_idx ? "Secondary" : "Primary",
-						config.enable_ide[t_ide_idx] ? "on " : "off");
+						t_enable_ide[t_ide_idx] ? "on " : "off");
 					item->item = s;
 					break;
 				case 8:
@@ -396,31 +393,31 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 				case 11: {
 					uint8_t slave = idx == 11;
 					strcpy(s, slave ? "  Slave : " : " Master : ");
-					if(config.hardfile[(t_ide_idx << 1)+slave].enabled==(HDF_FILE|HDF_SYNTHRDB))
+					if(t_hardfile[(t_ide_idx << 1)+slave].enabled==(HDF_FILE|HDF_SYNTHRDB))
 						strcat(s,"Hardfile (filesys)");
-					else if(config.hardfile[(t_ide_idx << 1)+slave].enabled==HDF_CDROM)
+					else if(t_hardfile[(t_ide_idx << 1)+slave].enabled==HDF_CDROM)
 						strcat(s,"CDROM");
 					else
-						strcat(s, config_hdf_msg[config.hardfile[(t_ide_idx << 1)+slave].enabled & HDF_TYPEMASK]);
+						strcat(s, config_hdf_msg[t_hardfile[(t_ide_idx << 1)+slave].enabled & HDF_TYPEMASK]);
 					item->item = s;
-					item->active = config.enable_ide[t_ide_idx];
+					item->active = t_enable_ide[t_ide_idx];
 					item->stipple = !item->active;
 					}
 					break;
 				case 10:
 				case 12: {
 					uint8_t slave = idx == 12;
-					uint8_t enabled = config.hardfile[(t_ide_idx << 1)+slave].enabled;
-					if (config.hardfile[(t_ide_idx << 1)+slave].present) {
+					uint8_t enabled = t_hardfile[(t_ide_idx << 1)+slave].enabled;
+					if (t_hardfile[(t_ide_idx << 1)+slave].present) {
 						strcpy(s, "                                ");
 						if(enabled == HDF_CDROM)
 							strcpy(&s[14], toc.valid ? "* Inserted *" : "* Empty *");
 						else
-							strncpy(&s[14], config.hardfile[(t_ide_idx << 1)+slave].name, sizeof(config.hardfile[0].name));
+							strncpy(&s[14], get_short_name(t_hardfile[(t_ide_idx << 1)+slave].name), sizeof(t_hardfile[0].name));
 					} else
 						strcpy(s, "       ** file not found **");
 					item->item = s;
-					item->active = config.enable_ide[t_ide_idx] &&
+					item->active = t_enable_ide[t_ide_idx] &&
 					   (((enabled&HDF_TYPEMASK) == HDF_FILE) || ((enabled&HDF_TYPEMASK) == HDF_CDROM));
 					item->stipple = !item->active;
 					}
@@ -597,55 +594,48 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 5:
 				case 6:
-					memcpy(t_hardfile, config.hardfile, sizeof(config.hardfile));
-					t_enable_ide[0] = config.enable_ide[0];
-					t_enable_ide[1] = config.enable_ide[1];
 					t_ide_idx = idx-5;
 					item->newpage = 1;
 					break;
 
-				// FIXME!  Nasty race condition here.  Changing HDF type has immediate effect
-				// which could be disastrous if the user's writing to the drive at the time!
-				// Make the menu work on the copy, not the original, and copy on acceptance,
-				// not on rejection.
 				case 7:
-					config.enable_ide[t_ide_idx]=(config.enable_ide[t_ide_idx]==0);
+					t_enable_ide[t_ide_idx]=(t_enable_ide[t_ide_idx]==0);
 					break;
 				case 9:
 				case 11: {
 					uint8_t hdf_idx = (t_ide_idx << 1) + (idx == 11);
-					if(config.hardfile[hdf_idx].enabled==HDF_FILE) {
-						config.hardfile[hdf_idx].enabled|=HDF_SYNTHRDB;
-					} else if(config.hardfile[hdf_idx].enabled==(HDF_FILE|HDF_SYNTHRDB)) {
-						config.hardfile[hdf_idx].enabled&=~HDF_SYNTHRDB;
-						config.hardfile[hdf_idx].enabled +=1;
-					} else if(config.hardfile[hdf_idx].enabled==(HDF_CARDPART0+partitioncount)) {
+					if(t_hardfile[hdf_idx].enabled==HDF_FILE) {
+						t_hardfile[hdf_idx].enabled|=HDF_SYNTHRDB;
+					} else if(t_hardfile[hdf_idx].enabled==(HDF_FILE|HDF_SYNTHRDB)) {
+						t_hardfile[hdf_idx].enabled&=~HDF_SYNTHRDB;
+						t_hardfile[hdf_idx].enabled +=1;
+					} else if(t_hardfile[hdf_idx].enabled==(HDF_CARDPART0+partitioncount)) {
 						// only one CDROM is supported, so check if already choosen
-						if (config.hardfile[0].enabled != HDF_CDROM &&
-						    config.hardfile[1].enabled != HDF_CDROM &&
-						    config.hardfile[2].enabled != HDF_CDROM &&
-						    config.hardfile[3].enabled != HDF_CDROM) {
-							config.hardfile[hdf_idx].enabled = HDF_CDROM;
+						if (t_hardfile[0].enabled != HDF_CDROM &&
+						    t_hardfile[1].enabled != HDF_CDROM &&
+						    t_hardfile[2].enabled != HDF_CDROM &&
+						    t_hardfile[3].enabled != HDF_CDROM) {
+							t_hardfile[hdf_idx].enabled = HDF_CDROM;
 						} else {
-							config.hardfile[hdf_idx].enabled = 0;
+							t_hardfile[hdf_idx].enabled = 0;
 						}
-					} else if(config.hardfile[hdf_idx].enabled==HDF_CDROM) {
-						config.hardfile[hdf_idx].enabled = 0;
+					} else if(t_hardfile[hdf_idx].enabled==HDF_CDROM) {
+						t_hardfile[hdf_idx].enabled = 0;
 					} else {
-						config.hardfile[hdf_idx].enabled +=1;
+						t_hardfile[hdf_idx].enabled +=1;
 					}
 					}
 					break;
 				case 10:
 				case 12: {
 					uint8_t hdf_idx = (t_ide_idx << 1) + (idx == 12);
-					if(config.hardfile[hdf_idx].enabled==HDF_CDROM) {
+					if(t_hardfile[hdf_idx].enabled==HDF_CDROM) {
 						if(toc.valid)
 							toc.valid = 0;
 						else
 							SelectFileNG("CUEISO", SCAN_DIR | SCAN_LFN, CueISOFileSelected, 0);
 					} else {
-						SelectFileNG("HDF", SCAN_LFN, HardFileSelected, 0);
+						SelectFileNG("HDF", SCAN_DIR | SCAN_LFN, HardFileSelected, 0);
 					}
 					}
 					break;
@@ -890,4 +880,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 
 void SetupMinimigMenu() {
 	SetupMenu(GetMenuPage_Minimig, GetMenuItem_Minimig, NULL);
+	memcpy(t_hardfile, config.hardfile, sizeof(config.hardfile));
+	t_enable_ide[0] = config.enable_ide[0];
+	t_enable_ide[1] = config.enable_ide[1];
 }
