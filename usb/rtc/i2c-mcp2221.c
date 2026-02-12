@@ -385,7 +385,7 @@ static uint8_t mcp_init(
         buf.resp.fw_rev_major, buf.resp.fw_rev_minor);
 
     // Probe for clock chips
-    for (int i = 0; i < sizeof(rtc_chips) / sizeof(rtc_chips[0]); i++)
+    for (int i = 0; i < ARRAY_SIZE(rtc_chips); i++)
     {
         const rtc_chip_t *chip = rtc_chips[i];
 

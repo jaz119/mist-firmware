@@ -21,13 +21,14 @@
 #include "fat_compat.h"
 
 #ifndef SZ_TBL
-#define SZ_TBL 1024
+#define SZ_TBL    1024
 #endif
+
 #define SD_IMAGES 4
 
 typedef struct
 {
-	char valid;
+	volatile char valid;
 	FIL file;
 	DWORD clmt[SZ_TBL];
 } IDXFile;

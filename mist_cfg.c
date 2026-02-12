@@ -81,9 +81,10 @@ atarist_cfg_t atarist_cfg = {
 // mist ini sections
 static const ini_section_t mist_ini_sections[] = {
   {1, "MIST"},
+  {2, "AMIGA"},
   {2, "MINIMIG"},
   {2, "MINIMIG_CONFIG"},
-  {3, "ATARIST"},
+  {3, "ATARI_ST"},
   {3, "ATARIST_CONFIG"}
 };
 

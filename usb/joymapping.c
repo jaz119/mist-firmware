@@ -269,7 +269,7 @@ static const struct {
 };
 
 const char* get_joystick_name( uint16_t vid, uint16_t pid ) {
-	for (int n = 0; n < (sizeof(joy_devs) / sizeof(joy_devs[0])); n++)
+	for (int n = 0; n < ARRAY_SIZE(joy_devs); n++)
 	{
 		if (joy_devs[n].vid == vid && joy_devs[n].pid == pid)
 		{

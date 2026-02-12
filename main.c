@@ -82,7 +82,7 @@ const char version[] = {"$VER:ATA" VDATE};
 unsigned char Error;
 
 ALIGNED(4) char s[OSD_BUF_SIZE];
-DWORD clmt[128]; // fast seek cache
+ALIGNED(4) DWORD clmt[128]; // fast seek cache
 
 unsigned long storage_size = 0;
 
@@ -126,7 +126,7 @@ void HandleFpga(void)
     UpdateDriveStatus();
 }
 
-static void forget_about_fs()
+static void eject_all_media()
 {
     // Floppies
     for (int i=0; i<FLOPPIES; i++)
@@ -305,7 +305,7 @@ FAST int main(void)
             if (storage_size && !mmc_inserted())
             {
                 mmc_ok = false;
-                forget_about_fs();
+                eject_all_media();
                 storage_size = 0;
 
                 // force menu update

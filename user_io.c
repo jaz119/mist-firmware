@@ -1987,7 +1987,7 @@ static unsigned char is_emu_key(unsigned char c, unsigned alt) {
 
 	if(alt)
 	{
-		for(int i=0; i<(sizeof(m2)/sizeof(m2[0])); i +=2) if(c == m2[i]) return m2[i+1];
+		for(int i=0; i<ARRAY_SIZE(m2); i +=2) if(c == m2[i]) return m2[i+1];
 	}
 	else
 	{
@@ -2099,7 +2099,7 @@ static unsigned short modifier_keycode(unsigned char index) {
 }
 
 void user_io_osd_key_enable(char on) {
-	debugf("OSD is now %s", on ? "visible" : "invisible");
+	iprintf("OSD is now %s\n", on ? "visible" : "invisible");
 	osd_is_visible = on;
 }
 

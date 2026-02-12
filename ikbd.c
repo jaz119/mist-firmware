@@ -1,5 +1,4 @@
 /*
-
   http://removers.free.fr/wikipendium/wakka.php?wiki=IntelligentKeyboardBible
   https://www.kernel.org/doc/Documentation/input/atarikbd.txt
 
@@ -53,7 +52,7 @@
 
 /* ------------------- transmit queue ------------------- */
 #define QUEUE_LEN 16    // power of 2!
-static unsigned short tx_queue[QUEUE_LEN];
+ALIGNED(4) static unsigned short tx_queue[QUEUE_LEN];
 static unsigned char wptr = 0, rptr = 0;
 static unsigned long ikbd_timer = 0;
 
@@ -113,7 +112,7 @@ static struct {
     };
   } buffer;
 
-} ikbd;
+} ikbd ALIGNED(4);
 
 // read a 16 bit word in big endian
 unsigned short be16(unsigned short in) {
@@ -279,8 +278,8 @@ void ikbd_handler_time_set(void) {
   spi_uio_cmd_cont(UIO_IKBD_IN);
 
   ikbd_debugf("Time of day clock set: %u:%02u:%02u %u.%u.%u",
-	      ikbd.date[T_HOUR], ikbd.date[T_MIN], ikbd.date[T_SEC],
-	      ikbd.date[T_DAY], ikbd.date[T_MONTH], 1900 + ikbd.date[T_YEAR]);
+              ikbd.date[T_HOUR], ikbd.date[T_MIN], ikbd.date[T_SEC],
+              ikbd.date[T_DAY], ikbd.date[T_MONTH], 1900 + ikbd.date[T_YEAR]);
 }
 
 void ikbd_handler_interrogate_time(void) {
@@ -296,8 +295,8 @@ void ikbd_handler_interrogate_time(void) {
   spi_uio_cmd_cont(UIO_IKBD_IN);
 
   ikbd_debugf("Interrogate time of day %u:%02u:%02u %u.%u.%u",
-	      ikbd.date[T_HOUR], ikbd.date[T_MIN], ikbd.date[T_SEC],
-	      ikbd.date[T_DAY], ikbd.date[T_MONTH], 1900 + ikbd.date[T_YEAR]);
+              ikbd.date[T_HOUR], ikbd.date[T_MIN], ikbd.date[T_SEC],
+             ikbd.date[T_DAY], ikbd.date[T_MONTH], 1900 + ikbd.date[T_YEAR]);
 
   enqueue(0x8000 + 64);   // wait 64ms
   enqueue(0xfc);
@@ -320,7 +319,7 @@ static const struct {
   unsigned char code;
   unsigned char length;
   void (*handler)(void);
-} ikbd_command_handler[] = {
+} ikbd_command_handler[] ALIGNED(4) = {
   { 0x07, 2, ikbd_handler_mouse_button_action          },
   { 0x08, 1, ikbd_handler_set_relative_mouse_pos       },
   { 0x09, 5, ikbd_handler_set_abs_mouse_pos            },
@@ -645,7 +644,8 @@ void ikbd_mouse(unsigned char b, char x, char y) {
 
 // advance the ikbd time by one second
 FAST void ikbd_update_time(void) {
-  static const char mdays[] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+  ALIGNED(4) static const char mdays[] = {
+      31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
   short year = 1900 + ikbd.date[T_YEAR];
   char is_leap = (!(year % 4) && (year % 100)) || !(year % 400);

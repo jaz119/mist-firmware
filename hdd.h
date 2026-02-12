@@ -1,6 +1,5 @@
 // hdd.h
 
-
 #ifndef __HDD_H__
 #define __HDD_H__
 
@@ -61,7 +60,7 @@
 #define HDF_FILETYPE_RDB      2
 #define HDF_FILETYPE_DOS      3
 
-#define HARDFILES  SD_IMAGES
+#define HARDFILES  4
 
 #define TFR_ERR    1
 #define TFR_SCOUNT 2
@@ -74,9 +73,9 @@
 // types
 typedef struct
 {
-    unsigned char enabled; // 0: Disabled, 1: Hard file, 2: MMC (entire card), 3-6: Partition 1-4 of MMC card, 10-CDROM
-    unsigned char present;
-    char name[FF_MAX_LFN];
+    volatile unsigned char enabled; // 0: Disabled, 1: Hard file, 2: MMC (entire card), 3-6: Partition 1-4 of MMC card, 10-CDROM
+    volatile unsigned char present;
+    char name[FF_LFN_BUF + 1];
 } hardfileTYPE;
 
 typedef struct
@@ -102,4 +101,3 @@ unsigned char GetHDFFileType(const char *filename);
 void SendHDFCfg();
 
 #endif // __HDD_H__
-

@@ -519,7 +519,7 @@ static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, ui
 	    uint8_t byte_offset;   // offset of the byte within the report which the button bit is in
 	    uint8_t mask;          // bitmask of the button bit
 	    uint8_t key_code[2];   // usb keycodes to be sent for joystick 0 and joystick 1
-	} button_map[] = {
+	} button_map[] ALIGNED(4) = {
 	    { 4, 0x10, { 0x3a, 0x3d }}, /* START -> f1/f4 */
 	    { 4, 0x20, { 0x3b, 0x3e }}, /* PAUSE -> f2/f5 */
 	    { 4, 0x40, { 0x3c, 0x3f }}, /* RESET -> f3/f6 */

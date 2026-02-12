@@ -18,7 +18,7 @@ char char_row(char c, char row) {
 void font_load() {
 	memcpy(&charfont, &charrom, 128*8);
 
-	static FIL file;
+	FIL file;
 	if(f_open(&file, "/SYSTEM.FNT", FA_READ) == FR_OK) {
 		iprintf("Loading SYSTEM.FNT\n");
 		unsigned char addr;

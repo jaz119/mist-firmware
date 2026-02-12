@@ -22,7 +22,7 @@ FATFS fs;
 char fat_device = 0;
 uint32_t      iPreviousDirectory = 0;
 
-ALIGNED(4) char cwd[FF_MAX_LFN];
+ALIGNED(4) char cwd[FF_LFN_BUF + 1];
 
 int8_t fat_uses_mmc(void) {
 	return(fat_device == 0);
@@ -43,7 +43,7 @@ static const char fs_type_none[] = "NONE";
 static const char fs_type_fat12[] = "FAT12";
 static const char fs_type_fat16[] = "FAT16";
 static const char fs_type_fat32[] = "FAT32";
-static const char fs_type_exfat[] = "EXFAT";
+static const char fs_type_exfat[] = "exFAT";
 static const char fs_type_unknown[] = "UNKNOWN";
 
 char *fs_type_to_string(void) {
@@ -630,7 +630,5 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 void purge_dir_cache() {
 	nDirEntries = 0;
 	iSelectedEntry = 0;
-	for (int i = 0; i < maxDirEntries; i++)
-		sort_table[i] = i;
 	dir.obj.fs = 0;
 }

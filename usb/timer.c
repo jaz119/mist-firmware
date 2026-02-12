@@ -8,10 +8,6 @@ void timer_init() {
   InitRTTC();
 }
 
-FAST msec_t timer_get_msec() {
-  return GetRTTC();
-}
-
 FAST bool timer_check(msec_t ref, msec_t delay) {
   msec_t now = GetRTTC();
   return ((now-ref) >= delay);

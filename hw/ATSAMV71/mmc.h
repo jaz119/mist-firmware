@@ -104,8 +104,7 @@ unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBu
 unsigned char MMC_GetCSD(unsigned char *);
 unsigned char MMC_GetCID(unsigned char *);
 unsigned long MMC_GetCapacity(); // Returns the capacity in 512 byte blocks
-RAMFUNC bool MMC_CheckCard(); // frequently check if card has been removed
+bool MMC_CheckCard(); // frequently check if card has been removed
 unsigned char MMC_IsSDHC();
 
 #endif
-

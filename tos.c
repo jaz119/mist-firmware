@@ -650,6 +650,7 @@ static void mist_get_dmastate() {
 #define PLANES   4
 
 static void tos_write(char *str);
+
 static void tos_color_test() {
   ALIGNED(4) unsigned short buffer[COLORS][PLANES];
 
@@ -851,7 +852,7 @@ static void tos_upload_mist1(const char *name) {
   // upload and verify tos image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
     int i;
-    ALIGNED(4) static char buffer[512];
+    ALIGNED(4) char buffer[512];
     unsigned long time;
     unsigned long tos_base = TOS_BASE_ADDRESS_192k;
 
@@ -884,7 +885,7 @@ static void tos_upload_mist1(const char *name) {
 
     while(1) {
       int j;
-      ALIGNED(4) static char b2[512];
+      ALIGNED(4) char b2[512];
 
       for(j=0;j<512;j++) {
         buffer[j] ^= 0x55;
@@ -955,7 +956,7 @@ static void tos_upload_mist1(const char *name) {
 #if 0
     // verify
     if(user_io_dip_switch1()) {
-      ALIGNED(4) static char b2[512];
+      ALIGNED(4) char b2[512];
       int j, ok;
 
       f_lseek(&file, 0);

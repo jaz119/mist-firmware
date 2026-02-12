@@ -6,7 +6,7 @@
 
 #define MAXDIRENTRIES 16
 
-extern char cwd[FF_MAX_LFN];
+extern char cwd[FF_LFN_BUF + 1];
 
 struct PartitionEntry
 {

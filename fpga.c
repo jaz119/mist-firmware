@@ -174,7 +174,7 @@ FAST unsigned char ConfigureFpga(const char *name)
     iprintf("[");
 
     // using fast seek
-    clmt[0] = sizeof(clmt) / sizeof(clmt[0]);
+    clmt[0] = ARRAY_SIZE(clmt);
     file.cltbl = clmt;
     if (f_lseek(&file, CREATE_LINKMAP) != FR_OK)
         file.cltbl = 0;
@@ -280,7 +280,7 @@ FAST unsigned char ConfigureFpga(const char *name)
     iprintf("[");
 
     // using fast seek
-    clmt[0] = sizeof(clmt) / sizeof(clmt[0]);
+    clmt[0] = ARRAY_SIZE(clmt);
     file.cltbl = clmt;
     if (f_lseek(&file, CREATE_LINKMAP) != FR_OK)
         file.cltbl = 0;

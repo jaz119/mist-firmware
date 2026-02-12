@@ -272,7 +272,7 @@ static void pcecd_command() {
 	int new_lba = 0;
 	msf_t msf;
 	int track;
-	uint8_t command[12];
+	ALIGNED(4) uint8_t command[12];
 	ALIGNED(4) uint8_t buf[32];
 	memset(buf, 0, 32);
 
@@ -450,7 +450,7 @@ static void pcecd_command() {
 		if (command[13] & 0x80) // fast seek (OSD setting)
 		{
 			pcecdd.latency = 0;
-		} 
+		}
 		else*/
 		{
 			pcecdd.latency = 0;//(int)(get_cd_seek_ms(this->lba, new_lba) / 13.33);

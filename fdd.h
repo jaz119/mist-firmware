@@ -16,7 +16,7 @@
 typedef struct
 {
     FIL           file;
-    unsigned char status; /*status of floppy*/
+    volatile unsigned char status; /*status of floppy*/
     unsigned char tracks; /*number of tracks*/
     unsigned char sector_offset; /*sector offset to handle tricky loaders*/
     unsigned char track; /*current track*/

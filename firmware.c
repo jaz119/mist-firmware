@@ -67,7 +67,7 @@ FAST unsigned char CheckFirmware(char *name)
 
         if (f_size(&file) >= sizeof(UPGRADE))
         {
-          clmt[0] = sizeof(clmt) / sizeof(clmt[0]);
+          clmt[0] = ARRAY_SIZE(clmt);
           file.cltbl = clmt;
 
           if (f_lseek(&file, CREATE_LINKMAP) == FR_OK) {
@@ -174,7 +174,7 @@ RAMFUNC void WriteFirmware(char *name)
     if (f_open(&file, name, FA_READ) != FR_OK)
         return;
 
-    clmt[0] = sizeof(clmt) / sizeof(clmt[0]);
+    clmt[0] = ARRAY_SIZE(clmt);
     file.cltbl = clmt;
 
     if ((f_lseek(&file, CREATE_LINKMAP) != FR_OK) ||

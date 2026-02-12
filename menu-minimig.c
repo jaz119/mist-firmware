@@ -75,7 +75,7 @@ static void InsertFloppy(adfTYPE *drive, const unsigned char *name)
 		iprintf("Disk open failed (%d), trying read only mode\n", res);
 		readonly = true;
 		if (f_open(&drive->file, name, FA_READ) != FR_OK)
-		return;
+			return;
 	}
 	// calculate number of tracks in the ADF image file
 	tracks = f_size(&drive->file) / (512*11);
@@ -108,16 +108,6 @@ static void InsertFloppy(adfTYPE *drive, const unsigned char *name)
 	iprintf("file size: %llu (%llu KB)\r", f_size(&drive->file), f_size(&drive->file) >> 10);
 	iprintf("drive tracks: %u\r", drive->tracks);
 	iprintf("drive status: 0x%02X\r", drive->status);
-}
-
-static void inserttestfloppy() {
-	char name[] = "/AUTOX.ADF";
-	int i;
-
-	for(i=0;i<4;i++) {
-		name[5] = '0'+i;
-		InsertFloppy(&df[i], name);
-	}
 }
 
 static char FloppyFileSelected(uint8_t idx, const char *SelectedName) {
@@ -259,7 +249,6 @@ static char GetMenuPage_Minimig(uint8_t idx, char action, menu_page_t *page) {
 			{
 				DialogBox("\n    Changing configuration\n      requires reset.\n\n       Reset Minimig?", MENU_DIALOG_YESNO, HardFileChanged);
 			}
-
 		};
 	} else {
 		page->timer = 0;

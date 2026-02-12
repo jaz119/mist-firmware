@@ -111,17 +111,15 @@ SECTIONS
     . = ALIGN(4);
    .int_data :
    {
-   *(.internal_ram_top)
+    *(.internal_ram_top)
    }> STACK
 
-  /* Stabs debugging sections.  */
-  .stab          0 : { *(.stab) }
-  .stabstr       0 : { *(.stabstr) }
-  .stab.excl     0 : { *(.stab.excl) }
-  .stab.exclstr  0 : { *(.stab.exclstr) }
-  .stab.index    0 : { *(.stab.index) }
-  .stab.indexstr 0 : { *(.stab.indexstr) }
-  .comment       0 : { *(.comment) }
+   /DISCARD/ :
+   {
+    *(.comment)
+    *(.note*)
+   }
+
   /* DWARF debug sections.
      Symbols in the DWARF debugging sections are relative to the beginning
      of the section so we begin them at 0.  */

@@ -5,7 +5,8 @@
 #include <stdint.h>
 #include "attrs.h"
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MIN(a, b)       (((a) < (b)) ? (a) : (b))
+#define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
 
 unsigned char decval(unsigned char in, unsigned char min, unsigned char max);
 unsigned char incval(unsigned char in, unsigned char min, unsigned char max);
