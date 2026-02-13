@@ -15,8 +15,6 @@
 #include "font.h"
 
 
-static FIL file;
-
 static void mem_upload_init(unsigned long addr) {
   spi_osd_cmd32le_cont(OSD_CMD_WR, addr);
   delay_usec(1);
@@ -73,6 +71,7 @@ static void BootClearScreen(int adr, int size)
 //// BootUploadLogo() ////
 static void BootUploadLogo()
 {
+  FIL file;
   int x,y;
   int i=0;
   int adr;
@@ -129,6 +128,7 @@ static void BootUploadLogo()
 //// BootUploadBall() ////
 static void BootUploadBall()
 {
+  FIL file;
   int x;
   int i=0;
   int adr;
@@ -158,6 +158,7 @@ static void BootUploadBall()
 //// BootUploadCopper() ////
 static void BootUploadCopper()
 {
+  FIL file;
   int x;
   int i=0;
   int adr;

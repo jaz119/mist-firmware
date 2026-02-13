@@ -29,7 +29,7 @@ LIBDIR   =
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
 DFLAGS  = -I. -Iusb -Iarch/ -Ihw/AT91SAM -DCONFIG_ARCH_ARMV4TE -DCONFIG_ARCH_ARM
-DFLAGS += -DMIST -DUSB_STORAGE -DFF_FS_TINY=1 -DFF_MAX_LFN=64 -DFF_LFN_BUF=64
+DFLAGS += -DMIST -DUSB_STORAGE -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80
 CFLAGS  = $(DFLAGS) -march=armv4t -mtune=arm7tdmi -mthumb-interwork -mthumb -fno-common -Os --std=gnu99 -fsigned-char -DVDATE=\"`date +"%y%m%d"`\"
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -mthumb-interwork -mthumb -nostartfiles -Wl,-Map,$(PRJ).map,--cref -T$(LINKMAP) $(LIBDIR)
