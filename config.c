@@ -463,14 +463,14 @@ static void ApplyConfiguration(char reloadkickstart)
 
   char idxfail = 0;
 
-  for (int i = 0; i < HARDFILES; i++)
+  for (int i = 0; i < ARRAY_SIZE(config.hardfile); i++)
     hardfile[i] = &config.hardfile[i];
 
   ResetMenu();
   ChangeDirectoryName("/");
 
   // Whether or not we uploaded a kickstart image we now need to set various parameters from the config.
-  for (int i = 0; i < HARDFILES; i++) {
+  for (int i = 0; i < ARRAY_SIZE(hdf); i++) {
     if (OpenHardfile(i, true)) {
       switch(hdf[i].type) {
         // Customise message for SD card acces
@@ -523,7 +523,7 @@ static void ApplyConfiguration(char reloadkickstart)
   siprintf(s, "\nA600 IDE HDC is %s/%s.", config.enable_ide[0] ? "enabled" : "disabled", config.enable_ide[1] ? "enabled" : "disabled");
   BootPrint(s);
 
-  for (int i = 0; i < HARDFILES; i++) {
+  for (int i = 0; i < ARRAY_SIZE(config.hardfile); i++) {
     siprintf(s, "%s %s HDD is %s.",
       (i & 0x02) ? "Secondary" : "Primary", (i & 0x01) ? "Slave" : "Master",
       config.hardfile[i].present ? config.hardfile[i].enabled ? "enabled" : "disabled" : "not present");

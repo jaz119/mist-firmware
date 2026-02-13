@@ -190,7 +190,7 @@ char cue_parse(const char *filename, IDXFile *image)
     cue_size = ftell(cue_fp);
     fseek(cue_fp, 0L, SEEK_SET);
     #else
-    cue_parser_debugf("Opened file %s with size %llu bytes.", filename, f_size(&cue_file));
+    cue_parser_debugf("Opened file %s with size %lu bytes.", filename, (uint32_t) f_size(&cue_file));
     #endif
     cue_pt = 0;
 
@@ -319,9 +319,9 @@ char cue_parse(const char *filename, IDXFile *image)
   if (!bin_valid)
     error = CUE_RES_BINERR;
   else if (error)
-    f_close(&toc.file->file);
+    IDXClose(toc.file);
   else {
-    IDXIndex(toc.file);
+    IDXIndex(toc.file, 0);
     if (track > 0) {
       tracklen = (f_size(&toc.file->file) - toc.tracks[track - 1].offset) / toc.tracks[track - 1].sector_size;
       toc.tracks[track - 1].end = toc.tracks[track - 1].start + tracklen;

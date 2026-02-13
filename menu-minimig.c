@@ -105,7 +105,7 @@ static void InsertFloppy(adfTYPE *drive, const unsigned char *name)
 	// some debug info
 	iprintf("Inserting floppy: \"%s\"\r", name);
 	iprintf("file readonly: 0x%u\r", readonly);
-	iprintf("file size: %llu (%llu KB)\r", f_size(&drive->file), f_size(&drive->file) >> 10);
+	iprintf("file size: %lu (%lu KB)\r", (uint32_t) f_size(&drive->file), (uint32_t) (f_size(&drive->file) >> 10));
 	iprintf("drive tracks: %u\r", drive->tracks);
 	iprintf("drive status: 0x%02X\r", drive->status);
 }
@@ -118,7 +118,7 @@ static char FloppyFileSelected(uint8_t idx, const char *SelectedName) {
 
 static char HardFileChanged(uint8_t idx) {
 	if (idx == 0) {// yes
-		for (int i = 0; i < HARDFILES; i++) {
+		for (int i = 0; i < ARRAY_SIZE(config.hardfile); i++) {
 			if ((config.hardfile[i].enabled != t_hardfile[i].enabled)
 			    || (strncmp(config.hardfile[i].name, t_hardfile[i].name, sizeof(t_hardfile[0].name)) != 0))
 			{
@@ -524,7 +524,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 43:
 					strcpy(s, "  ROM   : ");
-					strncat(s, get_short_name(config.kickstart), sizeof(config.kickstart));
+					strncat(s, get_short_name(config.kickstart), sizeof(config.kickstart) - 1);
 					item->item = s;
 					break;
 				case 44:

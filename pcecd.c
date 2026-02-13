@@ -145,12 +145,12 @@ static void SendSector(uint16_t len, unsigned char dm) {
 		if (toc.tracks[pcecdd.index].sector_size != 2048)
 			f_lseek(&toc.file->file, f_tell(&toc.file->file) + 16);
 
-		pcecd_debugf("Send data sector, lba: %d pos: %llu", pcecdd.lba, f_tell(&toc.file->file));
+		pcecd_debugf("Send data sector, lba: %lu, pos: %lu", pcecdd.lba, (uint32_t) f_tell(&toc.file->file));
 		f_read(&toc.file->file, sector_buffer, 2048, &br);
 
 		if (toc.tracks[pcecdd.index].sector_size != 2048)
 			f_lseek(&toc.file->file, f_tell(&toc.file->file) + (toc.tracks[pcecdd.index].sector_size - 2048 - 16));
-		//pcecd_debugf("Send data sector, post pos: %llu", f_tell(&toc.file->file));
+		//pcecd_debugf("Send data sector, post pos: %lu", (uint32_t) f_tell(&toc.file->file));
 
 		SendData(sector_buffer, 2048, dm);
 		//hexdump(buffer, 2048, 0);
@@ -258,7 +258,7 @@ static void pcecd_run() {
 			for (int i = 0; i <= pcecdd.CDDAFirst; i++) {
 				if (!toc.tracks[pcecdd.index].type) {
 					f_lseek(&toc.file->file, toc.tracks[pcecdd.index].offset + (pcecdd.lba - toc.tracks[pcecdd.index].start) * 2352);
-					//pcecd_debugf("Audio sector send = %i, track = %i, offset = %llu", pcecdd.lba, pcecdd.index, f_tell(&toc.file->file));
+					//pcecd_debugf("Audio sector send = %i, track = %i, offset = %lu", pcecdd.lba, pcecdd.index, (uint32_t) f_tell(&toc.file->file));
 					SendSector(2352, 0);
 				}
 				pcecdd.lba++;

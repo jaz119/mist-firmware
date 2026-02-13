@@ -4,34 +4,49 @@
 
 ALIGNED(4) IDXFile sd_image[SD_IMAGES];
 
-void IDXIndex(IDXFile *pIDXF) {
-    // builds index to speed up hard file seek
-    FIL *file = &pIDXF->file;
-    unsigned long  time = GetRTTC();
-    FRESULT res;
+void IDXIndex(IDXFile *idx, int entry) {
+  // builds index to speed up hard file seek
+  unsigned long time = GetRTTC();
 
-    pIDXF->clmt[0] = SZ_TBL;
-    file->cltbl = pIDXF->clmt;
-    DISKLED_ON;
-    res = f_lseek(file, CREATE_LINKMAP);
-    DISKLED_OFF;
-    if (res != FR_OK) {
-      iprintf("Error indexing (%d), continuing without indices\n", res);
-      file->cltbl = 0;
-    } else {
-      time = GetRTTC() - time;
-      iprintf("File indexed in %lu ms, index size = %lu\n", time, pIDXF->clmt[0]);
-    }
+  idx->clmt[0] = SZ_TBL;
+  idx->file.cltbl = idx->clmt;
+
+  DISKLED_ON;
+  FRESULT res = f_lseek(&(idx->file), CREATE_LINKMAP);
+  DISKLED_OFF;
+
+  if (res == FR_OK) {
+    iprintf("Index #%d created in %lu ms, size: %lu\n",
+      entry, GetRTTC() - time, idx->clmt[0]);
+    return;
+  }
+
+  iprintf("indexing error: %d, continuing without indices\n", res);
+  idx->file.cltbl = 0;
 }
 
-unsigned char IDXOpen(IDXFile *file, const char *name, char mode) {
-  return f_open(&(file->file), name, mode);
+FRESULT IDXOpen(IDXFile *idx, const char *name, char mode) {
+  FRESULT res = f_open(&(idx->file), name, mode);
+  if (res == FR_OK)
+    idx->valid = 1;
+  return res;
 }
 
-void IDXClose(IDXFile *file) {
-  f_close(&(file->file));
+FRESULT IDXRead(IDXFile *file, unsigned char *pBuffer, uint8_t blksz) {
+  UINT br;
+  return f_read(&(file->file), pBuffer, 512<<blksz, &br);
 }
 
-unsigned char IDXSeek(IDXFile *file, unsigned long lba) {
-  return f_lseek(&(file->file), (FSIZE_t) lba << 9);
+FRESULT IDXWrite(IDXFile *file, unsigned char *pBuffer, uint8_t blksz) {
+  UINT bw;
+  return f_write(&(file->file), pBuffer, 512<<blksz, &bw);
+}
+
+FRESULT IDXSeek(IDXFile *idx, unsigned long lba) {
+  return f_lseek(&(idx->file), (FSIZE_t) lba << 9);
+}
+
+void IDXClose(IDXFile *idx) {
+  f_close(&(idx->file));
+  idx->valid = 0;
 }

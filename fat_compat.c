@@ -289,7 +289,7 @@ FAST static int CompareDirEntries(FILINFO *pDirEntry1, FILINFO *pDirEntry2)
 	|| ((pDirEntry1->fname[0] == '.' && pDirEntry1->fname[1] == '.'))) // parent directory entry at top
 		return -1;
 
-	rc = _strnicmp(pDirEntry1->fname, pDirEntry2->fname, FF_LFN_BUF+1);
+	rc = _strnicmp(pDirEntry1->fname, pDirEntry2->fname, FF_LFN_BUF);
 	return(rc);
 }
 

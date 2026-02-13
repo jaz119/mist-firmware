@@ -3,13 +3,14 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "user_io.h"
-#include "data_io.h"
-#include "debug.h"
 #include "spi.h"
 #ifdef HAVE_QSPI
 #include "qspi.h"
 #endif
+
+#include "user_io.h"
+#include "data_io.h"
+#include "debug.h"
 
 // core supports direct ROM upload via SS4
 char rom_direct_upload = 0;
@@ -41,7 +42,6 @@ void data_io_file_tx_start(void) {
 
 void data_io_file_tx_done(void) {
   // signal end of transmission
-
   EnableFpga();
   SPI(DIO_FILE_TX);
   SPI(0x00);
@@ -51,7 +51,6 @@ void data_io_file_tx_done(void) {
   if (user_io_get_core_features() & FEAT_QSPI)
     qspi_end();
 #endif
-  iprintf("\n");
 }
 
 ///////////////////////////
@@ -59,20 +58,20 @@ void data_io_file_tx_done(void) {
 ///////////////////////////
 
 void data_io_file_tx_prepare(FIL *file, char index, const char *ext) {
-  char e[3];
-  iprintf("Preparing transmission for index %d\n", index);
+  debugf("%s: index: %d, ext: %s", __FUNCTION__, index, ext);
 
+  char e[3];
   e[0] = e[1] = e[2] = ' ';
   if (ext) {
     if (ext[0]) e[0] = toupper(ext[0]);
     if (ext[1]) e[1] = toupper(ext[1]);
     if (ext[2]) e[2] = toupper(ext[2]);
   }
+
   // set index byte (0=bios rom, 1-n=OSD entry index)
   data_io_set_index(index);
 
   // send directory entry
-
   EnableFpga();
   SPI(DIO_FILE_INFO);
 
@@ -95,7 +94,6 @@ void data_io_file_tx_prepare(FIL *file, char index, const char *ext) {
 
   // prepare transmission of new file
   data_io_file_tx_start();
-
 }
 
 static void data_io_file_tx_send(FIL *file) {
@@ -103,10 +101,9 @@ static void data_io_file_tx_send(FIL *file) {
   UINT br;
 
   /* transmit the entire file using one transfer */
-  iprintf("Selected %llu bytes to send\n", bytes2send);
+  iprintf("%s: %lu byte(s)\n", __FUNCTION__, (uint32_t) bytes2send);
 
-  while(bytes2send) {
-    iprintf(".");
+  while (bytes2send) {
 
     unsigned short c, chunk = (bytes2send>SECTOR_BUFFER_SIZE)?SECTOR_BUFFER_SIZE:bytes2send;
     char *p;
@@ -145,14 +142,14 @@ static void data_io_file_tx_send(FIL *file) {
   }
 }
 
-
 static void data_io_file_tx_fill(unsigned char fill, unsigned int len) {
-
   EnableFpga();
   SPI(DIO_FILE_TX_DAT);
-  while(len--) {
+
+  while (len--) {
     SPI(fill);
   }
+
   DisableFpga();
 }
 
@@ -187,16 +184,16 @@ char data_io_add_processor(data_io_processor_t *processor) {
   return -1;
 }
 
-void data_io_file_tx_processor(FIL *file, char index, const char *ext, const char *name, const char *processor_id) {
-  iprintf("data_io_file_tx_processor idx: %d ext: %s\n", index, ext);
+void data_io_file_tx_processor(
+  FIL *file, char index, const char *ext, const char *name, const char *processor_id) {
+  debugf("%s: index: %d, ext: %s", __FUNCTION__, index, ext);
+
   data_io_processor_t *processor;
   if (processor_id && (processor = data_io_get_processor(processor_id))) {
     processor->file_tx_send(file, index, name, ext);
   } else {
-    iprintf("Processor for %s not found. Defaulting to normal upload\n", processor_id);
-    data_io_file_tx_prepare(file, index, ext);
-    data_io_file_tx_send(file);
-    data_io_file_tx_done();
+    iprintf("%s: using %s->default uploader\n", __FUNCTION__, processor_id);
+    data_io_file_tx(file, index, ext);
   }
 }
 
@@ -212,7 +209,7 @@ void data_io_fill_tx(unsigned char fill, unsigned int len, char index) {
 ////////////////////////////
 
 static void data_io_file_rx_prepare(char index) {
-  iprintf("Preparing receiving for index %d\n", index);
+  debugf("%s: index: %d", __FUNCTION__, index);
 
   // set index byte (0=bios rom, 1-n=OSD entry index)
   data_io_set_index(index);
@@ -228,11 +225,11 @@ static void data_io_file_rx_receive(FIL *file, unsigned int len) {
   unsigned int bytes2receive = len;
   char first = 1;
   UINT bw;
-  /* receive the entire file using one transfer */
-  iprintf("Selected %u bytes to receive\n", bytes2receive);
 
-  while(bytes2receive) {
-    iprintf(".");
+  /* receive the entire file using one transfer */
+  iprintf("%s: %u byte(s)\n", __FUNCTION__, bytes2receive);
+
+  while (bytes2receive) {
 
     unsigned short c, chunk = (bytes2receive>2048)?2048:bytes2receive;
     char *p;
@@ -261,8 +258,6 @@ static void data_io_file_rx_done(void) {
   SPI(DIO_FILE_RX);
   SPI(0x00);
   DisableFpga();
-
-  iprintf("\n");
 }
 
 void data_io_file_rx(FIL *file, char index, unsigned int len) {
@@ -293,7 +288,7 @@ void data_io_rom_upload(char *rname, char mode) {
     // has something been uploaded?
     // -> then end transfer
     if(!first) {
-      iprintf("upload ends\n");
+      debugf("upload ends");
 
       data_io_file_tx_done();
       user_io_8bit_set_status(0, UIO_STATUS_RESET);

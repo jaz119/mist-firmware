@@ -170,7 +170,7 @@ FAST unsigned char ConfigureFpga(const char *name)
         FatalError(4);
     }
 
-    iprintf("FPGA bitstream file %s opened, file size = %llu\r", name, f_size(&file));
+    iprintf("FPGA bitstream file %s opened, file size = %lu\r", name, (uint32_t) f_size(&file));
     iprintf("[");
 
     // using fast seek
@@ -276,7 +276,7 @@ FAST unsigned char ConfigureFpga(const char *name)
         return ERROR_BITSTREAM_OPEN;
     }
 
-    iprintf("FPGA bitstream file %s opened, file size = %llu\r", name, f_size(&file));
+    iprintf("FPGA bitstream file %s opened, file size = %lu\r", name, (uint32_t) f_size(&file));
     iprintf("[");
 
     // using fast seek
@@ -1003,7 +1003,7 @@ FAST unsigned char fpga_init(const char *name) {
     ChangeDirectoryName("/");
 
     //eject all disk
-    for (int n = 0; n < FLOPPIES; n++)
+    for (int n = 0; n < ARRAY_SIZE(df); n++)
         df[n].status = 0;
 
     config.kickstart[0]=0;

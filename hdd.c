@@ -285,7 +285,7 @@ static unsigned char HardFileSeek(hdfTYPE *pHDF, unsigned long lba)
   FRESULT res;
   res = f_lseek(&pHDF->idxfile->file, seek_pos);
   if (res != FR_OK || f_tell(&pHDF->idxfile->file) != seek_pos) {
-    hdd_debugf("Seek error: %llu, %llu", seek_pos, f_tell(&pHDF->idxfile->file));
+    hdd_debugf("Seek error: %lu, %lu", (uint32_t) seek_pos, (uint32_t) f_tell(&pHDF->idxfile->file));
     return 0;
   }
   return 1;
@@ -1729,11 +1729,11 @@ unsigned char OpenHardfile(unsigned char unit, bool amiga)
     case HDF_FILE:
       hdf[unit].type=hardfile[unit]->enabled;
         if (IDXOpen(hdf[unit].idxfile, hardfile[unit]->name, FA_READ | FA_WRITE) == FR_OK) {
-          IDXIndex(hdf[unit].idxfile);
+          IDXIndex(hdf[unit].idxfile, unit);
           GetHardfileGeometry(&hdf[unit], amiga);
           hdd_debugf("HARDFILE %d:", unit);
           hdd_debugf("file: \"%s\"", hardfile[unit]->name);
-          hdd_debugf("size: %llu (%lu MB)", f_size(&hdf[unit].idxfile->file), f_size(&hdf[unit].idxfile->file) >> 20);
+          hdd_debugf("size: %lu (%lu MB)", (uint32_t) f_size(&hdf[unit].idxfile->file), (uint32_t) (f_size(&hdf[unit].idxfile->file) >> 20));
           hdd_debugf("CHS: %u.%u.%u", hdf[unit].cylinders, hdf[unit].heads, hdf[unit].sectors);
           hdd_debugf(" (%lu MB)", ((((unsigned long) hdf[unit].cylinders) * hdf[unit].heads * hdf[unit].sectors) >> 11));
           if (hardfile[unit]->enabled & HDF_SYNTHRDB) {
@@ -1806,7 +1806,7 @@ void SendHDFCfg()
 {
   int i;
   unsigned char cfg = 0;
-  for (int i=0; i<HARDFILES; i++) {
+  for (int i=0; i<ARRAY_SIZE(hardfile); i++) {
     if(hardfile[i]->present) cfg |= (1<<i);
   }
 

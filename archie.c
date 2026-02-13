@@ -124,7 +124,7 @@ void archie_set_cmos(const unsigned char *name) {
 
   if (!name) return;
   if(f_open(&file, name, FA_READ) == FR_OK) {
-    archie_debugf("CMOS file %s with %llu bytes to send", name, f_size(&file));
+    archie_debugf("CMOS file %s with %lu bytes to send", name, (uint32_t) f_size(&file));
     // save file name
     strncpy(config.cmos_img, name, sizeof(config.cmos_img));
     config.cmos_img[sizeof(config.cmos_img)-1] = 0;
@@ -139,7 +139,7 @@ void archie_set_rom(const unsigned char *name) {
 
   if (!name) return;
   if(f_open(&file, name, FA_READ) == FR_OK) {
-    archie_debugf("ROM file %s with %llu bytes to send", name, f_size(&file));
+    archie_debugf("ROM file %s with %lu bytes to send", name, (uint32_t) f_size(&file));
     // save file name
     strncpy(config.rom_img, name, sizeof(config.rom_img));
     config.rom_img[sizeof(config.rom_img)-1] = 0;
@@ -212,7 +212,7 @@ void archie_init(void) {
     if(f_size(&file) == sizeof(archie_config_t))
       f_read(&file, &config, sizeof(archie_config_t), &br);
     else
-      archie_debugf("Unexpected config size %llu != %u", f_size(&file), sizeof(archie_config_t));
+      archie_debugf("Unexpected config size %lu != %u", (uint32_t) f_size(&file), sizeof(archie_config_t));
     f_close(&file);
   } else
     archie_debugf("No %.11s config found", CONFIG_FILENAME);
@@ -598,9 +598,8 @@ void archie_eject_all()
     floppy_name[i][0] = 0;
   }
 
-  for (int i=0; i<SD_IMAGES; i++) {
-    f_close(&sd_image[i].file);
-    sd_image[i].valid = 0;
+  for (int i=0; i<ARRAY_SIZE(sd_image); i++) {
+    IDXClose(&sd_image[i]);
   }
 
   config.hardfile[0].present = 0;

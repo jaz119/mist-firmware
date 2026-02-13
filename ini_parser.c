@@ -303,7 +303,7 @@ bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
   #ifdef INI_PARSER_TEST
   ini_parser_debugf("Opened file %s with size %d bytes.", cfg->filename, ini_size);
   #else
-  ini_parser_debugf("Opened file %s with size %llu bytes.", cfg->filename, f_size(&ini_file));
+  ini_parser_debugf("Opened file %s with size %lu bytes.", cfg->filename, (uint32_t) f_size(&ini_file));
   #endif
 
   ini_pt = 0;

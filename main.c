@@ -129,22 +129,21 @@ void HandleFpga(void)
 static void eject_all_media()
 {
     // Floppies
-    for (int i=0; i<FLOPPIES; i++)
+    for (int i=0; i<ARRAY_SIZE(df); i++)
     {
         df[i].status = 0;
         df[i].file.obj.fs = 0;
     }
 
     // Indexes
-    for (int i=0; i<SD_IMAGES; i++)
+    for (int i=0; i<ARRAY_SIZE(sd_image); i++)
     {
-        sd_image[i].valid = 0;
-        sd_image[i].clmt[0] = 0;
+        IDXClose(&sd_image[i]);
         sd_image[i].file.obj.fs = 0;
     }
 
     // Hard disks
-    for (int i=0; i<HARDFILES; i++)
+    for (int i=0; i<ARRAY_SIZE(config.hardfile); i++)
     {
         config.hardfile[i].present = 0;
         config.hardfile[i].enabled = HDF_DISABLED;

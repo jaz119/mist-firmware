@@ -78,13 +78,16 @@ static uint8_t latest_keyb_priority = 0;  // keyboard=0, joypad with key mapping
 #define Y 1
 #define Z 2
 #define MOUSE_FREQ 20   // 20 ms -> 50hz
+
 static int16_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
 static uint8_t mouse_flags[2] = { 0, 0 };
 static unsigned long mouse_timer;
 
 #define LED_FREQ 100   // 100 ms
+
 static unsigned long led_timer;
 char keyboard_leds = 0;
+
 bool caps_status = 0;
 bool num_status = 0;
 bool scrl_status = 0;
@@ -143,11 +146,9 @@ void user_io_reset() {
 	// to the card (first slot, and only until the first unmount)
 	umounted = 0;
 	toc.valid = 0;
-	sd_image[0].valid = 0;
-	sd_image[1].valid = 0;
-	sd_image[2].valid = 0;
-	sd_image[3].valid = 0;
-	for (int i=0; i<HARDFILES; i++) {
+	for (int n=0; n < ARRAY_SIZE(sd_image); n++)
+		sd_image[0].valid = 0;
+	for (int i=0; i<ARRAY_SIZE(hardfiles); i++) {
 		hardfiles[i].enabled = HDF_DISABLED;
 		hardfiles[i].present = 0;
 	}
@@ -177,7 +178,7 @@ void user_io_init() {
 	memset(key_remap_table, 0, sizeof(key_remap_table));
 
 	if(MenuButton()) DEBUG_MODE_VAR = DEBUG_MODE ? 0 : DEBUG_MODE_VALUE;
-	iprintf("debug_mode = %d\n", DEBUG_MODE);
+	iprintf("Debug_mode = %d\n", DEBUG_MODE);
 
 	ikbd_init();
 }
@@ -238,7 +239,7 @@ void user_io_set_core_mod(int64_t mod) {
 }
 
 static void user_io_send_core_mod() {
-	iprintf("Sending core mod = %lld\n", core_mod);
+	iprintf("Sending core mod = %ld\n", (long) core_mod);
 	spi_uio_cmd8(UIO_SET_MOD, core_mod & 0x7f);
 	spi_uio_cmd64(UIO_SET_MOD2, core_mod);
 }
@@ -357,7 +358,7 @@ void user_io_init_core() {
 		// send a reset
 		user_io_8bit_set_status(UIO_STATUS_RESET, ~0);
 
-		static FIL file;
+		FIL file;
 		UINT br;
 		// try to load config
 
@@ -408,7 +409,7 @@ void user_io_init_core() {
 				f_close(&file);
 			}
 		}
-		for (int i = 0; i < SD_IMAGES; i++) {
+		for (int i = 0; i < ARRAY_SIZE(sd_image); i++) {
 			hardfile[i] = &hardfiles[i];
 			if ((core_features & (FEAT_IDE0 << (2*i))) == (FEAT_IDE0_CDROM << (2*i))) {
 				iprintf("IDE %d: ATAPI CDROM\n", i);
@@ -418,15 +419,15 @@ void user_io_init_core() {
 		}
 
 		// check if there's a <core>.vhd present
-		if(!user_io_create_config_name(s, "VHD", CONFIG_ROOT | CONFIG_VHD)) {
+		if (!user_io_create_config_name(s, "VHD", CONFIG_ROOT | CONFIG_VHD)) {
 			debugf("Looking for %s", s);
 			if (!(core_features & FEAT_IDE0))
 				 user_io_file_mount(s, 0);
 
 			if (!user_io_is_mounted(0)) {
 				// check for <core>.HD0/1 files
-				if(!user_io_create_config_name(s, "HD0", CONFIG_ROOT | CONFIG_VHD)) {
-					for (int i = 0; i < SD_IMAGES; i++) {
+				if (!user_io_create_config_name(s, "HD0", CONFIG_ROOT | CONFIG_VHD)) {
+					for (int i = 0; i < ARRAY_SIZE(sd_image); i++) {
 						s[strlen(s)-1] = '0'+i;
 						debugf("Looking for %s", s);
 						if ((core_features & (FEAT_IDE0 << (2*i))) == (FEAT_IDE0_ATA << (2*i))) {
@@ -458,7 +459,6 @@ void user_io_init_core() {
 		if (hdmi_detected) HDMITX_ChangeVideoTiming(1);
 	}
 #endif
-
 }
 
 static unsigned short usb2amiga( unsigned  char k ) {
@@ -750,7 +750,7 @@ static void user_io_joystick_emu() {
 
 // 16 byte fifo for amiga key codes to limit max key rate sent into the core
 #define KBD_FIFO_SIZE  16   // must be power of 2
-static unsigned short kbd_fifo[KBD_FIFO_SIZE];
+ALIGNED(4) static unsigned short kbd_fifo[KBD_FIFO_SIZE];
 static unsigned char kbd_fifo_r=0, kbd_fifo_w=0;
 static long kbd_timer = 0;
 
@@ -783,7 +783,6 @@ static void kbd_fifo_poll() {
 	kbd_fifo_minimig_send(kbd_fifo[kbd_fifo_r]);
 	kbd_fifo_r = (kbd_fifo_r + 1)&(KBD_FIFO_SIZE-1);
 }
-
 
 char user_io_is_cue_mounted() {
 	return toc.valid;
@@ -831,23 +830,24 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 	buffer_lba = 0xffffffff; // invalidate cache
 	if (name) {
 		if (sd_image[sd_index(index)].valid)
-			f_close(&sd_image[sd_index(index)].file);
+			IDXClose(&sd_image[sd_index(index)]);
 
 		res = IDXOpen(&sd_image[sd_index(index)], name, FA_READ | FA_WRITE);
 		if (res != FR_OK) res = IDXOpen(&sd_image[sd_index(index)], name, FA_READ);
 		if (res == FR_OK) {
-			iprintf("selected %llu bytes to slot %d\n", f_size(&sd_image[sd_index(index)].file), index);
+			iprintf("%s: %lu byte(s) into slot: %d\n",
+				__FUNCTION__, (uint32_t) f_size(&sd_image[sd_index(index)].file), index);
 
 			sd_image[sd_index(index)].valid = 1;
 			// build index for fast random access
-			IDXIndex(&sd_image[sd_index(index)]);
+			IDXIndex(&sd_image[sd_index(index)], sd_index(index));
 		} else {
-			debugf("error mounting %s (%d)", name, res);
+			debugf("%s: file: %s, error %d", __FUNCTION__, name, res);
 			return;
 		}
 	} else {
-		iprintf("unmounting file in slot %d\n", index);
-		if (sd_image[sd_index(index)].valid) f_close(&sd_image[sd_index(index)].file);
+		iprintf("unmounting slot %d\n", index);
+		if (sd_image[sd_index(index)].valid) IDXClose(&sd_image[sd_index(index)]);
 		sd_image[sd_index(index)].valid = 0;
 		if (!index) umounted = 1;
 	}
@@ -1031,7 +1031,8 @@ void user_io_send_buttons(char force) {
 	if((map != key_map) || force) {
 		key_map = map;
 		spi_uio_cmd8(UIO_BUT_SW, map);
-		debugf("sending keymap");
+
+		debugf("Sending keymap");
 	}
 }
 
@@ -1137,9 +1138,10 @@ static void send_keycode(unsigned short code);
 static unsigned short keycode(unsigned char in);
 
 // 1000/(2^(39-rate)^(1/8))
-static int ps2_typematic_rates[] =
-	{34, 37, 40, 44, 48, 52, 57, 62, 68, 74, 81, 88, 96, 105, 114, 125, 136,
-	 148, 162, 176, 192, 210, 229, 250, 272, 297, 324, 353, 385, 420, 458, 500};
+ALIGNED(4) static const int ps2_typematic_rates[] = {
+	34, 37, 40, 44, 48, 52, 57, 62, 68, 74, 81, 88, 96, 105, 114, 125, 136,
+	148, 162, 176, 192, 210, 229, 250, 272, 297, 324, 353, 385, 420, 458, 500
+};
 
 static void handle_ps2_typematic_repeat()
 {
@@ -1519,12 +1521,12 @@ FAST void user_io_poll() {
 			// debug: If the io controller reports and non-sdhc card, then
 			// the core should never set the sdhc flag
 			if((c & 3) && !MMC_IsSDHC() && (c & 0x04))
-				iprintf("WARNING: SDHC access to non-sdhc card\n");
+				iprintf("WARNING: SDHC access to non-SDHC card\n");
 #endif
 
 			// check if core requests configuration
 			if(c & 0x08) {
-				iprintf("core requests SD config\n");
+				iprintf("Core requests SD config\n");
 				user_io_sd_set_config();
 			}
 
@@ -1844,7 +1846,6 @@ FAST void user_io_poll() {
 		{
 			ypbpr_toggle = 0;
 		}
-
 	}
 	else
 	{
@@ -1865,7 +1866,6 @@ FAST void user_io_poll() {
 		}
 	}
 #endif
-
 }
 
 char user_io_dip_switch1() {
@@ -1972,8 +1972,7 @@ FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char
 // when emulation is active
 static unsigned char is_emu_key(unsigned char c, unsigned alt) {
 	static const unsigned char m[] = { JOY_RIGHT, JOY_LEFT, JOY_DOWN, JOY_UP };
-	static const unsigned char m2[] =
-	{
+	static const unsigned char m2[] = {
 		0x5A, JOY_DOWN,
 		0x5C, JOY_LEFT,
 		0x5D, JOY_DOWN,
@@ -2027,8 +2026,7 @@ static unsigned short keycode(unsigned char in) {
 
 static void check_reset(unsigned short modifiers, char useKeys)
 {
-	unsigned short combo[] =
-	{
+	const unsigned short combo[] = {
 		0x45,  // lctrl+lalt+ralt
 		0x89,  // lctrl+lgui+rgui
 		0x105, // lctrl+lalt+del
@@ -2119,8 +2117,7 @@ static char key_used_by_osd(unsigned short s) {
 	       (core_type == CORE_TYPE_8BIT));
 }
 
-static char kr_fn_table[] =
-{
+ALIGNED(4) static const char kr_fn_table[] = {
 	0x54, 0x48, // pause/break
 	0x55, 0x46, // prnscr
 	0x50, 0x4a, // home
@@ -2607,7 +2604,6 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 		// set the typematic timer to the first delay
 		if (core_type == CORE_TYPE_8BIT)
 			ps2_typematic_timer = GetTimer((((ps2_typematic_rate & 0x60)>>5)+1)*250);
-
 	}
 }
 

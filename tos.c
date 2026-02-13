@@ -728,7 +728,7 @@ static void tos_load_cartridge_mist1() {
   // upload cartridge
   if(config.cart_img[0] && (f_open(&file, config.cart_img, FA_READ) == FR_OK)) {
     int i;
-    tos_debugf("%s:\n  size = %llu", config.cart_img, f_size(&file));
+    tos_debugf("%s:\n  size = %lu", config.cart_img, (uint32_t) f_size(&file));
 
     int blocks = f_size(&file) / 512;
     tos_debugf("  blocks = %d", blocks);
@@ -806,7 +806,7 @@ static void tos_upload_mist2(const char *name) {
   // upload and verify tos image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
 
-    tos_debugf("%s:\n  size = %llu", config.tos_img, f_size(&file));
+    tos_debugf("%s:\n  size = %lu", config.tos_img, (uint32_t) f_size(&file));
 
     if(f_size(&file) >= 256*1024)
       data_io_file_tx(&file, 0x00, 0);
@@ -864,7 +864,7 @@ static void tos_upload_mist1(const char *name) {
     unsigned long time;
     unsigned long tos_base = TOS_BASE_ADDRESS_192k;
 
-    tos_debugf("TOS.IMG:\n  size = %llu", f_size(&file));
+    tos_debugf("TOS.IMG:\n  size = %lu", (uint32_t) f_size(&file));
 
     if(f_size(&file) >= 256*1024)
       tos_base = TOS_BASE_ADDRESS_256k;
@@ -1182,14 +1182,14 @@ void tos_select_hdd_image(char i, const unsigned char *name) {
     config.acsi_img[i][0] = 0;
   // try to open harddisk image
   if (disk_inserted[i+2]) {
-    f_close(&sd_image[i+2].file);
+    IDXClose(&sd_image[i+2]);
     disk_inserted[i+2] = 0;
   }
   config.system_ctrl &= ~(TOS_ACSI0_ENABLE<<i);
 
   if(name && name[0]) {
     if (IDXOpen(&sd_image[i+2], name, FA_READ | FA_WRITE) == FR_OK) {
-      IDXIndex(&sd_image[i+2]);
+      IDXIndex(&sd_image[i+2], i+2);
       disk_inserted[i+2] = 1;
       config.system_ctrl |= (TOS_ACSI0_ENABLE<<i);
     }
@@ -1352,8 +1352,8 @@ void tos_config_load(char slot) {
   strncpy(filename, CONFIG_FILENAME, 11);
   if (new_slot) filename[4] = '0'+new_slot;
   if (FileOpenCompat(&file, filename, FA_READ) == FR_OK)  {
-    tos_debugf("Configuration file size: %llu (should be %lu)",
-       f_size(&file), sizeof(tos_config_t));
+    tos_debugf("Configuration file size: %lu (should be %lu)",
+       (uint32_t) f_size(&file), sizeof(tos_config_t));
     if(f_size(&file) == sizeof(tos_config_t)) {
       f_read(&file, (unsigned char*) &config, sizeof(tos_config_t), &br);
     }

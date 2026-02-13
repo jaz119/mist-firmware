@@ -24,9 +24,7 @@ typedef struct
     char          name[22]; /*floppy name*/
 } adfTYPE;
 
-#define FLOPPIES 4
-
-extern adfTYPE df[FLOPPIES];
+extern adfTYPE df[4];
 extern unsigned char drives;
 
 void SectorGapToFpga(void);

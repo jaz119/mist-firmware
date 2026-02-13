@@ -28,10 +28,12 @@
 
 typedef struct
 {
-	volatile char valid;
-	FIL file;
-	DWORD clmt[SZ_TBL];
+  FIL file;
+  volatile bool valid;
+  DWORD clmt[SZ_TBL];
 } IDXFile;
+
+extern IDXFile sd_image[SD_IMAGES];
 
 // sd_image slots:
 // Minimig:  0-3 - IDE
@@ -41,21 +43,11 @@ typedef struct
 //           2-3 - FDD
 // 8 bit:    0-3 - Block access
 
-extern IDXFile sd_image[SD_IMAGES];
-
-static inline unsigned char IDXRead(IDXFile *file, unsigned char *pBuffer, uint8_t blksz) {
-  UINT br;
-  return f_read(&(file->file), pBuffer, 512<<blksz, &br);
-}
-
-static inline unsigned char IDXWrite(IDXFile *file, unsigned char *pBuffer, uint8_t blksz) {
-  UINT bw;
-  return f_write(&(file->file), pBuffer, 512<<blksz, &bw);
-}
-
-unsigned char IDXOpen(IDXFile *file, const char *name, char mode);
-void IDXClose(IDXFile *file);
-unsigned char IDXSeek(IDXFile *file, unsigned long lba);
-void IDXIndex(IDXFile *pIDXF);
+void IDXIndex(IDXFile *, int);
+FRESULT IDXOpen(IDXFile *, const char *name, char mode);
+FRESULT IDXRead(IDXFile *, unsigned char *, uint8_t);
+FRESULT IDXWrite(IDXFile *, unsigned char *, uint8_t);
+FRESULT IDXSeek(IDXFile *, unsigned long lba);
+void IDXClose(IDXFile *);
 
 #endif

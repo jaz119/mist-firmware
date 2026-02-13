@@ -39,7 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 unsigned char drives = 0; // number of active drives reported by FPGA (may change only during reset)
 
 adfTYPE *pdfx;            // drive select pointer
-adfTYPE df[FLOPPIES];     // drive 0 information structure
+adfTYPE df[4];            // drive 0 information structure
 
 #define TRACK_SIZE 12668
 #define HEADER_SIZE 0x40
