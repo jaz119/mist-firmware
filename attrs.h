@@ -8,8 +8,7 @@
     #define FORCE_ARM __attribute__((noclone, optimize("O2")))
 #else
     #define FORCE_ARM __attribute__((noclone, optimize("O2"), target("arm")))
+    #define ALIGNED(n) __attribute__((aligned(n)))
 #endif
-
-#define ALIGNED(n) __attribute__((aligned(n)))
 
 #endif // ATTRS_H

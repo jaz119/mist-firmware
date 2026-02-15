@@ -50,7 +50,7 @@ uint8_t rstval = 0;
 
 static FIL file;
 
-extern DWORD clmt[128];
+extern DWORD clmt[99];
 
 char minimig_ver_beta;
 char minimig_ver_major;
@@ -407,7 +407,6 @@ FAST void SendFile(FIL *file)
     unsigned long  n;
     unsigned char *p;
 
-    iprintf("[");
     n = (f_size(file) + 511) >> 9; // sector count (rounded up)
     while (n--)
     {
@@ -428,9 +427,6 @@ FAST void SendFile(FIL *file)
         }
         while (!(c1 & CMD_RDTRK));
 
-        if ((n & 15) == 0)
-            iprintf("*");
-
         // send data sector to FPGA
         EnableFpga();
         c1 = SPI(0);
@@ -446,7 +442,6 @@ FAST void SendFile(FIL *file)
 
         DisableFpga();
     }
-    iprintf("]\r");
 }
 
 
@@ -460,7 +455,6 @@ FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize)
     unsigned long  n;
     unsigned char *p;
 
-    iprintf("[");
     headersize=f_size(file)&255;	// ROM should be a round number of kilobytes; overspill will likely be the Amiga Forever header.
 
     f_read(file,sector_buffer,headersize, &br); // Read extra bytes
@@ -490,9 +484,6 @@ FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize)
         }
         while (!(c1 & CMD_RDTRK));
 
-        if ((n & 15) == 0)
-            iprintf("*");
-
         // send data sector to FPGA
         EnableFpga();
         c1 = SPI(0);
@@ -507,7 +498,6 @@ FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize)
             SPI(*p++);
         DisableFpga();
     }
-    iprintf("]\r");
 }
 
 char kick1xfoundstr[] = "Kickstart v1.x found\n";
@@ -547,14 +537,12 @@ FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, in
   int i,j;
   unsigned int keyidx=0;
 
-  iprintf("File size: %dkB\r", size>>1);
-  iprintf("[");
+  debugf("File size: %dkB", size>>1);
   if (keysize) {
     // read header
     f_read(file, sector_buffer, 0xb, &br);
   }
   for (i=0; i<size; i++) {
-    if (!(i&31)) iprintf("*");
     FileReadBlock(file, sector_buffer);
     if (keysize) {
       // decrypt ROM
@@ -591,17 +579,14 @@ FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, in
     }
     DisableOsd();
   }
-  iprintf("]\r");
 
   if (kickfoundstr) {
-    iprintf(kickfoundstr);
+    debugf("%s", kickfoundstr);
   }
   if (applypatchstr) {
-    iprintf(applypatchstr);
+    debugf("%s", applypatchstr);
   }
 }
-
-
 
 // draw on screen
 FAST char BootDraw(char *data, unsigned short len, unsigned short offset)
@@ -812,7 +797,7 @@ FAST char PrepareBootUpload(unsigned char base, unsigned char size)
             else
             { // data phase
                 DisableFpga();
-                iprintf("Ready to upload ROM file...\r");
+                debugf("Ready to upload ROM file...");
                 // send rom image to FPGA
 //                SendFile(file);
 //                iprintf("ROM file uploaded.\r");
@@ -919,8 +904,7 @@ unsigned char GetFPGAStatus(void)
     return status;
 }
 
-
-FAST unsigned char fpga_init(const char *name) {
+unsigned char fpga_init(const char *name) {
   int loaded_from_usb = USB_LOAD_VAR;
   unsigned char ct;
 

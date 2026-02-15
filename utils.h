@@ -6,7 +6,15 @@
 #include "attrs.h"
 
 #define MIN(a, b)       (((a) < (b)) ? (a) : (b))
-#define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
+
+#define PRIu64f         "%lx%08lx"
+#define PRIu64_LOW(x)   (uint32_t)((x) >> 32)
+#define PRIu64_HIGH(x)  (uint32_t)((x) & 0xFFFFFFFFu)
+#define PRIu64_PAIR(x)  PRIu64_LOW(x), PRIu64_HIGH(x)
+
+#ifndef CONFIG_CHIP_SAMV71
+    #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
+#endif
 
 unsigned char decval(unsigned char in, unsigned char min, unsigned char max);
 unsigned char incval(unsigned char in, unsigned char min, unsigned char max);

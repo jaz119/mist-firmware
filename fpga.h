@@ -9,7 +9,7 @@ extern char minimig_ver_major;
 extern char minimig_ver_minor;
 extern char minimig_ver_minion;
 
-FAST unsigned char fpga_init(const char *name);
+unsigned char fpga_init(const char *name);
 FAST unsigned char ConfigureFpga(const char*);
 FAST void SendFile(FIL *file);
 FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize);

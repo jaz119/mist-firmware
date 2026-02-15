@@ -8,6 +8,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "ini_parser.h"
+#include "utils.h"
 
 #ifndef INI_PARSER_TEST
 #include "debug.h"
@@ -375,19 +376,20 @@ void ini_save(const ini_cfg_t* cfg, int tag)
             siprintf(line, "%s=%u\n", cfg->vars[var].name, *(uint16_t*)(cfg->vars[var].var));
             break;
           case UINT32:
-            siprintf(line, "%s=0x%x\n", cfg->vars[var].name, *(uint32_t*)(cfg->vars[var].var));
+            siprintf(line, "%s=0x%lx\n", cfg->vars[var].name, *(uint32_t*)(cfg->vars[var].var));
             break;
-          case UINT64:
-            siprintf(line, "%s=0x%lx\n", cfg->vars[var].name, *(uint64_t*)(cfg->vars[var].var));
+          case UINT64: {
+            uint64_t value = *(uint64_t*)(cfg->vars[var].var);
+            siprintf(line, "%s=0x" PRIu64f "\n", cfg->vars[var].name, PRIu64_PAIR(value));
             break;
-          case INT8:
+          } case INT8:
             siprintf(line, "%s=%d\n", cfg->vars[var].name, *(int8_t*)(cfg->vars[var].var));
             break;
           case INT16:
             siprintf(line, "%s=%d\n", cfg->vars[var].name, *(int16_t*)(cfg->vars[var].var));
             break;
           case INT32:
-            siprintf(line, "%s=0x%x\n", cfg->vars[var].name, *(int32_t*)(cfg->vars[var].var));
+            siprintf(line, "%s=0x%lx\n", cfg->vars[var].name, *(int32_t*)(cfg->vars[var].var));
             break;
           #ifdef INI_ENABLE_FLOAT
           case FLOAT:

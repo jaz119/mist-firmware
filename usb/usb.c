@@ -153,7 +153,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 			if (!rcode) {
 				d->class = class_list[c];
 
-				iprintf("USB device accepted, %u ms\n", GetRTTC() - time);
+				iprintf("USB device accepted, %lu ms\n", GetRTTC() - time);
 				// ok, device accepted by class
 
 				return 0;

@@ -82,7 +82,7 @@ const char version[] = {"$VER:ATA" VDATE};
 unsigned char Error;
 
 ALIGNED(4) char s[OSD_BUF_SIZE];
-ALIGNED(4) DWORD clmt[128]; // fast seek cache
+ALIGNED(4) DWORD clmt[99]; // fast seek cache
 
 unsigned long storage_size = 0;
 

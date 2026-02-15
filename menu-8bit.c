@@ -231,7 +231,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 		return 1;
 	}
 	p = user_io_8bit_get_string(idx);
-	debugf("Option %d: %s", idx, p);
+	menu_debugf("Option %d: %s", idx, p);
 	if (idx > 1 && !p) return 0;
 
 	// check if there's a file type supported
@@ -302,7 +302,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			// 'P' is a prefix fo F,S,O,T,R
 			page = getIdx(p);
 			p+=2;
-			debugf("P is prefix for: %s", p);
+			menu_debugf("P is prefix for: %s", p);
 		}
 	}
 
@@ -325,7 +325,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 				if (*pos == 'p') {
 					substrcpy(data_processor_id, pos + 1, 0);
 					romtype = ROM_PROCESSED;
-					debugf("Found data_io processor %s", data_processor_id);
+					menu_debugf("Found data_io processor %s", data_processor_id);
 					break;
 				}
 				pos++;
@@ -394,7 +394,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	if(p && (p[0] == 'T')) {
 		if (action == MENU_ACT_SEL || action == MENU_ACT_PLUS || action == MENU_ACT_MINUS) {
 			unsigned long long mask = (unsigned long long)1<<getIdx(p);
-			debugf("Option %s 0x%llx", p, status ^ mask);
+			menu_debugf("Option %s 0x%llx", p, status ^ mask);
 			// change bit
 			user_io_8bit_set_status(status ^ mask, mask);
 			// ... and change it again in case of a toggle bit
@@ -415,7 +415,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			preset = strtoll(s, NULL, 0);
 			substrcpy(s, p, 3);
 			mask = strtoll(s, NULL, 0);
-			debugf("Option %s preset: 0x%llx, mask: 0x%llx", p, preset, mask);
+			menu_debugf("Option %s preset: 0x%llx, mask: 0x%llx", p, preset, mask);
 			// change bit with reset
 			user_io_8bit_set_status(preset | UIO_STATUS_RESET, mask | UIO_STATUS_RESET);
 			// release reset
@@ -435,11 +435,11 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			// check if next value available
 			substrcpy(s, p, 2+x);
 			if(!strlen(s)) x = 0;
-			// debugf("Option %s 0x%llx 0x%llx %x %x", p, status, mask, x2, x);
+			// menu_debugf("Option %s 0x%llx 0x%llx %x %x", p, status, mask, x2, x);
 			user_io_8bit_set_status(setStatus(p, status, x), ~0);
 		} else if (action == MENU_ACT_GET) {
 			unsigned char x = getStatus(p, status);
-			debugf("Option %s 0x%llx 0x%llx", p, x, status);
+			menu_debugf("Option %s 0x%llx 0x%llx", p, x, status);
 
 			// get currently active option
 			substrcpy(s, p, 2+x);
@@ -468,12 +468,12 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	if(p && (p[0] == 'R')) {
 		if (action == MENU_ACT_SEL) {
 			int len = strtol(p+1,0,0);
-			debugf("Option %s %d", p, len);
+			menu_debugf("Option %s %d", p, len);
 			if (len) {
 				FIL file;
 
 				if (!user_io_create_config_name(s, "RAM", CONFIG_ROOT)) {
-					debugf("Saving RAM file");
+					menu_debugf("Saving RAM file");
 					if (f_open(&file, s, FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {
 						data_io_file_rx(&file, -1, len);
 						f_close(&file);

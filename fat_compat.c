@@ -6,6 +6,7 @@
 #include "fat_compat.h"
 #include "fpga.h"
 #include "osd.h"
+#include "debug.h"
 #include "attrs.h"
 #include "utils.h"
 
@@ -112,12 +113,12 @@ unsigned char FindDrive(void) {
 		// get start of first partition
 		for(partitioncount=4;(partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount);
 
-		iprintf("partitions count: %d\n", partitioncount);
+		debugf("partitions count: %d", partitioncount);
 
 		for(int i=0;i<partitioncount;++i) {
-			iprintf("partition %d:",i);
-			iprintf("  start: %d", partitions[i].startlba);
-			iprintf("  size: %d\n", partitions[i].sectors);
+			debugf("partition %d:",i);
+			debugf("  start: %lu", partitions[i].startlba);
+			debugf("  size: %lu", partitions[i].sectors);
 		}
 	}
 
@@ -126,14 +127,13 @@ unsigned char FindDrive(void) {
 		return (0);
 
 	// some debug output
-	iprintf("partition type: ");
-	iprintf("%s\n", fs_type_to_string());
-	iprintf("fat_size: %u\n", fs.fsize);
-	iprintf("fat_number: %u\n", fs.n_fats);
-	iprintf("fat_start: %u\n", fs.fatbase);
-	iprintf("root_dir_start: %u\n", fs.dirbase);
-	iprintf("dir_entries: %u\n", fs.n_rootdir);
-	iprintf("data_start: %u\n", fs.database);
+	iprintf("partition type: %s\n", fs_type_to_string());
+	debugf("fat_size: %u\n", fs.fsize);
+	debugf("fat_number: %u\n", fs.n_fats);
+	debugf("fat_start: %u\n", fs.fatbase);
+	debugf("root_dir_start: %u\n", fs.dirbase);
+	debugf("dir_entries: %u\n", fs.n_rootdir);
+	debugf("data_start: %u\n", fs.database);
 	iprintf("free_clusters: %lu\n", fs.free_clst);
 	iprintf("cluster_size: %u KiB\n", fs.csize);
 
@@ -362,11 +362,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 		iSelectedEntry = 0;
 		for (i = 0; i < maxDirEntries; i++)
 			sort_table[i] = i;
-		int err = f_opendir(&dir, ".");
-		if (err != FR_OK) {
-			iprintf("%s: error %d\n", __FUNCTION__, err);
-			return 0;
-		}
+		if (f_opendir(&dir, ".") != FR_OK) return 0;
 	}
 	else
 	{

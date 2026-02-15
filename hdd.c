@@ -1804,7 +1804,6 @@ unsigned char GetHDFFileType(const char *filename)
 
 void SendHDFCfg()
 {
-  int i;
   unsigned char cfg = 0;
   for (int i=0; i<ARRAY_SIZE(hardfile); i++) {
     if(hardfile[i]->present) cfg |= (1<<i);

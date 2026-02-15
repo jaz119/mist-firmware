@@ -11,6 +11,13 @@
 #define debugf(...)
 #endif
 
+// ------------ menu debugging -----------
+#if 0
+#define menu_debugf(a, ...) iprintf("\033[0;37m" a "\033[0m\n", ##__VA_ARGS__)
+#else
+#define menu_debugf(...)
+#endif
+
 // ----------- minimig debugging -------------
 #if 0
 #define hdd_debugf(a, ...) iprintf("\033[1;32mHDD: " a "\033[0m\n", ##__VA_ARGS__)
