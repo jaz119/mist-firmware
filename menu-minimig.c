@@ -27,7 +27,7 @@ const char *config_memory_slow_msg[] = {"none  ", "0.5 MB", "1.0 MB", "1.5 MB"};
 const char *config_scanlines_msg[] = {"off", "dim", "black"};
 const char *config_dither_msg[] = {"off", "SPT", "RND", "S+R"};
 const char *config_memory_fast_msg[] = {"none  ", "2.0 MB", "4.0 MB", "8.0 MB", "Maximum"};
-const char *config_hdf_msg[] = {"Disabled", "Hardfile (hdf)", "MMC/SD card", "MMC/SD partition 1", "MMC/SD partition 2", "MMC/SD partition 3", "MMC/SD partition 4"};
+const char *config_hdf_msg[] = {"Disabled", "Hardfile (HDF)", "MMC/SD card", "MMC/SD partition 1", "MMC/SD partition 2", "MMC/SD partition 3", "MMC/SD partition 4"};
 const char *config_chipset_msg[] = {"OCS-A500", "OCS-A1000", "ECS", "---", "---", "---", "AGA", "---"};
 const char *config_turbo_msg[] = {"none", "CHIPRAM", "KICK", "BOTH"};
 const char *config_cd32pad_msg[] =  {"OFF", "ON"};
@@ -103,11 +103,11 @@ static void InsertFloppy(adfTYPE *drive, const unsigned char *name)
 	drive->track_prev = -1;
 
 	// some debug info
-	iprintf("Inserting floppy: \"%s\"\r", name);
-	iprintf("file readonly: 0x%u\r", readonly);
-	iprintf("file size: %lu (%lu KB)\r", (uint32_t) f_size(&drive->file), (uint32_t) (f_size(&drive->file) >> 10));
-	iprintf("drive tracks: %u\r", drive->tracks);
-	iprintf("drive status: 0x%02X\r", drive->status);
+	debugf("Inserting floppy: \"%s\"", name);
+	debugf("file readonly: 0x%u", readonly);
+	debugf("file size: %lu (%lu KB)", (uint32_t) f_size(&drive->file), (uint32_t) (f_size(&drive->file) >> 10));
+	debugf("drive tracks: %u", drive->tracks);
+	debugf("drive status: 0x%02X", drive->status);
 }
 
 static char FloppyFileSelected(uint8_t idx, const char *SelectedName) {

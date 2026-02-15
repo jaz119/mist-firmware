@@ -201,8 +201,8 @@ void virtual_joystick_remap_update(joymapping_t *map) {
 void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 {
 	// first search for the entry to update with the largest tag
-	int old = -1, new = -1, i, oldtag = 0;
-	for(i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
+	int old = -1, new = -1, oldtag = 0;
+	for(int i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
 		if(joystick_mappers[i].vid == vid &&
 		   joystick_mappers[i].pid == pid &&
 		   joystick_mappers[i].tag >= oldtag) {
@@ -213,7 +213,7 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 	if (old == -1) return; // old entry not found
 
 	// now search if the entry with the same newtag already there
-	for(i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
+	for(int i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
 		if(joystick_mappers[i].vid == vid &&
 		   joystick_mappers[i].pid == pid &&
 		   joystick_mappers[i].tag == newtag) {
@@ -229,7 +229,7 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 	} else if (new != old) {
 		memcpy(&joystick_mappers[new].mapping, &joystick_mappers[old].mapping, 16*sizeof(uint16_t));
 		// delete the old entry
-		for(i = old; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
+		for(int i = old; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
 			if (i==(MAX_VIRTUAL_JOYSTICK_REMAP-1)) {
 				memset(&joystick_mappers[i], 0, sizeof(joymapping_t));
 			} else {

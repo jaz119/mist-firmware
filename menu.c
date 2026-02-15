@@ -1045,7 +1045,7 @@ void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect,
 {
 	// this function displays file selection menu
 
-	debugf("%s - %s", pFileExt, fs_pFileExt);
+	menu_debugf("%s - %s", pFileExt, fs_pFileExt);
 
 	if (strncmp(pFileExt, fs_pFileExt, 12) != 0) // check desired file extension
 	{ // if different from the current one go to the root directory and init entry buffer
@@ -1057,7 +1057,7 @@ void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect,
 		ScanDirectory(SCAN_INIT, pFileExt, Options);
 	}
 
-	debugf("pFileExt = %3s", pFileExt);
+	menu_debugf("pFileExt = %3s", pFileExt);
 	strcpy(fs_pFileExt, pFileExt);
 	fs_ShowExt = ((strlen(fs_pFileExt)>3 && strncmp(fs_pFileExt, "RBFARC", 6)) || strchr(fs_pFileExt, '*') || strchr(fs_pFileExt, '?'));
 	fs_Options = Options;
@@ -1303,7 +1303,7 @@ void HandleUI(uint8_t key)
 				menu_item.page = page_idx;
 				if (idx >= firstline) {
 					while (menu_item_callback(itemidx++, 0, &menu_item)) {
-						debugf("menu_ng: idx: %d, item: %d, '%s', stipple %d page %d",
+						menu_debugf("menu_ng: idx: %d, item: %d, '%s', stipple %d page %d",
 							idx, itemidx-1, menu_item.item, menu_item.stipple, menu_item.page);
 						if (menu_item.page == page_idx) {
 							valid = 1;
@@ -1369,7 +1369,7 @@ void HandleUI(uint8_t key)
 			if (menu_page.timer) page_timer = GetTimer(menu_page.timer);
 			menustate = MENU_NG2;
 			parentstate=MENU_NG1;
-			debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x",
+			menu_debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x",
 				menuidx[0], menuidx[menu_last], menusub, menumask);
 		}
 		break;
@@ -1407,7 +1407,7 @@ void HandleUI(uint8_t key)
 			}
 
 			if (scroll_down) {
-				debugf("menu_ng: scroll down");
+				menu_debugf("menu_ng: scroll down");
 				idx = menuidx[menu_last]+1;
 				while(menu_item_callback(idx, 0, &menu_item)) {      // are more items there?
 					if (menu_item.page == page_idx) {            // same page?
@@ -1443,7 +1443,7 @@ void HandleUI(uint8_t key)
 			}
 
 			if (scroll_up) {
-				debugf("menu_ng: scroll up");
+				menu_debugf("menu_ng: scroll up");
 				if (menuidx[0] > 0) {
 					idx = menuidx[0] - 1;
 					while(menu_item_callback(idx, 0, &menu_item)) {// are more items there?

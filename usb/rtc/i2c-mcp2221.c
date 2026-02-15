@@ -240,7 +240,7 @@ static bool mcp_set_i2c_clock(usb_device_t *dev, uint8_t *rpt, uint16_t clock)
     return false;
 }
 
-FAST static bool mcp_get_status(
+static bool mcp_get_status(
     usb_device_t *dev, uint8_t *rpt, bool with_cancel)
 {
     uint16_t size;

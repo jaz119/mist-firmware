@@ -18,7 +18,6 @@ SRC += fat_compat.c diskio.c
 SRC += FatFs/ff.c FatFs/ffunicode.c
 # SRC += usb/storage.c
 SRC += cdc_control.c storage_control.c
-# SRC += sxmlc/sxmlc.c
 
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
@@ -47,7 +46,7 @@ LIBS    =
 all: $(PRJ).hex $(PRJ).upg
 
 clean:
-	rm -f *.d *.o *.hex *.elf *.map *.lst *.out core *~ */*.d */*.o */*/*.d */*/*.o $(MKUPG) *.bin *.upg *.exe
+	rm -f *.d *.o *.hex *.elf *.map *.lst core *~ */*.d */*.o */*/*.d */*/*.o $(MKUPG) *.bin *.upg *.exe
 
 INTERFACE=interface/ftdi/olimex-arm-usb-tiny-h.cfg
 #INTERFACE=interface/busblaster.cfg

@@ -378,7 +378,7 @@ void ini_save(const ini_cfg_t* cfg, int tag)
             siprintf(line, "%s=0x%x\n", cfg->vars[var].name, *(uint32_t*)(cfg->vars[var].var));
             break;
           case UINT64:
-            siprintf(line, "%s=0x%lx\n", cfg->vars[var].name, *(uint64_t*)(cfg->vars[var].var));
+            siprintf(line, "%s=0x%llx\n", cfg->vars[var].name, *(uint64_t*)(cfg->vars[var].var)); // FIXME
             break;
           case INT8:
             siprintf(line, "%s=%d\n", cfg->vars[var].name, *(int8_t*)(cfg->vars[var].var));
