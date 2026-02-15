@@ -36,11 +36,12 @@ extern char s[OSD_BUF_SIZE];
 //////////////////////////
 /////// 8-bit menu ///////
 //////////////////////////
+
 typedef enum _RomType {ROM_NORMAL, ROM_PROCESSED} RomType;
 
 static unsigned char selected_drive_slot;
-static RomType romtype;
 static char data_processor_id[4]; //Max 3 chars, plus null at end
+static RomType romtype;
 
 static menu_page_plugin_t* PAGE_PLUGINS[MAX_PAGE_PLUGINS];
 static char non_supported_plugin[] = "Menu plugin XXX not found";
@@ -147,19 +148,20 @@ static unsigned long long getStatusMask(char *opt) {
 	return x << idx1;
 }
 
-static char RomFileSelected(uint8_t idx, const char *SelectedName) {
-	FIL file;
+static char RomFileSelected(uint8_t, const char *SelectedName) {
+	IDXFile *index = &sd_image[selected_drive_slot & 3];
 	char ext_idx = user_io_ext_idx(SelectedName, fs_pFileExt);
 
 	iprintf("RomFileSelected romType=%d\n", romtype);
 	// this assumes that further file entries only exist if the first one also exists
-	if (f_open(&file, SelectedName, FA_READ) == FR_OK) {
+	if (IDXOpen(index, SelectedName, FA_READ) == FR_OK) {
+		IDXIndex(index, selected_drive_slot);
 		if (romtype == ROM_PROCESSED) {
-			data_io_file_tx_processor(&file, ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName), SelectedName, data_processor_id);
+			data_io_file_tx_processor(&(index->file), ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName), SelectedName, data_processor_id);
 		} else {
-			data_io_file_tx(&file, ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName));
+			data_io_file_tx(&(index->file), ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName));
 		}
-		f_close(&file);
+		IDXClose(index);
 	}
 	// close menu afterwards (but allow custom processor to have its own menu)
 	if (romtype != ROM_PROCESSED) CloseMenu();
@@ -392,7 +394,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	if(p && (p[0] == 'T')) {
 		if (action == MENU_ACT_SEL || action == MENU_ACT_PLUS || action == MENU_ACT_MINUS) {
 			unsigned long long mask = (unsigned long long)1<<getIdx(p);
-			debugf("Option %s %llx", p, status ^ mask);
+			debugf("Option %s 0x%llx", p, status ^ mask);
 			// change bit
 			user_io_8bit_set_status(status ^ mask, mask);
 			// ... and change it again in case of a toggle bit
@@ -413,7 +415,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			preset = strtoll(s, NULL, 0);
 			substrcpy(s, p, 3);
 			mask = strtoll(s, NULL, 0);
-			debugf("Option %s %llx %llx", p, preset, mask);
+			debugf("Option %s preset: 0x%llx, mask: 0x%llx", p, preset, mask);
 			// change bit with reset
 			user_io_8bit_set_status(preset | UIO_STATUS_RESET, mask | UIO_STATUS_RESET);
 			// release reset
@@ -433,12 +435,11 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			// check if next value available
 			substrcpy(s, p, 2+x);
 			if(!strlen(s)) x = 0;
-			//debugf("Option %s %llx %llx %x %x", p, status, mask, x2, x);
+			// debugf("Option %s 0x%llx 0x%llx %x %x", p, status, mask, x2, x);
 			user_io_8bit_set_status(setStatus(p, status, x), ~0);
 		} else if (action == MENU_ACT_GET) {
 			unsigned char x = getStatus(p, status);
-
-			debugf("Option %s %llx %llx", p, x, status);
+			debugf("Option %s 0x%llx 0x%llx", p, x, status);
 
 			// get currently active option
 			substrcpy(s, p, 2+x);
