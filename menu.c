@@ -434,11 +434,7 @@ static char KeyEvent_System(uint8_t key) {
 }
 
 static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
-	if (action == MENU_PAGE_EXIT) {
-		ScanDirectory(SCAN_INIT, fs_pFileExt, fs_Options);
-		menustate = MENU_FILE_SELECT1;
-		return 0;
-	}
+	if (action == MENU_PAGE_EXIT) return 0;
 
 	page->timer = 0;
 	page->stdexit = MENU_STD_EXIT;
@@ -1082,6 +1078,7 @@ void SetupMenu(menu_get_page_t menu_page_cb, menu_get_items_t menu_item_cb, menu
 	menu_page_callback = menu_page_cb;
 	menu_key_callback = menu_key_cb;
 	menustate = parentstate = MENU_NG;
+	ScanDirectory(SCAN_INIT, fs_pFileExt, fs_Options);
 }
 
 void HandleUI(uint8_t key)

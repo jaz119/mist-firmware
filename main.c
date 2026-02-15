@@ -152,6 +152,7 @@ static void eject_all_media()
 
     ini_file.obj.fs = 0;
     purge_dir_cache();
+    f_unmount("");
 }
 
 extern void inserttestfloppy();
@@ -326,7 +327,6 @@ FAST int main(void)
                 if (storage_size && mmc_ok)
                 {
                     DISKLED_OFF;
-                    ChangeDirectoryName("/");
 
                     // apply config changes
                     mist_ini_parse();
