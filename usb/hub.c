@@ -5,53 +5,55 @@
 #include "timer.h"
 #include "debug.h"
 
-static uint8_t usb_hub_clear_hub_feature(usb_device_t *dev, uint8_t fid )  {
-  return( usb_ctrl_req( dev, USB_HUB_REQ_CLEAR_HUB_FEATURE,
-       USB_REQUEST_CLEAR_FEATURE, fid, 0, 0, 0, NULL));
+static uint8_t usb_hub_clear_hub_feature(usb_device_t *dev, uint8_t fid) {
+  return usb_ctrl_req( dev, USB_HUB_REQ_CLEAR_HUB_FEATURE,
+      USB_REQUEST_CLEAR_FEATURE, fid, 0, 0, 0, NULL);
 }
 
 // Clear Port Feature
-static uint8_t usb_hub_clear_port_feature(usb_device_t *dev, uint8_t fid, uint8_t port, uint8_t sel )  {
-  return( usb_ctrl_req( dev , USB_HUB_REQ_CLEAR_PORT_FEATURE,
-       USB_REQUEST_CLEAR_FEATURE, fid, 0, ((0x0000|port)|(sel<<8)), 0, NULL));
+static uint8_t usb_hub_clear_port_feature(usb_device_t *dev, uint8_t fid, uint8_t port, uint8_t sel) {
+  return usb_ctrl_req( dev, USB_HUB_REQ_CLEAR_PORT_FEATURE,
+      USB_REQUEST_CLEAR_FEATURE, fid, 0, ((uint16_t)port|((uint16_t)sel<<8)), 0, NULL);
 }
 
 // Get Hub Descriptor
 static uint8_t usb_hub_get_hub_descriptor(usb_device_t *dev, uint8_t index,
-					  uint16_t nbytes, usb_hub_descriptor_t *dataptr )  {
-  return( usb_ctrl_req( dev, USB_HUB_REQ_GET_HUB_DESCRIPTOR,
-			USB_REQUEST_GET_DESCRIPTOR, index, 0x29, 0, nbytes, (uint8_t*)dataptr));
+      uint16_t nbytes, usb_hub_descriptor_t *dataptr ) {
+  return usb_ctrl_req( dev, USB_HUB_REQ_GET_HUB_DESCRIPTOR,
+      USB_REQUEST_GET_DESCRIPTOR, index, 0x29, 0, nbytes, (uint8_t*)dataptr);
 }
 
 // Set Port Feature
-static uint8_t usb_hub_set_port_feature(usb_device_t *dev, uint8_t fid, uint8_t port, uint8_t sel ) {
-  return( usb_ctrl_req( dev, USB_HUB_REQ_SET_PORT_FEATURE,
-       USB_REQUEST_SET_FEATURE, fid, 0, ((0x0000|port)|(sel<<8)), 0, NULL));
+static uint8_t usb_hub_set_port_feature(usb_device_t *dev, uint8_t fid, uint8_t port, uint8_t sel) {
+  return usb_ctrl_req( dev, USB_HUB_REQ_SET_PORT_FEATURE,
+      USB_REQUEST_SET_FEATURE, fid, 0, ((uint16_t)port|((uint16_t)sel<<8)), 0, NULL);
 }
 
 // Get Port Status
-static uint8_t usb_hub_get_port_status(usb_device_t *dev, uint8_t port, uint16_t nbytes, uint8_t* dataptr )  {
-  return( usb_ctrl_req( dev, USB_HUB_REQ_GET_PORT_STATUS,
-       USB_REQUEST_GET_STATUS, 0, 0, port, nbytes, dataptr));
+static uint8_t usb_hub_get_port_status(usb_device_t *dev, uint8_t port, uint16_t nbytes, uint8_t* dataptr) {
+  return usb_ctrl_req( dev, USB_HUB_REQ_GET_PORT_STATUS,
+      USB_REQUEST_GET_STATUS, 0, 0, port, nbytes, dataptr);
 }
 
-static uint8_t usb_hub_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len, ep_t *pep) {
+static uint8_t usb_hub_parse_conf(
+  usb_device_t *dev, uint8_t conf, uint16_t len, ep_t *pep) {
+
   uint8_t rcode;
   bool is_good_interface = false;
 
-  union buf_u {
+  ALIGNED(4) union buf_u {
     usb_configuration_descriptor_t conf_desc;
     usb_interface_descriptor_t iface_desc;
     usb_endpoint_descriptor_t ep_desc;
     uint8_t raw[len];
   } buf, *p;
 
-  if((rcode = usb_get_conf_descr(dev, len, conf, &buf.conf_desc)))
+  if ((rcode = usb_get_conf_descr(dev, len, conf, &buf.conf_desc)))
     return rcode;
 
   /* scan through all descriptors */
   p = &buf;
-  while(len > 0) {
+  while (len > 0) {
     switch(p->conf_desc.bDescriptorType) {
 
     case USB_DESCRIPTOR_CONFIGURATION:
@@ -82,7 +84,7 @@ static uint8_t usb_hub_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len,
     p = (union buf_u*)(p->raw + p->conf_desc.bLength);
   }
 
-  if(len != 0) {
+  if (len != 0) {
     iprintf("hub: config underrun: %d\n", len);
     return USB_ERROR_CONFIGURATION_SIZE_MISMATCH;
   }
@@ -90,12 +92,12 @@ static uint8_t usb_hub_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len,
   return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 }
 
-static uint8_t usb_hub_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
+static uint8_t usb_hub_init(
+  usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
+
   usb_debugf("%s(%d)", __FUNCTION__, dev->bAddress);
 
   uint8_t rcode;
-  uint8_t i;
-
   usb_hub_info_t *info = &(dev->hub_info);
 
   union {
@@ -108,11 +110,11 @@ static uint8_t usb_hub_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
   info->qLastPollTime = 0;
   info->bPollEnable = false;
 
-  info->ep.epAddr	= 1;
-  info->ep.maxPktSize	= 8;  //kludge
-  info->ep.epType       = EP_TYPE_INTR;
-  info->ep.epAttribs     = 0;
-  info->ep.bmNakPower	= USB_NAK_NOWAIT;
+  info->ep.epAddr     = 1;
+  info->ep.maxPktSize = 8; // kludge
+  info->ep.epType     = EP_TYPE_INTR;
+  info->ep.epAttribs  = 0;
+  info->ep.bmNakPower = USB_NAK_NOWAIT;
 
   // Extract device class from device descriptor
   // If device class is not a hub return
@@ -153,10 +155,10 @@ static uint8_t usb_hub_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
   }
 
   // Power on all ports
-  for (i=1; i<=info->bNbrPorts; i++)
-    usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_POWER, i, 0);	// HubPortPowerOn(i);
+  for (uint8_t i=1; i<=info->bNbrPorts; i++)
+    usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_POWER, i, 0); // HubPortPowerOn(i);
 
-  if(!dev->parent)
+  if (!dev->parent)
     usb_SetHubPreMask();
 
   info->bPollEnable = true;
@@ -167,7 +169,7 @@ static uint8_t usb_hub_release(usb_device_t *dev) {
   usb_debugf("%s()", __FUNCTION__);
 
   // root hub unplugged
-  if(!dev->parent)
+  if (!dev->parent)
     usb_ResetHubPreMask();
 
   return 0;
@@ -175,8 +177,8 @@ static uint8_t usb_hub_release(usb_device_t *dev) {
 
 static void usb_hub_show_port_status(
   uint8_t port, uint16_t status, uint16_t changed) {
-  usb_debugf("%s(%d)", __FUNCTION__, port);
 
+  usb_debugf("%s(%d)", __FUNCTION__, port);
   if(status & USB_HUB_PORT_STATUS_PORT_CONNECTION)    usb_debugf(" connected");
   if(status & USB_HUB_PORT_STATUS_PORT_ENABLE)        usb_debugf(" enabled");
   if(status & USB_HUB_PORT_STATUS_PORT_SUSPEND)       usb_debugf(" suspended");
@@ -196,35 +198,39 @@ static void usb_hub_show_port_status(
   if(changed & USB_HUB_PORT_STATUS_PORT_RESET)        usb_debugf(" reset");
 }
 
-static uint8_t usb_hub_port_status_change(usb_device_t *dev, uint8_t port, hub_event_t evt) {
+static uint8_t usb_hub_port_status_change(
+  usb_device_t *dev, uint8_t port, const hub_event_t *evt) {
+
   usb_hub_info_t *info = &(dev->hub_info);
   uint8_t rcode;
 
-  usb_debugf("%s(%u, event=0x%lx)", __FUNCTION__, port, evt.bmEvent);
+  usb_debugf("%s(%u, event=0x%lx)", __FUNCTION__, port, evt->bmEvent);
 
-  usb_hub_show_port_status(port, evt.bmStatus, evt.bmChange);
-  static bool bResetInitiated = false;
+  usb_hub_show_port_status(port, evt->bmStatus, evt->bmChange);
+  static bool bResetInitiated[6] = { false, };
 
-  switch (evt.bmEvent) {
+  switch (evt->bmEvent) {
     // Device connected event
   case USB_HUB_PORT_EVENT_CONNECT:
   case USB_HUB_PORT_EVENT_LS_CONNECT:
     iprintf("usb: dev %u, port %d CONNECT\n", dev->bAddress, port);
 
-    if (bResetInitiated) {
-      usb_debugf("reset already in progress");
+    if (bResetInitiated[port]) {
+      usb_debugf("port %d: reset already in progress", port);
       return 0;
     }
 
-    // Some peripherals may perform a quick reconnection, which causes the disconnect event to be missed.
+    // Some peripherals may perform a quick reconnection,
+    // which causes the disconnect event to be missed.
     usb_release_device(dev->bAddress, port);
-    usb_debugf("resetting port %d", port);
 
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_ENABLE, port, 0);
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_CONNECTION, port, 0);
+
+    usb_debugf("resetting port %d", port);
     usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
 
-    bResetInitiated = true;
+    bResetInitiated[port] = true;
     return HUB_ERROR_PORT_HAS_BEEN_RESET;
 
     // Device disconnected event
@@ -234,9 +240,9 @@ static uint8_t usb_hub_port_status_change(usb_device_t *dev, uint8_t port, hub_e
 
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_ENABLE, port, 0);
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_CONNECTION, port, 0);
-    bResetInitiated = false;
 
     usb_release_device(dev->bAddress, port);
+    bResetInitiated[port] = false;
     return 0;
 
     // Reset complete event
@@ -247,14 +253,15 @@ static uint8_t usb_hub_port_status_change(usb_device_t *dev, uint8_t port, hub_e
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_CONNECTION, port, 0);
 
-    for(unsigned retries = 0; retries < 3; retries++) {
+    for (unsigned retries = 0; retries < 3; retries++) {
       rcode = usb_configure(dev->bAddress, port,
-        (evt.bmStatus & USB_HUB_PORT_STATUS_PORT_LOW_SPEED)!=0 );
+        (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_LOW_SPEED) != 0);
       if (!rcode)
         break;
       iprintf("hub: configure error: %d\n", rcode);
-      if (rcode == hrJERR) {
-        // Some devices returns this when plugged in - trying to initialize the device again usually works
+      if (rcode == hrKERR || rcode == hrJERR) {
+        // Some devices returns this when plugged in
+        // - trying to initialize the device again usually works
         timer_delay_msec(100);
         continue;
       }
@@ -263,27 +270,31 @@ static uint8_t usb_hub_port_status_change(usb_device_t *dev, uint8_t port, hub_e
       }
     }
 
-    bResetInitiated = false;
+    bResetInitiated[port] = false;
     break;
 
     // Unhandled event, this shouldn't happen under normal conditions
   default:
-    iprintf("hub: unexpected status on port %d\n", port);
+    usb_debugf("hub: unexpected status 0x%lx on port %d", evt->bmEvent, port);
 
-    if ((evt.bmChange & USB_HUB_PORT_STATUS_PORT_RESET) && (evt.bmChange & USB_HUB_PORT_STATUS_PORT_CONNECTION)) {
-      // Reconnection happens during reset
-      usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
-      bResetInitiated = false;
-    }
-
-    if (evt.bmChange & USB_HUB_PORT_STATUS_PORT_SUSPEND)
+    if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_SUSPEND)
       usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_SUSPEND, port, 0);
-    if (evt.bmChange & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT)
+    if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_CONNECTION)
+      usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_CONNECTION, port, 0);
+    if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_ENABLE)
+      usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_ENABLE, port, 0);
+    if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT)
       usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_OVER_CURRENT, port, 0);
-    if (evt.bmStatus & USB_HUB_PORT_STATUS_PORT_SUSPEND)
+    if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_RESET)
+      usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
+
+    if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_SUSPEND)
       usb_hub_clear_port_feature(dev, HUB_FEATURE_PORT_SUSPEND, port, 0);
-    if (!(evt.bmStatus & USB_HUB_PORT_STATUS_PORT_POWER))
+    if (!(evt->bmStatus & USB_HUB_PORT_STATUS_PORT_POWER))
       usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_POWER, port, 0);
+
+    if (!(evt->bmStatus & USB_HUB_PORT_STATUS_PORT_CONNECTION))
+      bResetInitiated[port] = false;
     break;
   }
 
@@ -297,24 +308,23 @@ FAST static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
   uint8_t ALIGNED(4) buf[8];
   uint16_t read = 1;
 
-  //   iprintf("%s(addr=%u)\n", __FUNCTION__, dev->bAddress);
+  // iprintf("%s(addr=%u)\n", __FUNCTION__, dev->bAddress);
 
   rcode = usb_in_transfer(dev, &(info->ep), &read, buf);
-  if(rcode)
+  if (rcode)
     return rcode;
 
   uint8_t port, mask;
-  for(port=1,mask=0x02; port<=8; mask<<=1, port++) {
+  for (port=1,mask=0x02; port<=8; mask<<=1, port++) {
     if (buf[0] & mask) {
-      hub_event_t evt;
+      ALIGNED(4) hub_event_t evt;
       evt.bmEvent = 0;
 
       rcode = usb_hub_get_port_status(dev, port, sizeof(evt.evtBuff), evt.evtBuff);
       if (rcode)
         continue;
 
-      rcode = usb_hub_port_status_change(dev, port, evt);
-
+      rcode = usb_hub_port_status_change(dev, port, &evt);
       if (rcode == HUB_ERROR_PORT_HAS_BEEN_RESET)
         return 0;
 
@@ -324,7 +334,7 @@ FAST static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
   } // for
 
   for (port=1; port<=ports; port++) {
-    hub_event_t	evt;
+    ALIGNED(4) hub_event_t evt;
     evt.bmEvent = 0;
 
     rcode = usb_hub_get_port_status(dev, port, 4, evt.evtBuff);
@@ -336,9 +346,8 @@ FAST static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
 
     // Emulate connection event for the port
     evt.bmChange |= USB_HUB_PORT_STATUS_PORT_CONNECTION;
-    evt.bmChange |= USB_HUB_PORT_STATUS_PORT_POWER;
 
-    rcode = usb_hub_port_status_change(dev, port, evt); // NAK if no changes
+    rcode = usb_hub_port_status_change(dev, port, &evt);
     if (rcode == HUB_ERROR_PORT_HAS_BEEN_RESET)
       return 0;
 
@@ -350,7 +359,6 @@ FAST static uint8_t usb_hub_check_hub_status(usb_device_t *dev, uint8_t ports) {
 
 FAST static uint8_t usb_hub_poll(usb_device_t *dev) {
   usb_hub_info_t *info = &(dev->hub_info);
-
   uint8_t rcode = 0;
 
   if (!info->bPollEnable)
