@@ -15,9 +15,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef C64_FILES_H
-#define C64_FILES_H
+#ifndef IDX_FILES_H
+#define IDX_FILES_H
 
-void c64files_init();
+void idx_files_init();
 
-#endif // C64_FILES_H
+#endif // IDX_FILES_H

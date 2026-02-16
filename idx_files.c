@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "c64files.h"
+#include "idx_files.h"
 #include "fat_compat.h"
 #include "data_io.h"
 #include "menu.h"
@@ -40,7 +40,7 @@ static int lastidx = -1;
 static char idxline[IDX_LINE_SIZE];
 static int f_index;
 
-static char c64_idx_getch()
+static char idx_getch()
 {
 	UINT br;
 
@@ -54,7 +54,7 @@ static char c64_idx_getch()
 	else return sector_buffer[(idx_pt++)&0x1ff];
 }
 
-static int c64_idx_getline(char* line, int *offset)
+static int idx_getline(char* line, int *offset)
 {
 	char c;
 	char ignore=0;
@@ -64,7 +64,7 @@ static int c64_idx_getline(char* line, int *offset)
 	*offset = 0;
 
 	while(1) {
-		c = c64_idx_getch();
+		c = idx_getch();
 		if ((!c) || CHAR_IS_LINEEND(c)) break;
 		if (!CHAR_IS_SPACE(c) && *offset) leadingspace = 0;
 		if (CHAR_IS_QUOTE(c) && !ignore) literal ^= 1;
@@ -81,7 +81,7 @@ static int c64_idx_getline(char* line, int *offset)
 	return c==0 ? IDX_EOT : literal ? 1 : 0;
 }
 
-static char *c64_idxitem(int idx, int *offset)
+static char *idxitem(int idx, int *offset)
 {
 	if (idx <= lastidx) {
 		idx_pt = 0;
@@ -89,14 +89,14 @@ static char *c64_idxitem(int idx, int *offset)
 		lastidx = -1;
 	}
 	while (1) {
-		int r = c64_idx_getline(idxline, offset);
+		int r = idx_getline(idxline, offset);
 		if (idxline[0]) lastidx++;
 		if (r == IDX_EOT || idx == lastidx) break;
 	}
 	return idxline;
 }
 
-static char c64_idx_getmenupage(uint8_t idx, char action, menu_page_t *page) 
+static char idx_getmenupage(uint8_t idx, char action, menu_page_t *page) 
 {
 	if (action == MENU_PAGE_EXIT) {
 		f_close(&idxfile);
@@ -104,25 +104,25 @@ static char c64_idx_getmenupage(uint8_t idx, char action, menu_page_t *page)
 		return 0;
 	}
 
-	page->title = "C64IDX";
+	page->title = "IDX";
 	page->flags = 0;
 	page->timer = 0;
 	page->stdexit = MENU_STD_EXIT;
 	return 0;
 }
 
-static char c64_idx_getmenuitem(uint8_t idx, char action, menu_item_t *item)
+static char idx_getmenuitem(uint8_t idx, char action, menu_item_t *item)
 {
 	int offset;
 	char *str;
 	if (action == MENU_ACT_GET) {
-		str = c64_idxitem(idx, &offset);
+		str = idxitem(idx, &offset);
 		item->item = str;
 		item->active = (str[0] != 0);
 		return (str[0] != 0);
 	} else if (action == MENU_ACT_SEL) {
-		str = c64_idxitem(idx, &offset);
-		iprintf("C64: load TAP segment \"%s\" at offset %08x\n", str, offset);
+		str = idxitem(idx, &offset);
+		iprintf("IDX: load TAP segment \"%s\" at offset %08x\n", str, offset);
 		f_close(&idxfile);
 
 		UINT br;
@@ -166,9 +166,9 @@ static char c64_idx_getmenuitem(uint8_t idx, char action, menu_item_t *item)
 		return 0;
 }
 
-static void c64_handleidx(FIL *file, int index, const char *name, const char *ext)
+static void handleidx(FIL *file, int index, const char *name, const char *ext)
 {
-	iprintf("C64: open IDX %s\n", name);
+	iprintf("IDX: open IDX %s\n", name);
 
 	f_rewind(file);
 	idxfile = *file;
@@ -194,17 +194,17 @@ static void c64_handleidx(FIL *file, int index, const char *name, const char *ex
 			ErrorMessage("Unable to open the\ncorresponding TAP file!", 0);
 			return;
 		}
-		SetupMenu(&c64_idx_getmenupage, &c64_idx_getmenuitem, NULL);
+		SetupMenu(&idx_getmenupage, &idx_getmenuitem, NULL);
 	} else {
 		f_close(&idxfile);
 		CloseMenu();
 	}
 }
 
-static data_io_processor_t c64_idxfile = {"IDX", &c64_handleidx};
+static data_io_processor_t idx_file = {"IDX", &handleidx};
 
 
-void c64files_init()
+void idx_files_init()
 {
-	data_io_add_processor(&c64_idxfile);
+	data_io_add_processor(&idx_file);
 }
