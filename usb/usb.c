@@ -43,8 +43,12 @@ static const usb_device_class_config_t *class_list[] = {
 #ifdef USB_STORAGE
   &usb_storage_class,
 #endif
+#ifdef USB_PL2303_CDC
   &usb_pl2303_class,
+#endif
+#ifdef USB_ASIX_NET
   &usb_asix_class,
+#endif
   NULL
 };
 

@@ -1087,7 +1087,10 @@ void tos_upload(const char *name) {
   unsigned long system_ctrl = config.system_ctrl;;
 
   // adjust for detected ethernet adapter
-  if (!eth_present) system_ctrl &= ~TOS_CONTROL_ETHERNET;
+#ifdef USB_ASIX_NET
+  if (!eth_present)
+#endif
+    system_ctrl &= ~TOS_CONTROL_ETHERNET;
 
   mist_set_control(system_ctrl);
 }

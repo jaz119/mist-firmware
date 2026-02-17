@@ -1288,6 +1288,7 @@ FAST void user_io_poll() {
 		// check for incoming serial data. this is directly forwarded to the
 		// arm rs232 and mixes with debug output. Useful for debugging only of
 		// e.g. the diagnostic cartridge
+#ifdef USB_PL2303_CDC
 		if(!pl2303_is_blocked()) {
 			if (core_type == CORE_TYPE_MIST)
 				spi_uio_cmd_cont(UIO_SERIAL_IN);
@@ -1312,6 +1313,7 @@ FAST void user_io_poll() {
 			}
 			DisableIO();
 		}
+#endif
 
 		// check for incoming parallel/midi data
 		if((redirect == CDC_REDIRECT_PARALLEL) || (redirect == CDC_REDIRECT_MIDI)) {

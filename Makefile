@@ -8,16 +8,18 @@ OBJDUMP = $(BASE)-objdump
 SIZE    = $(BASE)-size
 
 TODAY = `date +"%m/%d/%y"`
-
 PRJ = firmware
+
 SRC = hw/AT91SAM/Cstartup_SAM7.c hw/AT91SAM/hardware.c hw/AT91SAM/spi.c hw/AT91SAM/mmc.c hw/AT91SAM/at91sam_usb.c hw/AT91SAM/usbdev.c
 SRC += fdd.c firmware.c fpga.c hdd.c main.c menu.c menu-minimig.c menu-8bit.c menu_info.c osd.c state.c syscalls.c user_io.c settings.c data_io.c boot.c idxfile.c config.c tos.c ikbd.c xmodem.c ini_parser.c cue_parser.c mist_cfg.c archie.c pcecd.c neocd.c snes.c zx_col.c arc_file.c c64files.c font.c utils.c serial_sink.c
-SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/usbdebug.c usb/hub.c usb/hid.c usb/hidparser.c usb/xboxusb.c usb/timer.c usb/asix.c usb/pl2303.c usb/storage.c usb/joymapping.c usb/joystick.c
+SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/usbdebug.c usb/hub.c usb/hid.c usb/hidparser.c usb/xboxusb.c usb/timer.c usb/storage.c usb/joymapping.c usb/joystick.c
 SRC += usb/rtc.c usb/rtc/i2c-tiny.c usb/rtc/i2c-mcp2221.c usb/rtc/pcf85263.c usb/rtc/ds3231.c
-SRC += fat_compat.c diskio.c
-SRC += FatFs/ff.c FatFs/ffunicode.c
-# SRC += usb/storage.c
 SRC += cdc_control.c storage_control.c
+SRC += FatFs/ff.c FatFs/ffunicode.c
+SRC += fat_compat.c diskio.c
+# SRC += usb/storage.c # -DUSB_STORAGE
+# SRC += usb/pl2303.c # -DUSB_PL2303_CDC
+# SRC += usb/asix.c # -DUSB_ASIX_NET
 
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
@@ -28,7 +30,7 @@ LIBDIR   =
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
 DFLAGS  = -I. -Iusb -Iarch/ -Ihw/AT91SAM -DCONFIG_ARCH_ARMV4TE -DCONFIG_ARCH_ARM
-DFLAGS += -DMIST -DUSB_STORAGE -DVDATE=\"`date +"%y%m%d"`\" -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80
+DFLAGS += -DMIST -DVDATE=\"`date +"%y%m%d"`\" -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80
 CFLAGS  = $(DFLAGS) -march=armv4t -mtune=arm7tdmi -mthumb-interwork -mthumb -Os --std=gnu99
 CFLAGS += -Wdouble-promotion -Wformat=2 -fsigned-char -fno-common
 AFLAGS  = -ahls -mapcs-32

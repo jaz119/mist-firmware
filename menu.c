@@ -810,7 +810,10 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					}
 					break;
 				case 51: {
-					uint8_t *mac = asix_get_mac();
+					uint8_t *mac = 0;
+#ifdef USB_ASIX_NET
+					mac = asix_get_mac();
+#endif
 					item->active = false;
 #ifdef CONFIG_CHIP_SAMV71
 					siprintf(s, " Net(USB):");
@@ -830,11 +833,14 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					}
 					break;
 				case 52: {
-					uint8_t pl2303_count = get_pl2303s();
+					uint8_t cdc_count = 0;
+#ifdef USB_PL2303_CDC
+					cdc_count = get_pl2303s();
+#endif
 					siprintf(s, " Serial:");
-					pl2303_count ? siprintf(s + 8, " %10u", pl2303_count) : siprintf(s + 8, "       none");
+					cdc_count ? siprintf(s + 8, " %10u", cdc_count) : siprintf(s + 8, "       none");
 					siprintf(s + 19, " detected");
-					item->active = pl2303_count;
+					item->active = cdc_count;
 					item->stipple = !item->active;
 					item->item = s;
 					}

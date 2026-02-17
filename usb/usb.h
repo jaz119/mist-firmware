@@ -123,13 +123,17 @@ typedef struct {
 #include "hub.h"
 #include "hid.h"
 #include "xboxusb.h"
+#ifdef USB_ASIX_NET
 #include "asix.h"
+#endif
 #ifdef USB_STORAGE
 #include "storage.h"
 #endif
 #include "rtc/i2c-tiny.h"
 #include "rtc/i2c-mcp2221.h"
+#ifdef USB_PL2303_CDC
 #include "pl2303.h"
+#endif
 
 // entry used for list of connected devices
 typedef struct usb_device_entry {
@@ -149,8 +153,12 @@ typedef struct usb_device_entry {
 #ifdef USB_STORAGE
     usb_storage_info_t storage_info;
 #endif
+#ifdef USB_PL2303_CDC
     usb_pl2303_info_t pl2303_info;
+#endif
+#ifdef USB_ASIX_NET
     usb_asix_info_t asix_info;
+#endif
     usb_mcp_info_t mcp_info;
   };
 } usb_device_t;
