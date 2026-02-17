@@ -115,7 +115,7 @@ extern FATFS fs;
 void fnamesplit(char dest[11+1], const char *src);
 void fnameconv(char dest[11+2], const char *src);
 
-unsigned char FindDrive(void);
+bool FindDrive(void);
 
 FRESULT FileOpenCompat(FIL *file, const char *name, BYTE mode);
 FRESULT FileReadBlock(FIL *file, unsigned char *pBuffer);

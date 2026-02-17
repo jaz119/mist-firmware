@@ -380,7 +380,7 @@ void ini_save(const ini_cfg_t* cfg, int tag)
             break;
           case UINT64: {
             uint64_t value = *(uint64_t*)(cfg->vars[var].var);
-            siprintf(line, "%s=0x" PRIu64f "\n", cfg->vars[var].name, PRIu64_PAIR(value));
+            siprintf(line, "%s=0x" PRIu64_llx "\n", cfg->vars[var].name, PRIu64_LOW(value), PRIu64_HIGH(value));
             break;
           } case INT8:
             siprintf(line, "%s=%d\n", cfg->vars[var].name, *(int8_t*)(cfg->vars[var].var));

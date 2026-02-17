@@ -21,7 +21,7 @@ int partitioncount;
 
 FATFS fs;
 char fat_device = 0;
-uint32_t      iPreviousDirectory = 0;
+uint32_t iPreviousDirectory = 0;
 
 ALIGNED(4) char cwd[FF_LFN_BUF + 1];
 
@@ -97,11 +97,13 @@ const char *get_short_name(const char *full_path)
 }
 
 // FindDrive() checks if a card is present and contains FAT formatted primary partition
-unsigned char FindDrive(void) {
+bool FindDrive(void) {
 
-	char res;
-	partitioncount=0;
-	if (disk_read(0, sector_buffer, 0, 1)) return(0);
+	partitioncount = 0;
+	iPreviousDirectory = 0;
+
+	if (disk_read(0, sector_buffer, 0, 1) != RES_OK)
+		return false;
 
 	struct MasterBootRecord *mbr=(struct MasterBootRecord *)sector_buffer;
 	memcpy(&partitions[0],&mbr->Partition[0],sizeof(struct PartitionEntry));
@@ -109,22 +111,24 @@ unsigned char FindDrive(void) {
 	memcpy(&partitions[2],&mbr->Partition[2],sizeof(struct PartitionEntry));
 	memcpy(&partitions[3],&mbr->Partition[3],sizeof(struct PartitionEntry));
 
-	if(mbr->Signature == 0xaa55) {
+	if (mbr->Signature == 0xaa55) {
 		// get start of first partition
-		for(partitioncount=4;(partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount);
+		for (partitioncount=4;(partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount);
 
 		debugf("partitions count: %d", partitioncount);
 
-		for(int i=0;i<partitioncount;++i) {
+		for (int i=0; i<partitioncount; ++i) {
 			debugf("partition %d:",i);
 			debugf("  start: %lu", partitions[i].startlba);
 			debugf("  size: %lu", partitions[i].sectors);
 		}
 	}
 
-	strcpy(cwd, "/");
 	if (f_mount(&fs, "", 1) != FR_OK)
-		return (0);
+		return false;
+
+	if (*cwd != '/' || f_chdir(cwd) != FR_OK)
+		strcpy(cwd, "/");
 
 	// some debug output
 	iprintf("partition type: %s\n", fs_type_to_string());
@@ -137,15 +141,16 @@ unsigned char FindDrive(void) {
 	iprintf("free_clusters: %lu\n", fs.free_clst);
 	iprintf("cluster_size: %u KiB\n", fs.csize);
 
-	return(1);
+	return true;
 }
 
 // ExFat doesn't have directory backlink (..), thus need book-keeping the current directory
 void ChangeDirectoryName(const char *name) {
-	uint32_t      iPreviousDirectoryTmp = fs.cdir;
 
+	uint32_t iPreviousDirectoryTmp = fs.cdir;
 	iprintf("ChangeDirectoryName: %s -> %s = ", cwd, name);
-	if(name[0] == '/') {
+
+	if (name[0] == '/') {
 		// Absolute path
 		strcpy(sector_buffer, name);
 	} else if (!strcmp(name, "..")) {

@@ -1084,7 +1084,6 @@ void SetupMenu(menu_get_page_t menu_page_cb, menu_get_items_t menu_item_cb, menu
 	menu_page_callback = menu_page_cb;
 	menu_key_callback = menu_key_cb;
 	menustate = parentstate = MENU_NG;
-	ScanDirectory(SCAN_INIT, fs_pFileExt, fs_Options);
 }
 
 void HandleUI(uint8_t key)
@@ -1095,7 +1094,7 @@ void HandleUI(uint8_t key)
 	static long helptext_timer;
 	static long page_timer;
 	static char helpstate=0;
-	int osdlines = OsdLines();
+	const int osdlines = OsdLines();
 	int firstline = osdlines <= 8 ? 0 : 2;
 	uint8_t keys[6] = {0,0,0,0,0,0};
 
@@ -1589,8 +1588,9 @@ void HandleUI(uint8_t key)
 			helptext=helptexts[HELPTEXT_NONE];
 			menustate = parentstate = MENU_FILE_SELECT1;
 			if (iSelectedEntry >= osdlines) iSelectedEntry = 0;
-			if (maxDirEntries != osdlines) ScanDirectory(0, fs_pFileExt, fs_Options);
-			//break; // fall through
+			if ((maxDirEntries != osdlines) || (!nDirEntries && fat_medium_present()))
+				ScanDirectory(0, fs_pFileExt, fs_Options);
+			// fall through
 
 		case MENU_FILE_SELECT1 :
 			PrintDirectory();

@@ -138,7 +138,7 @@ static const rtc_chip_t *rtc_chips[] = {
 #define mcp_i2c_cancel(dev, rpt)    \
     (void) mcp_get_status(dev, rpt, true)
 
-FAST static bool mcp_i2c_wait_for(
+static bool mcp_i2c_wait_for(
     usb_device_t *dev, uint8_t *rpt, mcp_i2c_state_t state, int timeout_ms)
 {
     const unsigned int time_us = 250;
