@@ -1660,7 +1660,7 @@ static void GetHardfileGeometry(hdfTYPE *pHDF, bool amiga)
     case HDF_CARDPART1:
     case HDF_CARDPART2:
     case HDF_CARDPART3:
-      total = partitions[pHDF->partition].sectors;
+      total = partitions[pHDF->partition].size;
       break;
     default:
       break;
@@ -1759,7 +1759,7 @@ unsigned char OpenHardfile(unsigned char unit, bool amiga)
       hdf[unit].type=hardfile[unit]->enabled;
       hdf[unit].partition=hdf[unit].type-HDF_CARDPART0;
       hardfile[unit]->present = 1;
-      hdf[unit].offset=partitions[hdf[unit].partition].startlba;
+      hdf[unit].offset=partitions[hdf[unit].partition].start_lba;
       GetHardfileGeometry(&hdf[unit], amiga);
       return 1;
       break;

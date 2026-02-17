@@ -934,7 +934,7 @@ unsigned char fpga_init(const char *name) {
     SPI_MINIMIGV1_HACK
   } while( ((ct == 0) || (ct == 0xff)) && !CheckTimer(time));
 
-  iprintf("core id: 0x%X\n", ct);
+  iprintf("Core id: 0x%X\n", ct);
 
   user_io_detect_core_type();
   user_io_init_core();

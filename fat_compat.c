@@ -83,8 +83,8 @@ void fnameconv(char dest[11+2], const char *src) {
 	*c++='\0';
 }
 
-const char *get_short_name(const char *full_path)
-{
+const char *get_short_name(const char *full_path) {
+
 	if (!full_path)
 		return NULL;
 
@@ -105,22 +105,22 @@ bool FindDrive(void) {
 	if (disk_read(0, sector_buffer, 0, 1) != RES_OK)
 		return false;
 
-	struct MasterBootRecord *mbr=(struct MasterBootRecord *)sector_buffer;
-	memcpy(&partitions[0],&mbr->Partition[0],sizeof(struct PartitionEntry));
-	memcpy(&partitions[1],&mbr->Partition[1],sizeof(struct PartitionEntry));
-	memcpy(&partitions[2],&mbr->Partition[2],sizeof(struct PartitionEntry));
-	memcpy(&partitions[3],&mbr->Partition[3],sizeof(struct PartitionEntry));
+	struct MasterBootRecord *mbr = (struct MasterBootRecord *)sector_buffer;
+	memcpy(&partitions[0], &mbr->partitions[0], sizeof(struct PartitionEntry));
+	memcpy(&partitions[1], &mbr->partitions[1], sizeof(struct PartitionEntry));
+	memcpy(&partitions[2], &mbr->partitions[2], sizeof(struct PartitionEntry));
+	memcpy(&partitions[3], &mbr->partitions[3], sizeof(struct PartitionEntry));
 
-	if (mbr->Signature == 0xaa55) {
+	if (mbr->signature == 0xaa55) {
 		// get start of first partition
-		for (partitioncount=4;(partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount);
+		for (partitioncount=4; (partitions[partitioncount-1].size==0) && (partitioncount>1); --partitioncount);
 
-		debugf("partitions count: %d", partitioncount);
+		iprintf("partitions count: %d\n", partitioncount);
 
 		for (int i=0; i<partitioncount; ++i) {
-			debugf("partition %d:",i);
-			debugf("  start: %lu", partitions[i].startlba);
-			debugf("  size: %lu", partitions[i].sectors);
+			iprintf("partition %d:\n", i);
+			iprintf("  start: %lu\n", partitions[i].start_lba);
+			iprintf("  size: %lu MiB\n", partitions[i].size >> 11);
 		}
 	}
 
@@ -132,13 +132,14 @@ bool FindDrive(void) {
 
 	// some debug output
 	iprintf("partition type: %s\n", fs_type_to_string());
-	debugf("fat_size: %u\n", fs.fsize);
-	debugf("fat_number: %u\n", fs.n_fats);
-	debugf("fat_start: %u\n", fs.fatbase);
-	debugf("root_dir_start: %u\n", fs.dirbase);
-	debugf("dir_entries: %u\n", fs.n_rootdir);
-	debugf("data_start: %u\n", fs.database);
-	iprintf("free_clusters: %lu\n", fs.free_clst);
+	debugf("fat_size: %u", fs.fsize);
+	debugf("fat_number: %u", fs.n_fats);
+	debugf("fat_start: %u", fs.fatbase);
+	debugf("root_dir_start: %u", fs.dirbase);
+	iprintf("dir_entries: %u\n", fs.n_rootdir);
+	debugf("data_start: %u", fs.database);
+	if (fs.fs_type != FS_EXFAT)
+		iprintf("free_clusters: %lu\n", fs.free_clst);
 	iprintf("cluster_size: %u KiB\n", fs.csize);
 
 	return true;

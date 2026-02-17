@@ -239,7 +239,9 @@ void user_io_set_core_mod(int64_t mod) {
 }
 
 static void user_io_send_core_mod() {
-	iprintf("Sending core mod = %ld\n", (long) core_mod);
+	iprintf("Sending core mod = 0x" PRIu64_llx "\n",
+		PRIu64_LOW(core_mod), PRIu64_HIGH(core_mod));
+
 	spi_uio_cmd8(UIO_SET_MOD, core_mod & 0x7f);
 	spi_uio_cmd64(UIO_SET_MOD2, core_mod);
 }

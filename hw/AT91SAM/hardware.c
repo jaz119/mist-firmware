@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "hardware.h"
 #include "user_io.h"
 #include "xmodem.h"
+#include "debug.h"
 #include "ikbd.h"
 
 void __init_hardware(void)
@@ -167,7 +168,7 @@ void USART_Poll(void) {
       // if in debug mode use xmodem for file reception
       xmodem_rx_byte(chr);
     } else {
-      iprintf("USART RX %d (%c)\n", chr, chr);
+      debugf("USART RX %d (%c)", chr, chr);
 
       // data available -> send via user_io to core
       user_io_serial_tx(&chr, 1);
