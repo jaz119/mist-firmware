@@ -18,6 +18,7 @@
 #ifndef IDX_FILES_H
 #define IDX_FILES_H
 
-void idx_files_init();
+// Initialize the IDX file processor (registers with data_io)
+void idx_files_init(void);
 
 #endif // IDX_FILES_H

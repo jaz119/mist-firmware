@@ -30,6 +30,7 @@
 #include "fat_compat.h"
 #include "cue_parser.h"
 #include "menu_info.h"
+#include "idx_files.h"
 
 extern char s[FF_LFN_BUF + 1];
 
