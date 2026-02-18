@@ -1235,6 +1235,7 @@ static inline void ATA_ReadSectors(unsigned char* tfr, unsigned short sector, un
   long lba;
   int i;
   int block_count, blocks;
+  UINT br;
 
   lba=chs2lba(cylinder, head, sector, unit, lbamode);
   hdd_debugf("IDE%d: read %s, %d.%d.%d:%d, %d", unit, (lbamode ? "LBA" : "CHS"), cylinder, head, sector, lba, sector_count);
@@ -1297,7 +1298,7 @@ static inline void ATA_ReadSectors(unsigned char* tfr, unsigned short sector, un
           {
             HardFileSeek(&hdf[unit], lba + hdf[unit].offset);
             // read sector into buffer
-            FileReadBlock(&hdf[unit].idxfile->file, sector_buffer);
+            f_read(&hdf[unit].idxfile->file, sector_buffer, 512, &br);
 
             // adjust checksum by the difference between old and new flag value
             struct RigidDiskBlock *rdb = (struct RigidDiskBlock *)sector_buffer;
@@ -1321,15 +1322,16 @@ static inline void ATA_ReadSectors(unsigned char* tfr, unsigned short sector, un
         }
         if(blk) // Any blocks left?
         {
+          UINT br;
           HardFileSeek(&hdf[unit], lba + hdf[unit].offset);
 #ifndef SD_NO_DIRECT_MODE
           if (fat_uses_mmc() && !verify) {
-            FileReadBlockEx(&hdf[unit].idxfile->file, 0, blk); // NULL enables direct transfer to the FPGA
+            f_read(&hdf[unit].idxfile->file, 0, 512*blk, &br); // NULL enables direct transfer to the FPGA
           } else {
 #endif
             blocks = blk;
             while (blocks) {
-              FileReadBlockEx(&hdf[unit].idxfile->file, sector_buffer, MIN(blocks, SECTOR_BUFFER_SIZE/512));
+              f_read(&hdf[unit].idxfile->file, sector_buffer, 512*MIN(blocks, SECTOR_BUFFER_SIZE/512), &br);
               if (!verify) {
 #ifdef HAVE_QSPI
                 if(minimig_v2()) {
@@ -1778,6 +1780,7 @@ unsigned char OpenHardfile(unsigned char unit, bool amiga)
 // GetHDFFileType()
 unsigned char GetHDFFileType(const char *filename)
 {
+  UINT br;
   FIL rdbfile;
   unsigned char res = HDF_FILETYPE_NOTFOUND;
 
@@ -1785,7 +1788,7 @@ unsigned char GetHDFFileType(const char *filename)
     res = HDF_FILETYPE_UNKNOWN;
     int i;
     for(i=0;i<16;++i) {
-      if (FileReadBlock(&rdbfile,sector_buffer) != FR_OK) break;
+      if (f_read(&rdbfile, sector_buffer, 512, &br) != FR_OK) break;
       if (sector_buffer[0]=='R' && sector_buffer[1]=='D' && sector_buffer[2]=='S' && sector_buffer[3]=='K') {
         res = HDF_FILETYPE_RDB;
         break;

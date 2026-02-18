@@ -97,10 +97,9 @@ char UploadKickstart(char *name)
   FIL romfile, keyfile;
 
   ResetMenu();
-  ChangeDirectoryName("/");
 
   BootPrint("Checking for Amiga Forever key file:");
-  if(FileOpenCompat(&keyfile,"ROM     KEY", FA_READ) == FR_OK) {
+  if(f_open(&keyfile,"/ROM.KEY", FA_READ) == FR_OK) {
     keysize=f_size(&keyfile);
     if(keysize<(SECTOR_BUFFER_SIZE-512)) {
       f_read(&keyfile, romkey, keysize, &br);
@@ -198,7 +197,7 @@ FAST char UploadActionReplay()
   FIL romfile;
 
   if(minimig_v1()) {
-    if (FileOpenCompat(&romfile, "AR3     ROM", FA_READ) == FR_OK) {
+    if (f_open(&romfile, "AR3.ROM", FA_READ) == FR_OK) {
       if (f_size(&romfile) == 0x40000) {
         // 256 KB Action Replay 3 ROM
         BootPrint("\nUploading Action Replay ROM...");
@@ -215,7 +214,7 @@ FAST char UploadActionReplay()
       }
     }
   } else {
-    if (FileOpenCompat(&romfile, "HRTMON  ROM", FA_READ)== FR_OK) {
+    if (f_open(&romfile, "HRTMON.ROM", FA_READ) == FR_OK) {
       int adr, data;
       puts("Uploading HRTmon ROM... ");
       SendFileV2(&romfile, NULL, 0, 0xa10000, (f_size(&romfile)+511)>>9);
@@ -467,7 +466,6 @@ static void ApplyConfiguration(char reloadkickstart)
     hardfile[i] = &config.hardfile[i];
 
   ResetMenu();
-  ChangeDirectoryName("/");
 
   // Whether or not we uploaded a kickstart image we now need to set various parameters from the config.
   for (int i = 0; i < ARRAY_SIZE(hdf); i++) {
@@ -567,7 +565,7 @@ static void ApplyConfiguration(char reloadkickstart)
     ConfigFeatures(config.features.audiofiltermode, config.features.powerledoffstate);
 
     if(reloadkickstart) {
-      iprintf("Reloading kickstart ...\r");
+      iprintf("Reloading Kickstart ...\r");
       WaitTimer(250);
       EnableOsd();
       SPI(OSD_CMD_RST);

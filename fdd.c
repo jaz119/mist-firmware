@@ -172,13 +172,15 @@ void ReadTrack(adfTYPE *drive)
     unsigned char track;
     unsigned short dsksync;
     unsigned short dsklen;
+    UINT br;
+
     //unsigned short n;
     fdd_debugf("Read track %d\r", drive->track);
 
     if (drive->track >= drive->tracks)
     {
         fdd_debugf("Illegal track read: %d\r", drive->track);
-	//        ErrorMessage("    Illegal track read!", drive->track);
+        // ErrorMessage("    Illegal track read!", drive->track);
         drive->track = drive->tracks - 1;
     }
 
@@ -210,7 +212,7 @@ void ReadTrack(adfTYPE *drive)
 
     while (1)
     {
-        FileReadBlock(&drive->file, sector_buffer);
+        f_read(&drive->file, sector_buffer, 512, &br);
 
         EnableFpgaMinimig();
 
@@ -598,6 +600,7 @@ void WriteTrack(adfTYPE *drive)
     unsigned char Sector;
     FRESULT res;
     FSIZE_t fpos;
+    UINT bw;
 
     fdd_debugf("Write track %d\r", drive->track);
     drive->track_prev = -1; // just to force next read from the start of current track
@@ -618,7 +621,7 @@ void WriteTrack(adfTYPE *drive)
                     if (drive->status & DSK_WRITABLE)
                     {
                         fdd_debugf("Write sector: %d\r", Sector);
-                        res = FileWriteBlock(&drive->file, sector_buffer);
+                        res = f_write(&drive->file, sector_buffer, 512, &bw);
                         if (res) Error = res;
                     }
                     else

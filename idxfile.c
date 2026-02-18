@@ -16,8 +16,7 @@ void IDXIndex(IDXFile *idx, int entry) {
   DISKLED_OFF;
 
   if (res == FR_OK) {
-    iprintf("Index #%d created in %lu ms, size: %lu\n",
-      entry, GetRTTC() - time, idx->clmt[0]);
+    iprintf("Index #%d: created in %lu ms\n", entry, GetRTTC() - time);
     return;
   }
 

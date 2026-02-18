@@ -154,12 +154,13 @@ void OsdWrite(unsigned char n, char *text, unsigned char invert, unsigned char s
 ////////////////////////////////////////////////////////////////////
 
 void FileReadTest() {
-	char *fname = "ZAXXON  ARC";
+	char *fname = "/ZAXXON.ARC";
 	FIL file;
 	unsigned char buf[512];
+	UINT br;
 
-	if (FileOpenCompat(&file, fname, FA_READ) == FR_OK) {
-		FileReadBlock(&file, buf);
+	if (f_open(&file, fname, FA_READ) == FR_OK) {
+		f_read(&file, buf, 512, &br);
 		dump(buf);
 		f_close(&file);
 	} else {
@@ -169,7 +170,7 @@ void FileReadTest() {
 }
 
 void FileNextBlockTest() {
-	char *fname = "POOYAN  ROM";
+	char *fname = "/POOYAN.ROM";
 	FIL file;
 	FILE *fp;
 	char buf[512];
@@ -178,7 +179,7 @@ void FileNextBlockTest() {
 
 	clmt[0] = 99;
 
-	if (FileOpenCompat(&file, fname, FA_READ) == FR_OK) {
+	if (f_open(&file, fname, FA_READ) == FR_OK) {
 		file.cltbl = clmt;
 		if (f_lseek(&file, CREATE_LINKMAP) != FR_OK) {
 			f_close(&file);
@@ -198,7 +199,6 @@ void FileNextBlockTest() {
 	} else {
 		printf("Error opening %s\n", fname);
 	}
-
 }
 
 #define OSD_BUF_SIZE 128

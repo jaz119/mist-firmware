@@ -2,7 +2,6 @@
 // bootscreen functions
 // 2014, rok.krajnc@gmail.com
 
-
 #include <string.h>
 #include <stdio.h>
 #include "boot.h"
@@ -75,16 +74,17 @@ static void BootUploadLogo()
   int x,y;
   int i=0;
   int adr;
+  UINT br;
 
   if (f_open(&file, LOGO_FILE, FA_READ) == FR_OK) {
-    FileReadBlock(&file, sector_buffer);
+    f_read(&file, sector_buffer, 512, &br);
     mem_upload_init(SCREEN_BPL1+LOGO_OFFSET);
     adr = SCREEN_BPL1+LOGO_OFFSET;
     for (y=0; y<LOGO_HEIGHT; y++) {
       for (x=0; x<LOGO_WIDTH/16; x++) {
         if (i == 512) {
           mem_upload_fini();
-          FileReadBlock(&file, sector_buffer);
+          f_read(&file, sector_buffer, 512, &br);
           mem_upload_init(adr);
           i = 0;
         }
@@ -106,7 +106,7 @@ static void BootUploadLogo()
       for (x=0; x<LOGO_WIDTH/16; x++) {
         if (i == 512) {
           mem_upload_fini();
-          FileReadBlock(&file, sector_buffer);
+          f_read(&file, sector_buffer, 512, &br);
           mem_upload_init(adr);
           i = 0;
         }
@@ -132,15 +132,16 @@ static void BootUploadBall()
   int x;
   int i=0;
   int adr;
+  UINT br;
 
   if (f_open(&file, BALL_FILE, FA_READ) == FR_OK) {
-    FileReadBlock(&file, sector_buffer);
+    f_read(&file, sector_buffer, 512, &br);
     mem_upload_init(BALL_ADDRESS);
     adr = BALL_ADDRESS;
     for (x=0; x<BALL_SIZE/2; x++) {
       if (i == 512) {
         mem_upload_fini();
-        FileReadBlock(&file, sector_buffer);
+        f_read(&file, sector_buffer, 512, &br);
         mem_upload_init(adr);
         i = 0;
       }
@@ -162,15 +163,16 @@ static void BootUploadCopper()
   int x;
   int i=0;
   int adr;
+  UINT br;
 
   if (f_open(&file, COPPER_FILE, FA_READ) == FR_OK) {
-    FileReadBlock(&file, sector_buffer);
+    f_read(&file, sector_buffer, 512, &br);
     mem_upload_init(COPPER_ADDRESS);
     adr = COPPER_ADDRESS;
     for (x=0; x<COPPER_SIZE/2; x++) {
       if (i == 512) {
         mem_upload_fini();
-        FileReadBlock(&file, sector_buffer);
+        f_read(&file, sector_buffer, 512, &br);
         mem_upload_init(adr);
         i = 0;
       }

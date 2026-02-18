@@ -143,11 +143,12 @@ FAST unsigned char CheckFirmware(char *name)
 char *GetFirmwareVersion(char *name) {
   static char v[16];
   FIL file;
+  UINT br;
 
   if ((f_open(&file, name, FA_READ) != FR_OK) || (f_size(&file) < sizeof(UPGRADE)))
     return NULL;
 
-  FileReadBlock(&file, sector_buffer);
+  f_read(&file, sector_buffer, 512, &br);
   strncpy(v, ((UPGRADE*)sector_buffer)->version, 16);
   v[15] = 0;
   f_close(&file);

@@ -17,9 +17,10 @@
 char ini_rom_upload(char *s, char action, int tag) {
   if(action == INI_SAVE) return 0;
 #ifndef INI_PARSER_TEST
+  UINT br;
   data_io_rom_upload(s, 1);
   f_lseek(&ini_file, (((f_tell(&ini_file)+511)>>9)-1)<<9);
-  FileReadBlock(&ini_file, sector_buffer);
+  f_read(&ini_file, sector_buffer, 512, &br);
 #endif
   return 0;
 }

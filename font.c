@@ -18,6 +18,7 @@ char char_row(char c, char row) {
 void font_load() {
 	memcpy(&charfont, &charrom, 128*8);
 
+	UINT br;
 	FIL file;
 	if(f_open(&file, "/SYSTEM.FNT", FA_READ) == FR_OK) {
 		iprintf("Loading SYSTEM.FNT\n");
@@ -36,7 +37,7 @@ void font_load() {
 
 		// load and convert SYSTEM.FNT
 		for(int s = 0; s < 2; s++) {
-			FileReadBlock(&file, sector_buffer);
+			f_read(&file, sector_buffer, 512, &br);
 			for(int i = 0; i < 512; i++) {
 				char row=i & 0x07;
 				if (row == 0) for(int j = 0; j < 8; j++) charfont[addr][j] = 0;
