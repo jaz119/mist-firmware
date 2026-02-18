@@ -79,7 +79,7 @@ static uint8_t latest_keyb_priority = 0;  // keyboard=0, joypad with key mapping
 #define Z 2
 #define MOUSE_FREQ 20   // 20 ms -> 50hz
 
-static int16_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
+ALIGNED(4) static int16_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
 static uint8_t mouse_flags[2] = { 0, 0 };
 static unsigned long mouse_timer;
 
@@ -122,7 +122,7 @@ static uint32_t autofire_mask;
 static char autofire_joy;
 
 // ATA drives
-hardfileTYPE  hardfiles[HARDFILES];
+hardfileTYPE hardfiles[HARDFILES];
 
 static uint8_t i2c_flags;
 
@@ -134,7 +134,7 @@ static uint8_t hdmi_hiclk = 0;
 #endif
 
 #define CONF_TBL_MAX 64
-static uint16_t conf_idx[CONF_TBL_MAX];
+ALIGNED(4) static uint16_t conf_idx[CONF_TBL_MAX];
 static int conf_items = 0;
 
 char user_io_osd_is_visible() {
@@ -215,7 +215,7 @@ char user_io_is_8bit_with_config_string() {
 	return core_type_8bit_with_config_string;
 }
 
-static char core_name[16+1];  // max 16 bytes for core name
+ALIGNED(4) static char core_name[16+1];  // max 16 bytes for core name
 
 char *user_io_get_core_name() {
 	char *arc_core_name = arc_get_corename();
@@ -349,7 +349,7 @@ void user_io_detect_core_type() {
 		break;
 
 	default:
-		iprintf("Unable to identify core (%x)!\n", core_type);
+		iprintf("Unable to identify core (0x%x)\n", core_type);
 		core_type = CORE_TYPE_UNKNOWN;
 	}
 }
@@ -411,6 +411,7 @@ void user_io_init_core() {
 				f_close(&file);
 			}
 		}
+
 		for (int i = 0; i < ARRAY_SIZE(sd_image); i++) {
 			hardfile[i] = &hardfiles[i];
 			if ((core_features & (FEAT_IDE0 << (2*i))) == (FEAT_IDE0_CDROM << (2*i))) {
@@ -445,9 +446,9 @@ void user_io_init_core() {
 				}
 			}
 		}
+
 		if (core_features & FEAT_IDE_MASK)
 			SendHDFCfg();
-
 
 		// release reset
 		user_io_8bit_set_status(0, UIO_STATUS_RESET);
@@ -456,14 +457,18 @@ void user_io_init_core() {
 #ifdef HAVE_HDMI
 	hdmi_detected = false;
 	hdmi_hiclk = 0;
-	if ((core_type == CORE_TYPE_8BIT && core_features & FEAT_HDMI) || core_type == CORE_TYPE_MIST2 || core_type == CORE_TYPE_MINIMIG2 || core_type == CORE_TYPE_ARCHIE) {
+	if ((core_type == CORE_TYPE_8BIT && core_features & FEAT_HDMI)
+		|| core_type == CORE_TYPE_MIST2
+		|| core_type == CORE_TYPE_MINIMIG2
+		|| core_type == CORE_TYPE_ARCHIE)
+	{
 		hdmi_detected = HDMITX_Init();
 		if (hdmi_detected) HDMITX_ChangeVideoTiming(1);
 	}
 #endif
 }
 
-static unsigned short usb2amiga( unsigned  char k ) {
+static unsigned short usb2amiga(unsigned  char k) {
 	//  replace MENU key by RGUI to allow using Right Amiga on reduced keyboards
 	// (it also disables the use of Menu for OSD)
 	if (mist_cfg.key_menu_as_rgui && k==0x65) {
@@ -472,7 +477,7 @@ static unsigned short usb2amiga( unsigned  char k ) {
 	return usb2ami[k];
 }
 
-static unsigned short usb2ps2code( unsigned char k) {
+static unsigned short usb2ps2code(unsigned char k) {
 	//  replace MENU key by RGUI e.g. to allow using RGUI on reduced keyboards without physical key
 	// (it also disables the use of Menu for OSD)
 	if (mist_cfg.key_menu_as_rgui && k==0x65) {
@@ -540,7 +545,7 @@ void user_io_digital_joystick_ext(unsigned char joystick, uint32_t map) {
 	}
 }
 
-static char dig2ana(char min, char max) {
+static inline char dig2ana(char min, char max) {
 	if(min && !max) return -128;
 	if(max && !min) return  127;
 	return 0;
@@ -587,7 +592,7 @@ char user_io_serial_status(serial_status_t *status_in, uint8_t status_out) {
 }
 
 // transmit midi data into core
-void user_io_midi_tx(char chr) {
+static inline void user_io_midi_tx(char chr) {
 	spi_uio_cmd8(UIO_MIDI_OUT, chr);
 }
 
@@ -664,7 +669,6 @@ uint8_t user_io_sd_get_status(uint32_t *lba, uint8_t *drive_index, uint8_t *blks
 	DisableIO();
 
 	if(lba) *lba = s;
-
 	return c;
 }
 
@@ -815,11 +819,10 @@ char user_io_cue_mount(const unsigned char *name, unsigned char index) {
 }
 
 static inline char sd_index(unsigned char index) {
-	unsigned char retval = index;
 	if (core_type == CORE_TYPE_ARCHIE)
-		return (index + 2);
+		return (index + 2) & 3;
 	else
-		return index;
+		return index & 3;
 }
 
 char user_io_is_mounted(unsigned char index) {
@@ -827,30 +830,31 @@ char user_io_is_mounted(unsigned char index) {
 }
 
 void user_io_file_mount(const unsigned char *name, unsigned char index) {
-	FRESULT res;
+	int slot = sd_index(index);
+	IDXFile *idx = &sd_image[slot];
 
 	buffer_lba = 0xffffffff; // invalidate cache
 	if (name) {
-		if (sd_image[sd_index(index)].valid)
-			IDXClose(&sd_image[sd_index(index)]);
+		if (idx->valid)
+			IDXClose(idx);
 
-		res = IDXOpen(&sd_image[sd_index(index)], name, FA_READ | FA_WRITE);
-		if (res != FR_OK) res = IDXOpen(&sd_image[sd_index(index)], name, FA_READ);
+		FRESULT res = IDXOpen(idx, name, FA_READ | FA_WRITE);
+		if (res != FR_OK) res = IDXOpen(idx, name, FA_READ);
 		if (res == FR_OK) {
 			iprintf("%s: %lu byte(s) into slot: %d\n",
-				__FUNCTION__, (uint32_t) f_size(&sd_image[sd_index(index)].file), index);
+				__FUNCTION__, (uint32_t) f_size(&idx->file), slot);
 
-			sd_image[sd_index(index)].valid = 1;
+			idx->valid = 1;
 			// build index for fast random access
-			IDXIndex(&sd_image[sd_index(index)], sd_index(index));
+			IDXIndex(idx, slot);
 		} else {
 			debugf("%s: file: %s, error %d", __FUNCTION__, name, res);
 			return;
 		}
 	} else {
-		iprintf("unmounting slot %d\n", index);
-		if (sd_image[sd_index(index)].valid) IDXClose(&sd_image[sd_index(index)]);
-		sd_image[sd_index(index)].valid = 0;
+		iprintf("unmounting slot %d\n", slot);
+		if (idx->valid) IDXClose(idx);
+		idx->valid = 0;
 		if (!index) umounted = 1;
 	}
 
@@ -858,8 +862,8 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 	EnableIO();
 	SPI(UIO_SET_SDINFO);
 	// use LE version, so following BYTE(s) may be used for size extension in the future.
-	spi32le(sd_image[sd_index(index)].valid ? f_size(&sd_image[sd_index(index)].file) : 0);
-	spi32le(sd_image[sd_index(index)].valid ? f_size(&sd_image[sd_index(index)].file) >> 32: 0);
+	spi32le(idx->valid ? f_size(&idx->file) : 0);
+	spi32le(idx->valid ? f_size(&idx->file) >> 32 : 0);
 	spi32le(0); // reserved for future expansion
 	spi32le(0); // reserved for future expansion
 	DisableIO();
@@ -871,7 +875,7 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 // 8 bit cores have a config string telling the firmware how
 // to treat it
 
-char *user_io_8bit_get_string(unsigned char index) {
+FAST char *user_io_8bit_get_string(unsigned char index) {
 	unsigned char i, lidx = 0, j = 0, d = 0, arc = 0;
 	int arc_ptr = 0;
 	char dip[3];
@@ -1172,7 +1176,7 @@ static void handle_ps2_mouse_commands()
 	cmd = spi_in();
 	DisableIO();
 	if (c == UIO_MOUSE_IN) { // receiving echo of the command code shows the core supports this message
-		iprintf("PS2 mouse cmd: %02x\n", cmd);
+		iprintf("PS2 mouse cmd: 0x%02x\n", cmd);
 		switch (ps2_mouse_state) {
 			case PS2_MOUSE_IDLE:
 				switch (cmd) {
@@ -1974,9 +1978,9 @@ FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char
 
 // check if this is a key that's supposed to be suppressed
 // when emulation is active
-static unsigned char is_emu_key(unsigned char c, unsigned alt) {
-	static const unsigned char m[] = { JOY_RIGHT, JOY_LEFT, JOY_DOWN, JOY_UP };
-	static const unsigned char m2[] = {
+FAST static unsigned char is_emu_key(unsigned char c, unsigned alt) {
+	ALIGNED(4) static const unsigned char m[] = { JOY_RIGHT, JOY_LEFT, JOY_DOWN, JOY_UP };
+	ALIGNED(4) static const unsigned char m2[] = {
 		0x5A, JOY_DOWN,
 		0x5C, JOY_LEFT,
 		0x5D, JOY_DOWN,
@@ -2326,12 +2330,11 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 
 		char keycodes[6] = { 0,0,0,0,0,0 };
 		uint16_t keycodes_ps2[6] = { 0,0,0,0,0,0 };
-		char i, j;
 
 		// remap keycodes if requested
-		for(i=0;(i<6) && k[i];i++)
+		for(char i=0;(i<6) && k[i];i++)
 		{
-			for(j=0;j<MAX_REMAP;j++)
+			for(char j=0;j<MAX_REMAP;j++)
 			{
 				if(key_remap_table[j][0] == k[i])
 				{
@@ -2358,7 +2361,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 				0x80
 			};
 			uint8_t modifiers = 0;
-			for(i=0; i<8; i++) if (m & (0x01<<i))  modifiers |= default_mod_mapping[i];
+			for(char i=0; i<8; i++) if (m & (0x01<<i))  modifiers |= default_mod_mapping[i];
 			m = modifiers;
 		}
 
@@ -2400,7 +2403,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 		// handle modifier keys
 		if(m != modifier && !osd_is_visible)
 		{
-			for(i=0;i<8;i++)
+			for(char i=0;i<8;i++)
 			{
 				// Do we have a downstroke on a modifier key?
 				if((m & (1<<i)) && !(modifier & (1<<i)))
@@ -2426,7 +2429,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 
 		// check if there are keys in the pressed list which aren't
 		// reported anymore
-		for(i=0;i<6;i++)
+		for(char i=0;i<6;i++)
 		{
 			unsigned short code = keycode(pressed[i]);
 
@@ -2435,6 +2438,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 				if (user_io_dip_switch1())
 					iprintf("key 0x%X break: 0x%X\n", pressed[i], code);
 
+				char j;
 				for(j=0;j<6 && pressed[i] != k[j];j++);
 
 				// don't send break for caps lock
@@ -2479,12 +2483,13 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 			}
 		}
 
-		for(i=0;i<6;i++)
+		for(char i=0;i<6;i++)
 		{
 			unsigned short code = keycode(k[i]);
 
 			if(k[i] && (k[i] <= KEYCODE_MAX) && code != MISS)
 			{
+				char j;
 				// check if this key is already in the list of pressed keys
 				for(j=0;j<6 && k[i] != pressed[j];j++);
 
@@ -2597,7 +2602,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 			}
 		}
 
-		for(i=0;i<6;i++)
+		for(char i=0;i<6;i++)
 		{
 			pressed[i] = k[i];
 			keycodes[i] = pressed[i]; // send raw USB code, not amiga - keycode(pressed[i]);
@@ -2662,7 +2667,7 @@ char user_io_key_remap(char *s, char action, int tag) {
 	return 0;
 }
 
-unsigned char user_io_ext_idx(const char *name, const char* ext) {
+FAST unsigned char user_io_ext_idx(const char *name, const char* ext) {
 	unsigned char idx = 0;
 	char ext3[4]; // extension truncated or extended to 3 chars
 	int len = strlen(ext);
@@ -2694,10 +2699,11 @@ void user_io_change_into_core_dir(void) {
 		user_io_create_config_name(s, 0, CONFIG_ROOT);
 	}
 	// try to change into subdir named after the core
-	iprintf("Trying to open work dir \"%s\"\n", s);
+	// iprintf("Trying to open work dir \"%s\"\n", s);
 	ChangeDirectoryName(s);
-
 }
+
+#ifdef HAVE_HDMI
 
 static char user_io_i2c_stat(unsigned char *data) {
 	unsigned char c, d;
@@ -2733,9 +2739,7 @@ char user_io_i2c_read(unsigned char addr, unsigned char subaddr, unsigned char *
 }
 
 bool user_io_hdmi_detected() {
-#ifdef HAVE_HDMI
 	return hdmi_detected;
-#else
-	return false;
-#endif
 }
+
+#endif // HAVE_HDMI
