@@ -329,7 +329,7 @@ static char FirmwareUpdateDialog(uint8_t idx) {
 static char ResetDialog(uint8_t idx) {
 	char m = 0;
 
-	if (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG2)
+	if (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
 		m = 1;
 
 	if (idx == 0) { //yes
@@ -510,9 +510,9 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 	else return 0;
 	if (item->page != page_idx) return 1; // shortcut
 
-	char m  = (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG2);
-	char a  = (user_io_core_type()==CORE_TYPE_ARCHIE);
-	char st = (user_io_core_type()==CORE_TYPE_MIST || user_io_core_type()==CORE_TYPE_MIST2);
+	char is_m  = (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG_AGA);
+	char is_a  = (user_io_core_type()==CORE_TYPE_ARCHIE);
+	char is_st = (user_io_core_type()==CORE_TYPE_MIST || user_io_core_type()==CORE_TYPE_MISTERY);
 
 	switch (action) {
 		case MENU_ACT_GET:
@@ -524,7 +524,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 1:
 					item->item = " Date & Time";
-					item->active = GetRTC((uint8_t*)&date);
+					item->active = (usb_get_device(USB_RTC) != NULL);
 					item->stipple = !item->active;
 					item->newpage = 2;
 					break;
@@ -533,13 +533,13 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->newpage = 3;
 					break;
 				case 3:
-					if(a || st) {
+					if(is_a || is_st) {
 						item->active = 0;
 					} else
-						item->item = m ? " Reset" : " Reset settings";
+						item->item = is_m ? " Reset" : " Reset settings";
 					break;
 				case 4:
-					if (m || a || st) {
+					if (is_m || is_a || is_st) {
 						item->active = 0;
 					} else
 						item->item = " Save settings";
@@ -900,7 +900,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 3: {
 					char m = 0;
-					if (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG2)
+					if (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
 						m = 1;
 					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?", MENU_DIALOG_YESNO, ResetDialog);
 					break;
@@ -956,12 +956,12 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 				// go back to core requesting this menu
 				switch(user_io_core_type()) {
 					case CORE_TYPE_MINIMIG:
-					case CORE_TYPE_MINIMIG2:
+					case CORE_TYPE_MINIMIG_AGA:
 						SetupMinimigMenu2();
 						menusub = 0;
 						break;
 					case CORE_TYPE_MIST:
-					case CORE_TYPE_MIST2:
+					case CORE_TYPE_MISTERY:
 						tos_setup_menu();
 						menusub = 0;
 						break;
@@ -1050,7 +1050,6 @@ static void ScrollLongName(void);
 void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect, char chdir)
 {
 	// this function displays file selection menu
-
 	menu_debugf("%s - %s", pFileExt, fs_pFileExt);
 
 	if (strncmp(pFileExt, fs_pFileExt, 12) != 0) // check desired file extension
@@ -1060,6 +1059,7 @@ void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect,
 		// for 8 bit cores try to
 		if(((user_io_core_type() == CORE_TYPE_8BIT) || (user_io_core_type() == CORE_TYPE_ARCHIE)) && chdir)
 			user_io_change_into_core_dir();
+
 		ScanDirectory(SCAN_INIT, pFileExt, Options);
 	}
 
@@ -1260,10 +1260,10 @@ void HandleUI(uint8_t key)
 			if (menu)
 			{
 				if((user_io_core_type() == CORE_TYPE_MINIMIG) ||
-				   (user_io_core_type() == CORE_TYPE_MINIMIG2))
+				   (user_io_core_type() == CORE_TYPE_MINIMIG_AGA))
 					SetupMinimigMenu();
 				else if((user_io_core_type() == CORE_TYPE_MIST) ||
-				        (user_io_core_type() == CORE_TYPE_MIST2))
+				        (user_io_core_type() == CORE_TYPE_MISTERY))
 					tos_setup_menu();
 				else if(user_io_core_type() == CORE_TYPE_ARCHIE)
 					archie_setup_menu();

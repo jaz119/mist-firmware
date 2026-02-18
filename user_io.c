@@ -192,7 +192,7 @@ char minimig_v1() {
 }
 
 char minimig_v2() {
-	return(core_type == CORE_TYPE_MINIMIG2);
+	return(core_type == CORE_TYPE_MINIMIG_AGA);
 }
 
 char user_io_create_config_name(char *s, const char *ext, char flags) {
@@ -307,7 +307,7 @@ void user_io_detect_core_type() {
 		puts("Identified Minimig V1 core");
 		break;
 
-	case CORE_TYPE_MINIMIG2:
+	case CORE_TYPE_MINIMIG_AGA:
 		strcpy(core_name, "MINIMIG");
 		puts("Identified Minimig V2 core");
 		break;
@@ -317,7 +317,7 @@ void user_io_detect_core_type() {
 		break;
 
 	case CORE_TYPE_MIST:
-	case CORE_TYPE_MIST2:
+	case CORE_TYPE_MISTERY:
 		strcpy(core_name, "ST");
 		puts("Identified MiST core");
 		break;
@@ -458,8 +458,8 @@ void user_io_init_core() {
 	hdmi_detected = false;
 	hdmi_hiclk = 0;
 	if ((core_type == CORE_TYPE_8BIT && core_features & FEAT_HDMI)
-		|| core_type == CORE_TYPE_MIST2
-		|| core_type == CORE_TYPE_MINIMIG2
+		|| core_type == CORE_TYPE_MISTERY
+		|| core_type == CORE_TYPE_MINIMIG_AGA
 		|| core_type == CORE_TYPE_ARCHIE)
 	{
 		hdmi_detected = HDMITX_Init();
@@ -489,7 +489,7 @@ static unsigned short usb2ps2code(unsigned char k) {
 FAST void user_io_analog_joystick(unsigned char joystick, char valueX, char valueY, char valueX2, char valueY2) {
 	if(osd_is_visible) return;
 
-	if(core_type == CORE_TYPE_8BIT || core_type == CORE_TYPE_MINIMIG2) {
+	if(core_type == CORE_TYPE_8BIT || core_type == CORE_TYPE_MINIMIG_AGA) {
 		int16_t valueXX = valueX*mist_cfg.joystick_analog_mult/128 + mist_cfg.joystick_analog_offset;
 		int16_t valueYY = valueY*mist_cfg.joystick_analog_mult/128 + mist_cfg.joystick_analog_offset;
 		int16_t valueXX2 = valueX2*mist_cfg.joystick_analog_mult/128 + mist_cfg.joystick_analog_offset;
@@ -852,7 +852,7 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 			return;
 		}
 	} else {
-		iprintf("unmounting slot %d\n", slot);
+		debugf("unmounting slot %d", slot);
 		if (idx->valid) IDXClose(idx);
 		idx->valid = 0;
 		if (!index) umounted = 1;
@@ -1271,17 +1271,17 @@ FAST void user_io_poll() {
 	}
 
 	if((core_type != CORE_TYPE_MINIMIG) &&
-	   (core_type != CORE_TYPE_MINIMIG2) &&
+	   (core_type != CORE_TYPE_MINIMIG_AGA) &&
 	   (core_type != CORE_TYPE_PACE) &&
 	   (core_type != CORE_TYPE_MIST) &&
-	   (core_type != CORE_TYPE_MIST2) &&
+	   (core_type != CORE_TYPE_MISTERY) &&
 	   (core_type != CORE_TYPE_ARCHIE) &&
 	   (core_type != CORE_TYPE_8BIT)) {
 		return;  // no user io for the installed core
 	}
 
 	if((core_type == CORE_TYPE_MIST) ||
-	   (core_type == CORE_TYPE_MIST2)) {
+	   (core_type == CORE_TYPE_MISTERY)) {
 		char redirect = tos_get_cdc_control_redirect();
 
 		if (core_type == CORE_TYPE_MIST) ikbd_poll();
@@ -1398,7 +1398,7 @@ FAST void user_io_poll() {
 	}
 
 	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG2)) {
+	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
 		kbd_fifo_poll();
 
 		// frequently check mouse for events
@@ -1469,7 +1469,7 @@ FAST void user_io_poll() {
 	}
 
 	if((core_type == CORE_TYPE_MIST) ||
-	   (core_type == CORE_TYPE_MIST2)) {
+	   (core_type == CORE_TYPE_MISTERY)) {
 		// do some tos specific monitoring here
 		tos_poll();
 	}
@@ -1513,7 +1513,7 @@ FAST void user_io_poll() {
 
 	// sd card emulation
 	if((core_type == CORE_TYPE_8BIT) ||
-	   (core_type == CORE_TYPE_MIST2) ||
+	   (core_type == CORE_TYPE_MISTERY) ||
 	   (core_type == CORE_TYPE_ARCHIE))
 	{
 		uint32_t lba;
@@ -1673,7 +1673,7 @@ FAST void user_io_poll() {
 	}
 
 	if((core_type == CORE_TYPE_8BIT) ||
-	   (core_type == CORE_TYPE_MIST2)) {
+	   (core_type == CORE_TYPE_MISTERY)) {
 
 		// frequently check ps2 mouse for events
 		if(CheckTimer(mouse_timer)) {
@@ -1782,8 +1782,8 @@ FAST void user_io_poll() {
 		HandleHDD(c1, 0, 1);
 	}
 
-	if((core_type == CORE_TYPE_MINIMIG2) ||
-	   (core_type == CORE_TYPE_MIST2) ||
+	if((core_type == CORE_TYPE_MINIMIG_AGA) ||
+	   (core_type == CORE_TYPE_MISTERY) ||
 	   (core_type == CORE_TYPE_ARCHIE) ||
 	   (core_type == CORE_TYPE_8BIT))
 	{
@@ -1882,7 +1882,7 @@ char user_io_dip_switch1() {
 
 static void send_keycode(unsigned short code) {
 	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG2)) {
+	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
 		// amiga has "break" marker in msb
 		if(code & BREAK) code = (code & 0xff) | 0x80;
 
@@ -1899,7 +1899,7 @@ static void send_keycode(unsigned short code) {
 	}
 
 	if((core_type == CORE_TYPE_8BIT) ||
-	   (core_type == CORE_TYPE_MIST2)) {
+	   (core_type == CORE_TYPE_MISTERY)) {
 		// send ps2 keycodes for those cores that prefer ps2
 		spi_uio_cmd_cont(UIO_KEYBOARD);
 
@@ -1952,7 +1952,7 @@ FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char
 
 	// send mouse data as minimig expects it
 	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG2)) {
+	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
 		mouse_pos[idx][X] += x;
 		mouse_pos[idx][Y] += y;
 		mouse_pos[idx][Z] += z;
@@ -1961,7 +1961,7 @@ FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char
 
 	// 8 bit core expects ps2 like data
 	if((core_type == CORE_TYPE_8BIT) ||
-	   (core_type == CORE_TYPE_MIST2)) {
+	   (core_type == CORE_TYPE_MISTERY)) {
 		mouse_pos[idx][X] += x;
 		mouse_pos[idx][Y] -= y;  // ps2 y axis is reversed over usb
 		mouse_pos[idx][Z] += z;
@@ -2016,7 +2016,7 @@ FAST static unsigned char is_emu_key(unsigned char c, unsigned alt) {
 
 static unsigned short keycode(unsigned char in) {
 	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG2))
+	   (core_type == CORE_TYPE_MINIMIG_AGA))
 	return usb2amiga(in);
 
 	if(core_type == CORE_TYPE_MIST)
@@ -2026,7 +2026,7 @@ static unsigned short keycode(unsigned char in) {
 		return usb2archie[in];
 
 	if((core_type == CORE_TYPE_8BIT) ||
-	   (core_type == CORE_TYPE_MIST2))
+	   (core_type == CORE_TYPE_MISTERY))
 		return usb2ps2code(in);
 
 	return MISS;
@@ -2052,7 +2052,7 @@ static void check_reset(unsigned short modifiers, char useKeys)
 		switch(core_type)
 		{
 			case CORE_TYPE_MINIMIG:
-			case CORE_TYPE_MINIMIG2:
+			case CORE_TYPE_MINIMIG_AGA:
 				OsdReset(RESET_NORMAL);
 				break;
 
@@ -2074,7 +2074,7 @@ static unsigned short modifier_keycode(unsigned char index) {
 	*/
 
 	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG2)) {
+	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
 		static const unsigned short amiga_modifier[] =
 			{ 0x63, 0x60, 0x64, 0x66, 0x63, 0x61, 0x65, 0x67 };
 		return amiga_modifier[index];
@@ -2087,7 +2087,7 @@ static unsigned short modifier_keycode(unsigned char index) {
 	}
 
 	if((core_type == CORE_TYPE_8BIT) ||
-	   (core_type == CORE_TYPE_MIST2)) {
+	   (core_type == CORE_TYPE_MISTERY)) {
 		static const unsigned short ps2_modifier[] =
 			{ 0x14, 0x12, 0x11, EXT|0x1f, EXT|0x14, 0x59, EXT|0x11, EXT|0x27 };
 		static const unsigned short ps2_modifier_set1[] =
@@ -2120,7 +2120,7 @@ static char key_used_by_osd(unsigned short s) {
 	// else none as it's up to the core to forward keys
 	// to the OSD
 	return((core_type == CORE_TYPE_MIST) ||
-	       (core_type == CORE_TYPE_MIST2) ||
+	       (core_type == CORE_TYPE_MISTERY) ||
 	       (core_type == CORE_TYPE_ARCHIE) ||
 	       (core_type == CORE_TYPE_8BIT));
 }
@@ -2215,7 +2215,7 @@ FAST static void keyrah_trans(unsigned char *m, unsigned char *k)
 		if(keyrah_fn_state == 1)
 		{
 			if((core_type == CORE_TYPE_MINIMIG) ||
-				(core_type == CORE_TYPE_MINIMIG2))
+				(core_type == CORE_TYPE_MINIMIG_AGA))
 			{
 				send_keycode(KEY_MENU);
 				send_keycode(BREAK | KEY_MENU);
@@ -2319,9 +2319,9 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 	check_reset(reset_m, KEYRAH_ID ? 1 : mist_cfg.reset_combo);
 
 	if( (core_type == CORE_TYPE_MINIMIG) ||
-		(core_type == CORE_TYPE_MINIMIG2) ||
+		(core_type == CORE_TYPE_MINIMIG_AGA) ||
 		(core_type == CORE_TYPE_MIST) ||
-		(core_type == CORE_TYPE_MIST2) ||
+		(core_type == CORE_TYPE_MISTERY) ||
 		(core_type == CORE_TYPE_ARCHIE) ||
 		(core_type == CORE_TYPE_8BIT))
 	{
@@ -2517,7 +2517,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 						          (m & 0x05) == 0x05 && // LCTR+LALT
 						          (core_type == CORE_TYPE_8BIT ||
 						          core_type == CORE_TYPE_ARCHIE ||
-						          core_type == CORE_TYPE_MIST2))
+						          core_type == CORE_TYPE_MISTERY))
 						{
 							autofire = ((autofire + 1) & 0x03);
 							InfoMessage(config_autofire_msg[autofire]);

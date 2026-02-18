@@ -165,15 +165,15 @@
 #define CONF_SDRAM64             0x80
 
 // core type value should be unlikely to be returned by broken cores
-#define CORE_TYPE_UNKNOWN   0x55
-#define CORE_TYPE_DUMB      0xa0   // core without any io controller interaction
-#define CORE_TYPE_MINIMIG   0xa1   // minimig amiga core
-#define CORE_TYPE_PACE      0xa2   // core from pacedev.net (joystick only)
-#define CORE_TYPE_MIST      0xa3   // mist atari st core
-#define CORE_TYPE_8BIT      0xa4   // atari 800/c64 like core
-#define CORE_TYPE_MINIMIG2  0xa5   // new Minimig with AGA
-#define CORE_TYPE_ARCHIE    0xa6   // Acorn Archimedes
-#define CORE_TYPE_MIST2     0xa7   // New MiST core
+#define CORE_TYPE_UNKNOWN        0x55
+#define CORE_TYPE_DUMB           0xa0   // core without any io controller interaction
+#define CORE_TYPE_MINIMIG        0xa1   // minimig amiga core
+#define CORE_TYPE_PACE           0xa2   // core from pacedev.net (joystick only)
+#define CORE_TYPE_MIST           0xa3   // mist atari st core
+#define CORE_TYPE_8BIT           0xa4   // atari 800/c64 like core
+#define CORE_TYPE_MINIMIG_AGA    0xa5   // Minimig with AGA
+#define CORE_TYPE_ARCHIE         0xa6   // Acorn Archimedes
+#define CORE_TYPE_MISTERY        0xa7   // MiSTery core
 
 // user io status bits (currently only used by 8bit)
 #define UIO_STATUS_RESET   0x01

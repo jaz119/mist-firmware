@@ -535,7 +535,7 @@ unsigned char OsdGetCtrl(void)
     }
 
     // minimig OSD is controlled by key codes from core
-    if(user_io_core_type() == CORE_TYPE_MINIMIG2) {
+    if(user_io_core_type() == CORE_TYPE_MINIMIG_AGA) {
       // send command and get current ctrl status
       EnableOsd();
       c1 = SPI(OSD_CMD_READ);
@@ -544,7 +544,7 @@ unsigned char OsdGetCtrl(void)
 
     // mist/atari, archie and 8bit cores use local queue
     if((user_io_core_type() == CORE_TYPE_MIST) ||
-       (user_io_core_type() == CORE_TYPE_MIST2) ||
+       (user_io_core_type() == CORE_TYPE_MISTERY) ||
        (user_io_core_type() == CORE_TYPE_ARCHIE) ||
        (user_io_core_type() == CORE_TYPE_8BIT))
       c1 = OsdKeyGet();

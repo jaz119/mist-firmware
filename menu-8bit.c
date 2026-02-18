@@ -439,7 +439,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			user_io_8bit_set_status(setStatus(p, status, x), ~0);
 		} else if (action == MENU_ACT_GET) {
 			unsigned char x = getStatus(p, status);
-			menu_debugf("Option %s 0x%llx 0x%llx", p, x, status);
+			menu_debugf("Option %s 0x%x 0x%lx", p, x, (uint32_t) status);
 
 			// get currently active option
 			substrcpy(s, p, 2+x);

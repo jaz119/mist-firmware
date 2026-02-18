@@ -70,19 +70,6 @@ char *fs_type_to_string(void) {
 	}
 }
 
-// Convert XXXXXXXXYYY to XXXXXXXX.YYY
-void fnameconv(char dest[11+2], const char *src) {
-	char *c;
-
-	// copy and append nul
-	strncpy(dest, src, 8);
-	for(c=dest+7;*c==' ';c--); c++;
-	*c++ = '.';
-	strncpy(c, src+8, 3);
-	for(c+=2;*c==' ';c--); c++;
-	*c++='\0';
-}
-
 const char *get_short_name(const char *full_path) {
 
 	if (!full_path)
@@ -239,36 +226,6 @@ RAMFUNC FRESULT FileReadNextBlock (
 	return (FR_OK);
 }
 #pragma section_no_code_init
-
-// Open a file with name of XXXXXXXXYYY
-FRESULT FileOpenCompat(FIL *file, const char *name, BYTE mode) {
-	char n[11+3];
-	fnameconv(&n[1], name);
-	FRESULT res;
-
-	n[0] = '/';
-	res = f_open(file, n, mode);
-	if (res != FR_OK)
-		iprintf("Error opening file \"%s\" (%d)\n", n, res);
-	return (res);
-}
-
-// Read an 512-byte block
-FRESULT FileReadBlock(FIL *file, unsigned char *pBuffer) {
-	UINT br;
-	return (f_read(file, pBuffer, 512, &br));
-}
-
-FRESULT FileReadBlockEx(FIL *file, unsigned char *pBuffer, unsigned int len) {
-	UINT br;
-	return (f_read(file, pBuffer, 512*len, &br));
-}
-
-// Write an 512-byte block
-FRESULT FileWriteBlock(FIL *file, unsigned char *pBuffer) {
-	UINT bw;
-	return (f_write(file, pBuffer, 512, &bw));
-}
 
 FILINFO       DirEntries[MAXDIRENTRIES];
 unsigned char sort_table[MAXDIRENTRIES];

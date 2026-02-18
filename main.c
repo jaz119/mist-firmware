@@ -352,14 +352,14 @@ FAST int main(void)
         {
             // MIST (atari) core supports the same UI as Minimig
             case CORE_TYPE_MIST:
-            case CORE_TYPE_MIST2:
+            case CORE_TYPE_MISTERY:
                 if (!mmc_ok)
                     tos_eject_all();
                 break;
 
             // call original minimig handlers if minimig core is found
             case CORE_TYPE_MINIMIG:
-            case CORE_TYPE_MINIMIG2:
+            case CORE_TYPE_MINIMIG_AGA:
                 if (!mmc_ok)
                     minimig_eject_all();
                 HandleFpga();

@@ -59,16 +59,11 @@ extern unsigned char sector_buffer[SECTOR_BUFFER_SIZE];
 
 // functions
 bool FindDrive(void);
-
-FRESULT FileOpenCompat(FIL *, const char *name, BYTE mode);
-FRESULT FileReadBlock(FIL *, unsigned char *);
-FRESULT FileReadBlockEx(FIL *, unsigned char *, unsigned int);
-FRESULT FileWriteBlock(FIL *, unsigned char *);
-RAMFUNC FRESULT FileReadNextBlock(FIL *, void *pBuffer);
+void ChangeDirectoryName(const char *name);
+char ScanDirectory(unsigned long mode, char *extension, unsigned char options);
 
 FAST const char *GetExtension(const char *fileName);
-char ScanDirectory(unsigned long mode, char *extension, unsigned char options);
-void ChangeDirectoryName(const char *name);
+RAMFUNC FRESULT FileReadNextBlock(FIL *, void *pBuffer);
 
 void fat_switch_to_usb(void);
 char *fs_type_to_string(void);

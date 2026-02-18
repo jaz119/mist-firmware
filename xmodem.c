@@ -4,13 +4,9 @@
 // cat /dev/pts/5
 // timeout 5s cat /dev/pts/5; echo 'xtest.img' > /dev/pts/5 ; sx ymodem.h < /dev/pts/5 > /dev/pts/5
 
-//
-//
-//
-//
-
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "debug.h"
 #include "xmodem.h"
 #include "hardware.h"
@@ -18,7 +14,9 @@
 #include "user_io.h"
 #include "data_io.h"
 
-typedef enum { IDLE, X_NAME, EXP_SOH1, EXP_SOH, BLKNO, DATA, CHK, U_NAME } state_t;
+typedef enum {
+  IDLE, X_NAME, EXP_SOH1, EXP_SOH, BLKNO, DATA, CHK, U_NAME
+} state_t;
 
 static state_t state = IDLE;
 
@@ -27,7 +25,7 @@ static unsigned char chk;
 static unsigned int count;
 static unsigned long timer;
 
-static char filename[11];  // a 8+3 filename
+static char filename[12];  // a 8.3 filename
 static unsigned long filelen;
 
 static FIL file;
@@ -65,8 +63,9 @@ void xmodem_poll(void) {
 }
 
 void xmodem_rx_byte(unsigned char byte) {
-  switch(state) {
+  UINT bw;
 
+  switch(state) {
     // idle state
   case IDLE:
     if((byte == 'r') || (byte == 'R')) {    // _R_eset
@@ -95,7 +94,7 @@ void xmodem_rx_byte(unsigned char byte) {
       if(state == X_NAME) {
 	// start xmodem only if filename and file length were given
 	if(filename[0] && filelen) {
-	  if(FileOpenCompat(&file, filename, FA_READ | FA_WRITE | FA_OPEN_ALWAYS) != FR_OK) {
+	  if(f_open(&file, filename, FA_READ | FA_WRITE | FA_OPEN_ALWAYS) != FR_OK) {
 	    iprintf("XMODEM: file creation failed\n");
 	    state = IDLE;
 	  } else {
@@ -116,10 +115,13 @@ void xmodem_rx_byte(unsigned char byte) {
 	  iprintf("UPLOAD: Only supported by 8 bit cores\n");
 	else {
 	  char *p = user_io_8bit_get_string(0);
-	  if(!filename[0] || !p || strncmp(p, filename+8, 3) != 0)
-	    iprintf("UPLOAD: Core reports file type '%s', but given was '%.3s'\n", p, filename+8);
+	  const char *ext = strrchr(filename, '.');
+	  if(!ext)
+	    iprintf("UPLOAD: no file type (.ext)\n");
+	  else if(!filename[0] || !p || strncmp(p, ext+1, 3) != 0)
+	    iprintf("UPLOAD: Core reports file type '%s', but given was '%.3s'\n", p, ext+1);
 	  else {
-	    if(FileOpenCompat(&file, filename, FA_READ | FA_WRITE))
+	    if(f_open(&file, filename, FA_READ | FA_WRITE))
 	      iprintf("UPLOAD: File open failed\n");
 	    else
 	      data_io_file_tx(&file, 1, 0);
@@ -130,36 +132,19 @@ void xmodem_rx_byte(unsigned char byte) {
     } else {
       timer = GetTimer(2000);
 
-      // max 8+3 filename allowed
-      if(count < 11) {
-	// convert to upper case
-	if((byte >= 'a') && (byte <= 'z'))
-	  byte = byte - 'a' + 'A';
+      // max 8.3 filename allowed
+      if(count < sizeof(filename)) {
+        // convert to upper case
+        if(!isupper(byte))
+          byte = toupper(byte);
 
-	// only A-Z/0-9 and _ accpepted
-	if(((byte >= 'A')&&(byte <= 'Z')) ||
-	   ((byte >= '0')&&(byte <= '9')) ||
-	   (byte == '_')) {
-	  filename[count++] = byte;
-	}
-
-	// jump to extension if '.' was seen
-	if((byte == '.') && (count < 8))
-	  while(count < 8)
-	    filename[count++] = ' ';
-
-	// ignore spaces before filename and end file
-	// name parsing else
-	if((byte == ' ') && (count > 0)) {
-	  // fill 8+3 filename to 11 chars
-	  if(filename[0])
-	    while(count < 11)
-	      filename[count++] = ' ';
-	}
+        if(isalnum(byte) || (byte == '_') || (byte == '.')) {
+          filename[count++] = byte;
+        }
       } else {
-	// parsing file length
-	if((byte >= '0')&&(byte <= '9'))
-	  filelen = (filelen * 10) + (byte - '0');
+        // parsing file length
+        if(isdigit(byte))
+          filelen = (filelen * 10) + (byte - '0');
       }
     }
     break;
@@ -178,7 +163,7 @@ void xmodem_rx_byte(unsigned char byte) {
 
       // partially filled sector in buffer?
       if(sector_count)
-	if(FileWriteBlock(&file, sector_buffer) != FR_OK)
+	if(f_write(&file, sector_buffer, 512, &bw) != FR_OK)
 	  iprintf("XMODEM: write failed\n");
 
       // close file
@@ -223,7 +208,7 @@ void xmodem_rx_byte(unsigned char byte) {
       state = CHK;
 
     if(filelen && (++sector_count == 512)) {
-      if(FileWriteBlock(&file, sector_buffer) != FR_OK)
+      if(f_write(&file, sector_buffer, 512, &bw) != FR_OK)
 	iprintf("XMODEM: write failed\n");
 
       // still more than 512 bytes expected?

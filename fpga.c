@@ -402,6 +402,7 @@ FAST unsigned char ConfigureFpga(const char *name)
 
 FAST void SendFile(FIL *file)
 {
+    UINT br;
     unsigned char  c1, c2;
     unsigned long  j;
     unsigned long  n;
@@ -411,7 +412,7 @@ FAST void SendFile(FIL *file)
     while (n--)
     {
         // read data sector from memory card
-        FileReadBlock(file,sector_buffer);
+        f_read(file, sector_buffer, 512, &br);
 
         do
         {
@@ -457,12 +458,12 @@ FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize)
 
     headersize=f_size(file)&255;	// ROM should be a round number of kilobytes; overspill will likely be the Amiga Forever header.
 
-    f_read(file,sector_buffer,headersize, &br); // Read extra bytes
+    f_read(file, sector_buffer, headersize, &br); // Read extra bytes
 
     n = (f_size(file) + (511-headersize)) >> 9; // sector count (rounded up)
     while (n--)
     {
-        FileReadBlock(file,sector_buffer);
+        f_read(file, sector_buffer, 512, &br);
         for (j = 0; j < 512; j++)
         {
             sector_buffer[j]^=key[keyidx++];
@@ -543,7 +544,7 @@ FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, in
     f_read(file, sector_buffer, 0xb, &br);
   }
   for (i=0; i<size; i++) {
-    FileReadBlock(file, sector_buffer);
+    f_read(file, sector_buffer, 512, &br);
     if (keysize) {
       // decrypt ROM
       for (j=0; j<512; j++) {
@@ -943,9 +944,9 @@ unsigned char fpga_init(const char *name) {
   InitDB9();
 
   if((user_io_core_type() == CORE_TYPE_MINIMIG)||
-     (user_io_core_type() == CORE_TYPE_MINIMIG2)) {
+     (user_io_core_type() == CORE_TYPE_MINIMIG_AGA)) {
 
-    puts("Running minimig setup");
+    puts("Running Minimig setup");
 
     if(minimig_v2()) {
       user_io_8bit_set_status(minimig_cfg.clock_freq << 1, 0xffffffff);
@@ -984,8 +985,6 @@ unsigned char fpga_init(const char *name) {
       BootPrintEx(" ");
     }
 
-    ChangeDirectoryName("/");
-
     //eject all disk
     for (int n = 0; n < ARRAY_SIZE(df); n++)
         df[n].status = 0;
@@ -996,15 +995,15 @@ unsigned char fpga_init(const char *name) {
 
   } // end of minimig setup
 
-  if((user_io_core_type() == CORE_TYPE_MIST) || (user_io_core_type() == CORE_TYPE_MIST2)) {
-    puts("Running mist setup");
+  if((user_io_core_type() == CORE_TYPE_MIST) || (user_io_core_type() == CORE_TYPE_MISTERY)) {
+    puts("Running miST setup");
 
     tos_upload(NULL);
 
   } // end of mist setup
 
   if(user_io_core_type() == CORE_TYPE_ARCHIE) {
-    puts("Running archimedes setup");
+    puts("Running Archimedes setup");
   } // end of archimedes setup
 
   return ERROR_NONE;
