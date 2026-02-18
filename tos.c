@@ -20,8 +20,6 @@
 #include "utils.h"
 #include "FatFs/diskio.h"
 
-#define CONFIG_FILENAME  "MIST    CFG"
-
 extern bool eth_present;
 extern char s[OSD_BUF_SIZE];
 
@@ -36,7 +34,7 @@ typedef struct {
 } tos_config_t;
 
 static tos_config_t config;
-
+static UINT br;
 
 #define TOS_BASE_ADDRESS_192k    0xfc0000
 #define TOS_BASE_ADDRESS_256k    0xe00000
@@ -53,7 +51,7 @@ ALIGNED(4) static struct {
 
 unsigned long hdd_direct = 0;
 // 0-1 floppy, 2-3 hdd
-char disk_inserted[4];
+char disk_inserted[HARDFILES];
 
 unsigned char spi_speed;
 unsigned char spi_newspeed;
@@ -78,6 +76,18 @@ static const char *acsi_cmd_name(int cmd) {
   if(cmd > 0x2b) return NULL;
 
   return cmdname[cmd];
+}
+
+static void tos_insert_disk(char, const char *);
+static void tos_select_hdd_image(char, const char *);
+
+void assign_full_path(char *buf, int buf_size, const char *fname) {
+  if (!buf || !buf_size || !fname || buf == fname) return;
+  if (*fname == '/') {
+    sniprintf(buf, buf_size, "%s", fname);
+  } else {
+    sniprintf(buf, buf_size, "%s/%s", cwd, fname);
+  }
 }
 
 char tos_get_cdc_control_redirect(void) {
@@ -151,54 +161,53 @@ static void mist_memory_read(char *data, unsigned long words) {
   DisableFpga();
 }
 
-static void mist2_spi_set_speed(unsigned char speed)
+static inline void mist_spi_set_speed(unsigned char speed)
 {
-  if (user_io_core_type() == CORE_TYPE_MIST2) spi_set_speed(speed);
+  if (user_io_core_type() == CORE_TYPE_MISTERY)
+    spi_set_speed(speed);
 }
 
 static void mist_memory_write(const char *data, unsigned long words) {
   spi_speed = spi_get_speed();
-  mist2_spi_set_speed(spi_newspeed);
+  mist_spi_set_speed(spi_newspeed);
+
   EnableFpga();
   SPI(MIST_WRITE_MEMORY);
-
   spi_write(data, words*2);
-
   DisableFpga();
-  mist2_spi_set_speed(spi_speed);
+
+  mist_spi_set_speed(spi_speed);
 }
 
 static void mist_memory_read_block(char *data) {
   spi_speed = spi_get_speed();
-  mist2_spi_set_speed(spi_newspeed);
+  mist_spi_set_speed(spi_newspeed);
+
   EnableFpga();
   SPI(MIST_READ_MEMORY);
-
   spi_block_read(data);
-
   DisableFpga();
-  mist2_spi_set_speed(spi_speed);
+
+  mist_spi_set_speed(spi_speed);
 }
 
 static void mist_memory_write_block(const char *data) {
   EnableFpga();
   SPI(MIST_WRITE_MEMORY);
-
   spi_block_write(data);
-
   DisableFpga();
 }
 
 static void mist_memory_write_blocks(const char *data, int count) {
   spi_speed = spi_get_speed();
-  mist2_spi_set_speed(spi_newspeed);
+  mist_spi_set_speed(spi_newspeed);
+
   EnableFpga();
   SPI(MIST_WRITE_MEMORY);
-
   spi_write(data, 512*count);
-
   DisableFpga();
-  mist2_spi_set_speed(spi_speed);
+
+  mist_spi_set_speed(spi_speed);
 }
 
 void mist_memory_set(char data, unsigned long words) {
@@ -214,17 +223,17 @@ void mist_memory_set(char data, unsigned long words) {
 }
 
 // enable direct sd card access on acsi0
-void tos_set_direct_hdd(char on) {
+static void tos_set_direct_hdd(char on) {
   config.sd_direct = on;
 
   if(on) {
-    tos_debugf("ACSI: enable direct sd access");
+    tos_debugf("ACSI: enable direct SD access");
     disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &hdd_direct);
 
     tos_debugf("ACSI: Direct capacity = %ld (%ld Bytes)", hdd_direct, hdd_direct*512);
     config.system_ctrl |= TOS_ACSI0_ENABLE;
   } else {
-    tos_debugf("ACSI: disable direct sd access");
+    tos_debugf("ACSI: disable direct SD access");
     config.system_ctrl &= ~TOS_ACSI0_ENABLE;
     hdd_direct = 0;
 
@@ -238,7 +247,7 @@ void tos_set_direct_hdd(char on) {
   mist_set_control(config.system_ctrl);
 }
 
-char tos_get_direct_hdd() {
+static inline char tos_get_direct_hdd() {
   return config.sd_direct;
 }
 
@@ -350,30 +359,30 @@ static void handle_acsi(unsigned char *buffer) {
         if(lba+length <= blocks) {
           DISKLED_ON;
 #ifndef SD_NO_DIRECT_MODE
-          if (user_io_core_type() == CORE_TYPE_MIST2 && fat_uses_mmc()) {
-            // SD-Card -> FPGA direct SPI transfer on MIST2
+          if (user_io_core_type() == CORE_TYPE_MISTERY && fat_uses_mmc()) {
+            // SD-Card -> FPGA direct SPI transfer on MISTERY
             spi_speed = spi_get_speed();
-            mist2_spi_set_speed(spi_newspeed);
+            mist_spi_set_speed(spi_newspeed);
             if(hdd_direct && target == 0) {
               if(user_io_dip_switch1())
-                tos_debugf("ACSI: direct read %ld", lba);
+                tos_debugf("ACSI: direct read %lu", lba);
               disk_read(fs.pdrv, 0, lba, length);
             } else {
               IDXSeek(&sd_image[target+2], lba);
-              FileReadBlockEx(&sd_image[target+2].file, 0, length);
+              f_read(&sd_image[target+2].file, 0, 512*length, &br);
             }
-            mist2_spi_set_speed(spi_speed);
+            mist_spi_set_speed(spi_speed);
           } else {
 #endif
             while(length) {
               int blocksize = MIN(length, SECTOR_BUFFER_SIZE/512);
               if(hdd_direct && target == 0) {
                 if(user_io_dip_switch1())
-                  tos_debugf("ACSI: direct read %ld", lba);
+                  tos_debugf("ACSI: direct read %lu", lba);
                 disk_read(fs.pdrv, sector_buffer, lba, blocksize);
               } else {
                 IDXSeek(&sd_image[target+2], lba);
-                FileReadBlockEx(&sd_image[target+2].file, sector_buffer, blocksize);
+                f_read(&sd_image[target+2].file, sector_buffer, 512*blocksize, &br);
               }
               // hexdump(sector_buffer, 32, 0);
               mist_memory_write_blocks(sector_buffer, blocksize);
@@ -387,7 +396,7 @@ static void handle_acsi(unsigned char *buffer) {
           dma_ack(0x00);
           asc[target] = 0x00;
         } else {
-          tos_debugf("ACSI: read (%d+%d) exceeds device limits (%d)",
+          tos_debugf("ACSI: read (%lu+%u) exceeds device limits (%lu)",
             lba, length, blocks);
           dma_ack(0x02);
           asc[target] = 0x21;
@@ -427,7 +436,7 @@ static void handle_acsi(unsigned char *buffer) {
             }
             if(hdd_direct && target == 0) {
               if(user_io_dip_switch1())
-                tos_debugf("ACSI: direct write %ld", lba);
+                tos_debugf("ACSI: direct write %lu", lba);
               disk_write(fs.pdrv, sector_buffer, lba, blocklen);
             } else {
               IDXSeek(&sd_image[target+2], lba);
@@ -440,7 +449,7 @@ static void handle_acsi(unsigned char *buffer) {
           dma_ack(0x00);
           asc[target] = 0x00;
         } else {
-          tos_debugf("ACSI: write (%d+%d) exceeds device limits (%d)",
+          tos_debugf("ACSI: write (%lu+%u) exceeds device limits (%lu)",
             lba, length, blocks);
           dma_ack(0x02);
           asc[target] = 0x21;
@@ -461,7 +470,7 @@ static void handle_acsi(unsigned char *buffer) {
       memcpy(sector_buffer+16, "                ", 16);       // Clear device entry
       if(hdd_direct && target == 0) memcpy(sector_buffer+16, "SD DIRECT", 9);// Device
       else                        { memcpy(sector_buffer+16, config.acsi_img[target], strlen(config.acsi_img[target]) > 16 ? 16 : strlen(config.acsi_img[target])); }
-      memcpy(sector_buffer+32, "ATH ", 4);                    // Product revision
+      memcpy(sector_buffer+32, "ATA ", 4);                    // Product revision
       memcpy(sector_buffer+36, VDATE "  ", 8);                // Serial number
       if(device != 0) sector_buffer[0] = 0x7f;
       mist_memory_write(sector_buffer, length/2);
@@ -471,7 +480,7 @@ static void handle_acsi(unsigned char *buffer) {
 
     case 0x1a: // mode sense
       if(device == 0) {
-        tos_debugf("ACSI: mode sense, blocks = %u", blocks);
+        tos_debugf("ACSI: mode sense, blocks = %lu", blocks);
         bzero(sector_buffer, 512);
         sector_buffer[3] = 8;            // size of extent descriptor list
         sector_buffer[5] = blocks >> 16;
@@ -540,9 +549,9 @@ static void handle_fdc(unsigned char *buffer) {
 
       if(user_io_dip_switch1()) {
         tos_debugf("FDC %s req %d sec (%c, SD:%d, T:%d, S:%d = %d) -> %p",
-          (fdc_cmd & 0x10)?"multi":"single", scnt,
-          'A'+drv_sel-1, drv_side, fdc_track, fdc_sector, offset,
-                   dma_address);
+          (fdc_cmd & 0x10) ? "multi" : "single",
+          scnt, 'A'+drv_sel-1, drv_side, fdc_track,
+          fdc_sector, offset, (void *) dma_address);
       }
 
       while(scnt) {
@@ -555,14 +564,14 @@ static void handle_fdc(unsigned char *buffer) {
 
           if((fdc_cmd & 0xe0) == 0x80) {
             // read from disk ...
-            FileReadBlock(&fdd_image[drv_sel-1].file, sector_buffer);
+            f_read(&fdd_image[drv_sel-1].file, sector_buffer, 512, &br);
             // ... and copy to ram
             mist_memory_write_block(sector_buffer);
           } else {
             // read from ram ...
             mist_memory_read_block(sector_buffer);
             // ... and write to disk
-            FileWriteBlock(&(fdd_image[drv_sel-1].file), sector_buffer);
+            f_write(&(fdd_image[drv_sel-1].file), sector_buffer, 512, &br);
           }
 
           DISKLED_OFF;
@@ -618,7 +627,7 @@ static void mist_get_dmastate() {
       if(buffer[19] & 0x01) {
         dma_address = 256 * 256 * buffer[0] + 256 * buffer[1] + (buffer[2]&0xfe);
         scnt = buffer[3];
-        tos_debugf("DMA: scnt %u, addr %p", scnt, dma_address);
+        tos_debugf("DMA: scnt %u, addr %p", scnt, (void *) dma_address);
         if(buffer[20] == 0xa5) {
           tos_debugf("DMA: fifo %d/%d %x %s",
             (buffer[21]>>4)&0x0f, buffer[21]&0x0f,
@@ -636,7 +645,7 @@ static void mist_get_dmastate() {
     if(buffer[8] & 0x01) {
       handle_fdc(buffer);
     }
-  } else { // CORE_TYPE_MIST2
+  } else { // CORE_TYPE_MISTERY
     if(buffer[10] & 0x01) {
       spi_newspeed = SPI_MMC_CLK_VALUE;
       handle_acsi(buffer);
@@ -722,7 +731,7 @@ static void tos_clr() {
   tos_write(NULL);
 }
 
-static void tos_load_cartridge_mist1() {
+static void tos_load_cartridge_mist() {
   FIL file;
 
   // upload cartridge
@@ -735,7 +744,7 @@ static void tos_load_cartridge_mist1() {
 
     DISKLED_ON;
     for(i=0;i<blocks;i++) {
-      FileReadBlock(&file, sector_buffer);
+      f_read(&file, sector_buffer, 512, &br);
 
       if(!(i&0x7f))
        mist_memory_set_address(CART_BASE_ADDRESS+512*i, 128, 0);
@@ -745,7 +754,7 @@ static void tos_load_cartridge_mist1() {
     }
     DISKLED_OFF;
 
-    tos_debugf("%s uploaded", config.cart_img);
+    iprintf("Cartridge %s uploaded\n", config.cart_img);
     f_close(&file);
     return;
   }
@@ -757,46 +766,41 @@ static void tos_load_cartridge_mist1() {
   mist_memory_set(0xff, 64*1024/2);
   mist_memory_set_address(CART_BASE_ADDRESS+128*512, 128, 0);
   mist_memory_set(0xff, 64*1024/2);
-
 }
 
-static void tos_load_cartridge_mist2() {
+static void tos_load_cartridge_mistery() {
   FIL file;
 
   // upload cartridge
   if(config.cart_img[0] && (f_open(&file, config.cart_img, FA_READ) == FR_OK)) {
     data_io_file_tx(&file, 0x02, 0);
-    tos_debugf("%s uploaded", config.cart_img);
+    iprintf("Cartridge %s uploaded\n", config.cart_img);
     f_close(&file);
     return;
   }
+
   // erase that ram area to remove any previously uploaded
   // image
   tos_debugf("Erasing cart memory");
   data_io_fill_tx(0xff, 128*1024, 0x02);
 }
 
-void tos_load_cartridge(const char *name) {
-
-  if(name) {
-    strncpy(config.cart_img, name, sizeof(config.cart_img));
-    config.cart_img[sizeof(config.cart_img)-1] = 0;
-  }
+static void tos_load_cartridge(const char *name) {
+  assign_full_path(
+    config.cart_img, sizeof(config.cart_img) - 1, name);
 
   if(user_io_core_type() == CORE_TYPE_MIST) {
-    tos_load_cartridge_mist1();
+    tos_load_cartridge_mist();
   } else {
-    tos_load_cartridge_mist2();
+    tos_load_cartridge_mistery();
   }
-
 }
 
-char tos_cartridge_is_inserted() {
+static inline char tos_cartridge_is_inserted() {
   return config.cart_img[0];
 }
 
-
-static void tos_upload_mist2(const char *name) {
+static void tos_upload_mistery(const char *name) {
   FIL file;
 
   // clear first 16k
@@ -805,8 +809,7 @@ static void tos_upload_mist2(const char *name) {
 
   // upload and verify tos image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
-
-    tos_debugf("%s:\n  size = %lu", config.tos_img, (uint32_t) f_size(&file));
+    iprintf("TOS: %s\n", config.tos_img);
 
     if(f_size(&file) >= 256*1024)
       data_io_file_tx(&file, 0x00, 0);
@@ -835,14 +838,17 @@ static void tos_upload_mist2(const char *name) {
     } else {
       // try to open harddisk image
       for(int i=0;i<2;i++) {
-        tos_select_hdd_image(i, config.acsi_img[i]);
+        if (*config.acsi_img[i]) {
+          tos_debugf("trying to open %s image #%d", config.acsi_img[i], i);
+          tos_select_hdd_image(i, config.acsi_img[i]);
+        }
       }
     }
   }
   ikbd_reset();
 }
 
-static void tos_upload_mist1(const char *name) {
+static void tos_upload_mist(const char *name) {
   FIL file;
   int i;
 
@@ -864,7 +870,7 @@ static void tos_upload_mist1(const char *name) {
     unsigned long time;
     unsigned long tos_base = TOS_BASE_ADDRESS_192k;
 
-    tos_debugf("TOS.IMG:\n  size = %lu", (uint32_t) f_size(&file));
+    iprintf("TOS: %s\n", config.tos_img);
 
     if(f_size(&file) >= 256*1024)
       tos_base = TOS_BASE_ADDRESS_256k;
@@ -873,8 +879,7 @@ static void tos_upload_mist1(const char *name) {
 
     int blocks = f_size(&file) / 512;
     tos_debugf("  blocks = %d", blocks);
-
-    tos_debugf("  address = $%08x", tos_base);
+    tos_debugf("  address = $%08lx", tos_base);
 
     // clear first 16k
     mist_memory_set_address(0, 16384/512, 0);
@@ -888,7 +893,7 @@ static void tos_upload_mist1(const char *name) {
     mist_memory_set_address(VIDEO_BASE_ADDRESS, (32000+511)/512, 0);
     mist_memory_set(0x55, 16000);
 
-    FileReadBlock(&file, buffer);
+    f_read(&file, buffer, 512, &br);
     int run_ok = 0, run_fail = 0;
 
     while(1) {
@@ -940,7 +945,7 @@ static void tos_upload_mist1(const char *name) {
     tos_debugf("Uploading ...");
 
     for(i=0;i<blocks;i++) {
-      FileReadBlock(&file, buffer);
+      f_read(&file, buffer, 512, &br);
 
       // copy first 8 bytes to address 0 as well
       if(i == 0) {
@@ -973,7 +978,7 @@ static void tos_upload_mist1(const char *name) {
         if(!(i&0x7f))
           mist_memory_set_address(tos_base+i*512, 128, 1);
 
-        FileReadBlock(&file, b2);
+        f_read(&file, b2, 512, &br);
         mist_memory_read_block(buffer);
 
         ok = -1;
@@ -1014,8 +1019,8 @@ static void tos_upload_mist1(const char *name) {
 #endif
 
     time = GetRTTC() - time;
-    tos_debugf("TOS.IMG uploaded in %lu ms (%d kB/s / %d kBit/s)",
-      time, f_size(&file)/(time >> 20), 8*f_size(&file)/time);
+    tos_debugf("TOS.IMG uploaded in %lu ms (%lu kB/s / %lu kBit/s)",
+      time, (uint32_t) (f_size(&file)/(time >> 20)), (uint32_t) (8*f_size(&file)/time));
     f_close(&file);
   } else {
     tos_debugf("Unable to find tos.img");
@@ -1057,7 +1062,6 @@ static void tos_upload_mist1(const char *name) {
   mist_memory_set_address(0,0,0);
 
   ikbd_reset();
-
 }
 
 void tos_upload(const char *name) {
@@ -1065,26 +1069,23 @@ void tos_upload(const char *name) {
   tos_debugf("Uploading TOS");
 
   ResetMenu();
-  ChangeDirectoryName("/");
-
-  if(name) {
-    strncpy(config.tos_img, name, sizeof(config.tos_img));
-    config.tos_img[sizeof(config.tos_img)-1] = 0;
-  }
 
   // put cpu into reset
   config.system_ctrl |= TOS_CONTROL_CPU_RESET;
   mist_set_control(config.system_ctrl);
+
+  assign_full_path(
+    config.tos_img, sizeof(config.tos_img) - 1, name);
+
   if(user_io_core_type() == CORE_TYPE_MIST) {
-    tos_upload_mist1(name);
+    tos_upload_mist(name);
   } else {
-    tos_upload_mist2(name);
+    tos_upload_mistery(name);
   }
 
   // let cpu run (release reset)
   config.system_ctrl &= ~TOS_CONTROL_CPU_RESET;
-
-  unsigned long system_ctrl = config.system_ctrl;;
+  unsigned long system_ctrl = config.system_ctrl;
 
   // adjust for detected ethernet adapter
 #ifdef USB_ASIX_NET
@@ -1095,12 +1096,10 @@ void tos_upload(const char *name) {
   mist_set_control(system_ctrl);
 }
 
-
 static unsigned long get_long(char *buffer, int offset) {
   unsigned long retval = 0;
-  int i;
 
-  for(i=0;i<4;i++)
+  for(int i=0;i<4;i++)
     retval = (retval << 8) + *(unsigned char*)(buffer+offset+i);
 
   return retval;
@@ -1137,79 +1136,78 @@ void tos_update_sysctrl(unsigned long n) {
   // core is running. So make sure this only happens if the Atari ST (MIST)
   // core is running
   if((user_io_core_type() == CORE_TYPE_MIST) ||
-     (user_io_core_type() == CORE_TYPE_MIST2)) {
+     (user_io_core_type() == CORE_TYPE_MISTERY))
+  {
     config.system_ctrl = n;
     mist_set_control(config.system_ctrl);
   }
 }
 
-static char buffer[17];  // local buffer to assemble file name (8+3+2)
-
-char *tos_get_disk_name(char index) {
+static const char *tos_get_disk_name(char index) {
   if(!disk_inserted[index]) {
-    strcpy(buffer, "* no disk *");
-    return buffer;
+    return "* no disk *";
   }
 
   if (index <= 1) {
-    return (fdd_image[index].name);
+    return get_short_name(fdd_image[index].name);
   } else {
-    return (config.acsi_img[index-2]);
+    return get_short_name(config.acsi_img[index-2]);
   }
 }
 
-char *tos_get_image_name() {
-  return(config.tos_img);
+static inline const char *tos_get_image_name() {
+  return get_short_name(config.tos_img);
 }
 
-char *tos_get_cartridge_name() {
+static const char *tos_get_cartridge_name() {
   if(!config.cart_img[0]) {  // no cart name set
-    strcpy(buffer, "* no cartridge *");
-    return buffer;
+    return "* no cartridge *";
   } else
-    return config.cart_img;
+    return get_short_name(config.cart_img);
 }
 
-char tos_disk_is_inserted(char index) {
+static inline char tos_disk_is_inserted(char index) {
   return disk_inserted[index];
 }
 
-void tos_select_hdd_image(char i, const unsigned char *name) {
-  tos_debugf("Select ACSI%c image %s", '0'+i, name);
+static void tos_select_hdd_image(char i, const char *name) {
+  int slot = i+2;
+  IDXFile *idx = &sd_image[slot & 3];
 
-  if(name && name[0]) {
-    strncpy(config.acsi_img[i], name, sizeof(config.acsi_img[i]));
-    config.acsi_img[i][sizeof(config.acsi_img[i])-1] = 0;
+  // try to re/open harddisk image
+  if (disk_inserted[slot]) {
+    IDXClose(idx);
+    disk_inserted[slot] = 0;
   }
-  else
-    config.acsi_img[i][0] = 0;
-  // try to open harddisk image
-  if (disk_inserted[i+2]) {
-    IDXClose(&sd_image[i+2]);
-    disk_inserted[i+2] = 0;
-  }
+
   config.system_ctrl &= ~(TOS_ACSI0_ENABLE<<i);
 
   if(name && name[0]) {
-    if (IDXOpen(&sd_image[i+2], name, FA_READ | FA_WRITE) == FR_OK) {
-      IDXIndex(&sd_image[i+2], i+2);
-      disk_inserted[i+2] = 1;
+    FRESULT res = IDXOpen(idx, name, FA_READ | FA_WRITE);
+    if (res == FR_OK) {
+      assign_full_path(config.acsi_img[i], sizeof(config.acsi_img[i]) - 1, name);
+      iprintf("ACSI%d: %s\n", i, config.acsi_img[i]);
+      IDXIndex(idx, slot);
+      disk_inserted[slot] = 1;
       config.system_ctrl |= (TOS_ACSI0_ENABLE<<i);
+    } else {
+      iprintf("Cannot open %s file, error %d\n", name, res);
     }
+  } else {
+    config.acsi_img[i][0] = 0;
   }
 
   // update system control
   mist_set_control(config.system_ctrl);
 }
 
-void tos_insert_disk(char i, const unsigned char *name) {
+static void tos_insert_disk(char i, const char *name) {
   if(i > 1) {
     tos_select_hdd_image(i-2, name);
     return;
   }
 
   fdd_image[i].name[0] = 0;
-
   tos_debugf("%c: eject", i+'A');
 
   // toggle write protect bit to help tos detect a media change
@@ -1223,14 +1221,13 @@ void tos_insert_disk(char i, const unsigned char *name) {
   fdd_image[i].spt = 0;
   disk_inserted[i] = 0;
 
-  if (user_io_core_type() == CORE_TYPE_MIST2) {
+  if (user_io_core_type() == CORE_TYPE_MISTERY) {
     user_io_file_mount(NULL, i);
-    tos_debugf("%c: insert %s\n", i+'A', name);
     if (name && name[0]) {
         user_io_file_mount(name, i);
         if (user_io_is_mounted(i)) {
-          strncpy(fdd_image[i].name, name, sizeof(fdd_image[i].name));
-          fdd_image[i].name[sizeof(fdd_image[i].name)-1] = 0;
+          assign_full_path(fdd_image[i].name, sizeof(fdd_image[i].name) - 1, name);
+          iprintf("%c: %s\n", i+'A', fdd_image[i].name);
           disk_inserted[i] = 1;
         }
         tos_update_sysctrl(config.system_ctrl);
@@ -1248,8 +1245,8 @@ void tos_insert_disk(char i, const unsigned char *name) {
       return;
   }
 
-  strncpy(fdd_image[i].name, name, sizeof(fdd_image[i].name));
-  fdd_image[i].name[sizeof(fdd_image[i].name)-1] = 0;
+  assign_full_path(
+    fdd_image[i].name, sizeof(fdd_image[i].name) - 1, name);
 
   // open floppy
   tos_debugf("%c: insert", i+'A');
@@ -1328,73 +1325,71 @@ unsigned long tos_system_ctrl(void) {
   return config.system_ctrl;
 }
 
+static const char *get_config_fname(int slot) {
+  static char fname[16];
+  if(slot) {
+    siprintf(fname,"/MIST%d.CFG", slot);
+  } else {
+    strcpy(fname,"/MIST.CFG");
+  }
+  return fname;
+}
+
 // load/init configuration
 void tos_config_load(char slot) {
   FIL file;
-  UINT br;
-  char filename[11];
   static char last_slot = 0;
-  char new_slot;
-
-  new_slot = (slot == -1) ? last_slot : slot;
+  char new_slot = (slot == -1) ? last_slot : slot;
 
   tos_eject_all();
 
   // set default values
   config.system_ctrl = TOS_MEMCONFIG_4M | TOS_CONTROL_BLITTER;
   strcpy(config.tos_img, "TOS.IMG");
-  config.cart_img[0] = 0;
-  strcpy(config.acsi_img[0], "HARDDISK.HD");
-  config.acsi_img[1][0] = 0;
+  memset(config.cart_img, 0, sizeof(config.cart_img));
+  strcpy(config.acsi_img[0], "/HARDDISK.HD");
+  memset(config.acsi_img[1], 0, sizeof(config.acsi_img[1]));
   strcpy(fdd_image[0].name, "DISK_A.ST");
-  fdd_image[1].name[0] = 0;
+  memset(fdd_image[1].name, 0, sizeof(fdd_image[1].name));
   config.video_adjust[0] = config.video_adjust[1] = 0;
   config.cdc_control_redirect = CDC_REDIRECT_NONE;
 
   // try to load config
-  strncpy(filename, CONFIG_FILENAME, 11);
-  if (new_slot) filename[4] = '0'+new_slot;
-  if (FileOpenCompat(&file, filename, FA_READ) == FR_OK)  {
-    tos_debugf("Configuration file size: %lu (should be %lu)",
-       (uint32_t) f_size(&file), sizeof(tos_config_t));
+  const char *cfname = get_config_fname(new_slot);
+  if (f_open(&file, cfname, FA_READ) == FR_OK) {
     if(f_size(&file) == sizeof(tos_config_t)) {
       f_read(&file, (unsigned char*) &config, sizeof(tos_config_t), &br);
+      iprintf("Config file '%s' loaded\n", cfname);
     }
     f_close(&file);
   }
 }
 
 // save configuration
-void tos_config_save(char slot) {
+static bool tos_config_save(char slot) {
   FIL file;
   UINT bw;
-  char filename[11];
-
-  strncpy(filename, CONFIG_FILENAME, 11);
-  if (slot) filename[4] = '0'+slot;
 
   // save configuration data
-  if (FileOpenCompat(&file, filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
+  if (f_open(&file, get_config_fname(slot), FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
     tos_debugf("Config file opening/creating failed.");
-    return;
+    return false;
   }
 
   // finally write the config
   f_write(&file, (unsigned char *) &config, sizeof(tos_config_t), &bw);
   f_close(&file);
+  return (bw == sizeof(tos_config_t));
 }
 
 // configuration file check
-char tos_config_exists(char slot) {
+static bool tos_config_exists(char slot) {
   FIL file;
-  char filename[11];
-  FRESULT res;
-
-  strncpy(filename, CONFIG_FILENAME, 11);
-  if (slot) filename[4] = '0'+slot;
-  res = FileOpenCompat(&file, filename, FA_READ);
-  f_close(&file);
-  return res == FR_OK;
+  if (f_open(&file, get_config_fname(slot), FA_READ) == FR_OK) {
+    f_close(&file);
+    return true;
+  }
+  return false;
 }
 
 ///////////////////////////
@@ -1416,12 +1411,12 @@ static char tos_file_selected(uint8_t idx, const char *SelectedName) {
 		case 0:
 		case 7:
 		case 8:	// Floppy
-			iprintf("Insert image %s for disk %d\n", SelectedName, (idx>=7) ? idx-7 : idx);
+			menu_debugf("Insert image %s for disk %d", SelectedName, (idx>=7) ? idx-7 : idx);
 			tos_insert_disk((idx>=7) ? idx-7 : idx, SelectedName);
 			break;
 		case 12:
 		case 13: // ACSI
-			iprintf("Insert image %s for ACSI disk %d\n", SelectedName, idx-10);
+			menu_debugf("Insert image %s for ACSI disk %d", SelectedName, idx-10);
 			tos_insert_disk(idx-10, SelectedName);
 			break;
 		case 16:  // TOS
@@ -1436,7 +1431,7 @@ static char tos_file_selected(uint8_t idx, const char *SelectedName) {
 
 static char tos_getmenupage(uint8_t idx, char action, menu_page_t *page) {
 	if (action==MENU_PAGE_EXIT) return 0;
-	if (user_io_core_type() == CORE_TYPE_MIST2)
+	if (user_io_core_type() == CORE_TYPE_MISTERY)
 		page->title = "MiSTery";
 	else
 		page->title = "MiST";
@@ -1524,7 +1519,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 11:
 					strcpy(s, " ACSI0 direct SD: ");
-					strcat(s, tos_get_direct_hdd()?"on":"off");
+					strcat(s, tos_get_direct_hdd() ? "on" : "off");
 					item->item = s;
 					break;
 				case 12:
@@ -1724,7 +1719,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					if(tos_disk_is_inserted(idx-10))
 						tos_insert_disk(idx-10, NULL);
 					else
-						SelectFileNG("IMGHD ", SCAN_LFN, tos_file_selected, 0);
+						SelectFileNG("IMGHD ", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
 					break;
 
 				case 14: { // RAM
@@ -1737,12 +1732,12 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 				case 15: { // CPU
 					int cpu = (tos_system_ctrl() >> 4)&3;   // current cpu config
 					cpu = (cpu+1)&3;
-					if(cpu == 2 || (user_io_core_type() == CORE_TYPE_MIST2 && cpu == 1)) cpu = 3; // skip unused config
+					if(cpu == 2 || (user_io_core_type() == CORE_TYPE_MISTERY && cpu == 1)) cpu = 3; // skip unused config
 					tos_update_sysctrl((tos_system_ctrl() & ~0x30) | (cpu<<4) );
 					tos_reset(0);
 					} break;
 				case 16:  // TOS
-					SelectFileNG("IMG", SCAN_LFN, tos_file_selected, 0);
+					SelectFileNG("IMG", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
 					break;
 				case 17: {
 					unsigned long system_ctrl = tos_system_ctrl();
@@ -1761,7 +1756,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					if(tos_cartridge_is_inserted()) {
 						tos_load_cartridge("");
 					} else
-						SelectFileNG("IMG", SCAN_LFN, tos_file_selected, 0);
+						SelectFileNG("IMG", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
 					break;
 				case 19:
 					if(tos_get_cdc_control_redirect() == CDC_REDIRECT_MIDI)
