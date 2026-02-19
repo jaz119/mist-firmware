@@ -280,7 +280,7 @@ static void handle_acsi(unsigned char *buffer) {
 
   if(length == 0) length = 256;
 
-  if(user_io_dip_switch1()) {
+  if(is_dip_switch1_on()) {
     tos_debugf("ACSI: target %d.%d, \"%s\" (%02x)", target, device, acsi_cmd_name(cmd), cmd);
     tos_debugf("ACSI: lba %lu (%lx), length %u", lba, lba, length);
   }
@@ -364,7 +364,7 @@ static void handle_acsi(unsigned char *buffer) {
             spi_speed = spi_get_speed();
             mist_spi_set_speed(spi_newspeed);
             if(hdd_direct && target == 0) {
-              if(user_io_dip_switch1())
+              if(is_dip_switch1_on())
                 tos_debugf("ACSI: direct read %lu", lba);
               disk_read(fs.pdrv, 0, lba, length);
             } else {
@@ -377,7 +377,7 @@ static void handle_acsi(unsigned char *buffer) {
             while(length) {
               int blocksize = MIN(length, SECTOR_BUFFER_SIZE/512);
               if(hdd_direct && target == 0) {
-                if(user_io_dip_switch1())
+                if(is_dip_switch1_on())
                   tos_debugf("ACSI: direct read %lu", lba);
                 disk_read(fs.pdrv, sector_buffer, lba, blocksize);
               } else {
@@ -435,7 +435,7 @@ static void handle_acsi(unsigned char *buffer) {
               buf+=512;
             }
             if(hdd_direct && target == 0) {
-              if(user_io_dip_switch1())
+              if(is_dip_switch1_on())
                 tos_debugf("ACSI: direct write %lu", lba);
               disk_write(fs.pdrv, sector_buffer, lba, blocklen);
             } else {
@@ -547,7 +547,7 @@ static void handle_fdc(unsigned char *buffer) {
       offset *= fdd_image[drv_sel-1].spt;
       offset += fdc_sector-1;
 
-      if(user_io_dip_switch1()) {
+      if(is_dip_switch1_on()) {
         tos_debugf("FDC %s req %d sec (%c, SD:%d, T:%d, S:%d = %d) -> %p",
           (fdc_cmd & 0x10) ? "multi" : "single",
           scnt, 'A'+drv_sel-1, drv_side, fdc_track,
@@ -623,7 +623,7 @@ static void mist_get_dmastate() {
   DisableFpga();
 
   if (user_io_core_type() == CORE_TYPE_MIST) {
-    if(user_io_dip_switch1()) {
+    if(is_dip_switch1_on()) {
       if(buffer[19] & 0x01) {
         dma_address = 256 * 256 * buffer[0] + 256 * buffer[1] + (buffer[2]&0xfe);
         scnt = buffer[3];
@@ -968,7 +968,7 @@ static void tos_upload_mist(const char *name) {
 
 #if 0
     // verify
-    if(user_io_dip_switch1()) {
+    if(is_dip_switch1_on()) {
       ALIGNED(4) char b2[512];
       int j, ok;
 

@@ -121,10 +121,10 @@
 #define JOY_BTN4        0x80
 #define JOY_MOVE        (JOY_RIGHT|JOY_LEFT|JOY_UP|JOY_DOWN)
 
-#define BUTTON1         0x01
-#define BUTTON2         0x02
-#define SWITCH1         0x04
-#define SWITCH2         0x08
+#define BUTTON_MENU     0x01
+#define BUTTON_USER     0x02
+#define SWITCH_DEBUG    0x04
+#define SWITCH_CORE     0x08
 
 // virtual gamepad buttons
 #define JOY_A      JOY_BTN1
@@ -217,7 +217,6 @@ void user_io_serial_tx(char *, uint16_t);
 FAST char *user_io_8bit_get_string(unsigned char);
 unsigned long long user_io_8bit_set_status(unsigned long long, unsigned long long);
 void user_io_sd_set_config(void);
-char user_io_dip_switch1(void);
 char user_io_serial_status(serial_status_t *, uint8_t);
 char user_io_is_mounted(unsigned char index);
 void user_io_file_mount(const unsigned char*, unsigned char);

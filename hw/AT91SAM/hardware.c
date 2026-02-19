@@ -155,7 +155,7 @@ FAST static void Usart0IrqHandler(void) {
 
 // check usart rx buffer for data
 void USART_Poll(void) {
-  if(Buttons() & 2)
+  if(is_dip_switch1_on())
     xmodem_poll();
 
   while(rx_wptr != rx_rptr) {
@@ -164,7 +164,7 @@ void USART_Poll(void) {
     // worth the effort.
     char chr = rx_buf[rx_rptr++];
 
-    if(Buttons() & 2) {
+    if(is_dip_switch1_on()) {
       // if in debug mode use xmodem for file reception
       xmodem_rx_byte(chr);
     } else {
@@ -301,7 +301,8 @@ int GetSPICLK() {
 }
 
 // permanent state of adc inputs used for dip switches
-static unsigned char adc_state = 0;
+volatile static unsigned char adc_state = 0;
+
 AT91PS_ADC a_pADC = AT91C_BASE_ADC;
 AT91PS_PMC a_pPMC = AT91C_BASE_PMC;
 
@@ -314,21 +315,22 @@ static void PollOneADC() {
 
     // wait for end of convertion
     while(!(AT91C_BASE_ADC->ADC_SR & (1 << (4+adc_cnt))));
-      switch (adc_cnt) {
-        case 0: result = AT91C_BASE_ADC->ADC_CDR4; break;
-        case 1: result = AT91C_BASE_ADC->ADC_CDR5; break;
-        case 2: result = AT91C_BASE_ADC->ADC_CDR6; break;
-        case 3: result = AT91C_BASE_ADC->ADC_CDR7; break;
-      }
 
-      if(result < 128) adc_state |=  (1<<adc_cnt);
-      if(result > 128) adc_state &= ~(1<<adc_cnt);
+    switch (adc_cnt) {
+      case 0: result = AT91C_BASE_ADC->ADC_CDR4; break;
+      case 1: result = AT91C_BASE_ADC->ADC_CDR5; break;
+      case 2: result = AT91C_BASE_ADC->ADC_CDR6; break;
+      case 3: result = AT91C_BASE_ADC->ADC_CDR7; break;
+    }
+
+    if(result < 128) adc_state |=  (1<<adc_cnt);
+    if(result > 128) adc_state &= ~(1<<adc_cnt);
   }
 
-  adc_cnt = (adc_cnt + 1)&3;
+  adc_cnt = (adc_cnt + 1) & 3;
 
   // Enable desired chanel
-  AT91C_BASE_ADC->ADC_CHER = 1 << (4+adc_cnt);
+  AT91C_BASE_ADC->ADC_CHER = 1 << (4 + adc_cnt);
 
   // Start conversion
   AT91C_BASE_ADC->ADC_CR = AT91C_ADC_START;
@@ -364,7 +366,7 @@ void PollADC() {
 }
 
 // user, menu, DIP1, DIP2
-unsigned char Buttons() {
+static inline unsigned char Buttons() {
   return (adc_state);
 }
 
@@ -374,6 +376,14 @@ unsigned char MenuButton() {
 
 unsigned char UserButton() {
   return (adc_state & 8);
+}
+
+bool is_dip_switch1_on() {
+    return !!(Buttons() & 2) || DEBUG_MODE;
+}
+
+bool is_dip_switch2_on() {
+    return !!(Buttons() & 1);
 }
 
 // poll db9 joysticks

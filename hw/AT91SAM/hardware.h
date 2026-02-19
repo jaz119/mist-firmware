@@ -40,14 +40,16 @@
 #define FPGA_DATA0_SODR FPGA_SODR
 
 #ifdef EMIST
-// xilinx programming interface
+
+// Xilinx programming interface
 #define XILINX_DONE     AT91C_PIO_PA4
 #define XILINX_DIN      AT91C_PIO_PA9
 #define XILINX_INIT_B   AT91C_PIO_PA8
 #define XILINX_PROG_B   AT91C_PIO_PA7
 #define XILINX_CCLK     AT91C_PIO_PA15
 #else
-// altera programming interface
+
+// Altera programming interface
 #define ALTERA_DONE     AT91C_PIO_PA4
 #define ALTERA_DATA0    AT91C_PIO_PA9
 #define ALTERA_NCONFIG  AT91C_PIO_PA8
@@ -66,7 +68,7 @@
 #define ALTERA_NSTATUS_STATE (FPGA_PDSR & ALTERA_NSTATUS)
 #define ALTERA_DONE_STATE    (FPGA_DONE_PDSR & ALTERA_DONE)
 
-#endif
+#endif // EMIST
 
 // db9 joystick ports
 #define JOY1_UP         AT91C_PIO_PA28
@@ -167,9 +169,11 @@ void InitADC(void);
 void PollADC();
 
 // user, menu, DIP2, DIP1
-unsigned char Buttons();
 unsigned char MenuButton();
 unsigned char UserButton();
+
+bool is_dip_switch1_on();
+bool is_dip_switch2_on();
 
 static inline void InitDB9() {};
 FAST char GetDB9(char index, uint16_t *joy_map);

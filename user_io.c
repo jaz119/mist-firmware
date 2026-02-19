@@ -178,7 +178,13 @@ void user_io_init() {
 	memset(key_remap_table, 0, sizeof(key_remap_table));
 
 	if(MenuButton()) DEBUG_MODE_VAR = DEBUG_MODE ? 0 : DEBUG_MODE_VALUE;
-	iprintf("Debug_mode = %d\n", DEBUG_MODE);
+
+	iprintf("Debug mode: %s\n",
+		DEBUG_MODE ? "on" : "off");
+
+	iprintf("DIP switches: 1:%s, 2:%s\n",
+		is_dip_switch1_on() ? "on" : "off",
+		is_dip_switch2_on() ? "on" : "off");
 
 	ikbd_init();
 }
@@ -1004,12 +1010,12 @@ void user_io_send_buttons(char force) {
 	PollADC();
 
 	unsigned char map = 0;
-	if(Buttons() & 1) map |= SWITCH2;
-	if(Buttons() & 2) map |= SWITCH1;
+	if(is_dip_switch1_on()) map |= SWITCH_DEBUG;
+	if(is_dip_switch2_on()) map |= SWITCH_CORE;
 
-	if(Buttons() & 4) map |= BUTTON1;
-	else if(Buttons() & 8) map |= BUTTON2;
-	if(kbd_reset)     map |= BUTTON2;
+	if(MenuButton()) map |= BUTTON_MENU;
+	else if(UserButton()) map |= BUTTON_USER;
+	if(kbd_reset)    map |= BUTTON_USER;
 
 	if(!mist_cfg.keep_video_mode) VIDEO_ALTERED_VAR = 0;
 
@@ -1568,7 +1574,7 @@ FAST void user_io_poll() {
 				// only write if the inserted card is not sdhc or
 				// if the core uses sdhc
 				if((!MMC_IsSDHC()) || (c & 0x04)) {
-					if(user_io_dip_switch1())
+					if(is_dip_switch1_on())
 						iprintf("SD WR (%d) %lu/%d\n", drive_index, lba, 512<<blksz);
 
 					// if we write the sector stored in the read buffer, then
@@ -1604,7 +1610,7 @@ FAST void user_io_poll() {
 			// Read from file/SD Card
 			if((c & 0x03) == 0x01) {
 
-				if(user_io_dip_switch1())
+				if(is_dip_switch1_on())
 					iprintf("SD RD (%d) %lu/%d\n", drive_index, lba, 512<<blksz);
 
 				// invalidate cache if it stores data from another drive
@@ -1731,7 +1737,7 @@ FAST void user_io_poll() {
 						ps2_mouse[3] = mouse_pos[idx][Z];
 
 					// collect movement info and send at predefined rate
-					if(!(ps2_mouse[0]==0x08 && ps2_mouse[1]==0 && ps2_mouse[2]==0 && ps2_mouse[3]==0) && user_io_dip_switch1())
+					if(!(ps2_mouse[0]==0x08 && ps2_mouse[1]==0 && ps2_mouse[2]==0 && ps2_mouse[3]==0) && is_dip_switch1_on())
 						iprintf("PS2 MOUSE(%d): %x %d %d %d\n", idx, ps2_mouse[0], ps2_mouse[1], ps2_mouse[2], ps2_mouse[3]);
 
 					// old message sends the movements for all mice
@@ -1876,10 +1882,6 @@ FAST void user_io_poll() {
 #endif
 }
 
-char user_io_dip_switch1() {
-	return(((Buttons() & 2)?1:0) || DEBUG_MODE);
-}
-
 static void send_keycode(unsigned short code) {
 	if((core_type == CORE_TYPE_MINIMIG) ||
 	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
@@ -1921,7 +1923,7 @@ static void send_keycode(unsigned short code) {
 				iprintf("\n");
 			}
 		} else {
-			if (user_io_dip_switch1()) {
+			if (is_dip_switch1_on()) {
 				iprintf("PS2 KBD ");
 				if(code & EXT)   iprintf("e0 ");
 				if(code & BREAK) iprintf("f0 ");
@@ -2435,7 +2437,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 
 			if(pressed[i] && code != MISS)
 			{
-				if (user_io_dip_switch1())
+				if (is_dip_switch1_on())
 					iprintf("key 0x%X break: 0x%X\n", pressed[i], code);
 
 				char j;
@@ -2495,7 +2497,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 
 				if(j == 6)
 				{
-					if (user_io_dip_switch1())
+					if (is_dip_switch1_on())
 						iprintf("key 0x%X make: 0x%X\n", k[i], code);
 
 					// If OSD is visible, then all keys are sent into the OSD

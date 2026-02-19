@@ -44,5 +44,5 @@ void DelayMS(unsigned int ms)
 }
 
 char HDMITX_isdebug() {
-    return user_io_dip_switch1();
+    return is_dip_switch1_on();
 }

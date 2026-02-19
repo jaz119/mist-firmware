@@ -180,12 +180,15 @@ unsigned long GetRTTC();
 
 int GetSPICLK();
 
-void InitADC();
-void PollADC();
+static inline void InitADC() {};
+static inline void PollADC() {};
+
 // user, menu, DIP2, DIP1
-unsigned char Buttons();
 unsigned char MenuButton();
 unsigned char UserButton();
+
+bool is_dip_switch1_on();
+bool is_dip_switch2_on();
 
 void InitDB9();
 char GetDB9(char index, uint16_t *joy_map);

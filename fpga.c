@@ -918,7 +918,7 @@ unsigned char fpga_init(const char *name) {
   unsigned long time = GetRTTC();
   USB_LOAD_VAR = 0;
 
-  if((loaded_from_usb != USB_LOAD_VALUE) && !user_io_dip_switch1()) {
+  if((loaded_from_usb != USB_LOAD_VALUE) && !is_dip_switch2_on()) {
     unsigned char err = ConfigureFpga(name);
     if (err != ERROR_NONE) return err;
 

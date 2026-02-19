@@ -188,7 +188,7 @@ static void Usart0IrqHandler() {
 
 // check usart rx buffer for data
 void USART_Poll(void) {
-    if(Buttons() & 2)
+    if(is_dip_switch1_on())
         xmodem_poll();
 
     while(rx_wptr != rx_rptr) {
@@ -197,7 +197,7 @@ void USART_Poll(void) {
         // worth the effort.
         char chr = rx_buf[rx_rptr++];
 
-        if(Buttons() & 2) {
+        if(is_dip_switch1_on()) {
             // if in debug mode use xmodem for file reception
             xmodem_rx_byte(chr);
         } else {
@@ -309,14 +309,8 @@ int GetSPICLK() {
   return (MCLK / ((SPI0->SPI_CSR[0] & SPI_CSR_SCBR_Msk) >> SPI_CSR_SCBR_Pos) / 1000000);
 }
 
-// not used
-void InitADC(void) {}
-
-// not used
-void PollADC() {}
-
 // user, menu, DIP1, DIP2
-unsigned char Buttons() {
+static unsigned char Buttons() {
     unsigned char map = 0;
     if (!(BTN_PORT->PIO_PDSR & BTN_RESET)) map |= 0x08;
     if (!(BTN_PORT->PIO_PDSR & BTN_OSD)) map |= 0x04;
@@ -331,6 +325,14 @@ unsigned char MenuButton() {
 
 unsigned char UserButton() {
     return (!(BTN_PORT->PIO_PDSR & BTN_RESET));
+}
+
+bool is_dip_switch1_on() {
+    return !!(Buttons() & 2) || DEBUG_MODE;
+}
+
+bool is_dip_switch2_on() {
+    return !!(Buttons() & 1);
 }
 
 static char md_state[2] = {0, 0};
@@ -453,7 +455,6 @@ static char GetDB9State(char index, uint16_t *joy_map) {
 
 
 char GetDB9(char index, uint16_t *joy_map) {
-
 /*
     if (MD_PAD(index) && (!(md_state[index] & 0x01))) {
         if (!CheckTimer(md_timer[index])) return 0;

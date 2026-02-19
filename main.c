@@ -260,7 +260,7 @@ FAST int main(void)
 
     int64_t mod = -1;
 
-    if ((USB_LOAD_VAR != USB_LOAD_VALUE) && !user_io_dip_switch1())
+    if ((USB_LOAD_VAR != USB_LOAD_VALUE) && !is_dip_switch1_on())
     {
         mod = arc_open("/CORE.ARC");
     }
