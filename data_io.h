@@ -8,6 +8,7 @@
 #define DATA_IO_H
 
 #include <inttypes.h>
+#include <FatFs/ff.h>
 
 #define DIO_FILE_TX     0x53
 #define DIO_FILE_TX_DAT 0x54

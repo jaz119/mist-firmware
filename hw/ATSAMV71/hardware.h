@@ -54,14 +54,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define FPGA_DATA0_CODR      PIOD->PIO_CODR
 
 #ifdef EMIST
-// xilinx programming interface
+
+// Xilinx programming interface
 #define XILINX_DONE          PIO_PB13
 #define XILINX_DIN           PIO_PD12
 #define XILINX_INIT_B        PIO_PA8
 #define XILINX_PROG_B        PIO_PA7
 #define XILINX_CCLK          PIO_PA15
+
 #else
-// altera programming interface
+
+// Altera programming interface
 #define ALTERA_DONE          PIO_PD17
 #define ALTERA_DATA0         PIO_PD12
 #define ALTERA_NCONFIG       PIO_PD14
@@ -80,7 +83,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define ALTERA_NSTATUS_STATE (PIOD->PIO_PDSR & ALTERA_NSTATUS)
 #define ALTERA_DONE_STATE    (PIOD->PIO_PDSR & ALTERA_DONE)
 
-#endif
+#endif // EMIST
 
 // chip selects for FPGA communication
 #define FPGA0                PIO_PD27
@@ -163,7 +166,6 @@ void USART_Init(unsigned long baudrate);
 void USART_Write(unsigned char c);
 unsigned char USART_Read();
 
-unsigned long CheckButton();
 void Timer_Init();
 RAMFUNC unsigned long GetTimer(unsigned long offset);
 RAMFUNC unsigned long CheckTimer(unsigned long t);
@@ -184,11 +186,26 @@ static inline void InitADC() {};
 static inline void PollADC() {};
 
 // user, menu, DIP2, DIP1
-unsigned char MenuButton();
-unsigned char UserButton();
+static inline bool UserButton() {
+    return !(BTN_PORT->PIO_PDSR & BTN_RESET);
+}
 
-bool is_dip_switch1_on();
-bool is_dip_switch2_on();
+static inline bool MenuButton() {
+    return !(BTN_PORT->PIO_PDSR & BTN_OSD);
+}
+
+static inline bool is_dip_switch1_on() {
+    return !(BTN_PORT->PIO_PDSR & SW1) || DEBUG_MODE;
+}
+
+static inline bool is_dip_switch2_on() {
+    return !(BTN_PORT->PIO_PDSR & SW2);
+}
+
+static inline bool CheckButton(void)
+{
+    return MenuButton();
+}
 
 void InitDB9();
 char GetDB9(char index, uint16_t *joy_map);

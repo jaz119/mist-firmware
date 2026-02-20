@@ -102,7 +102,7 @@
 #endif
 
 // ---- usb hid debug output in green ---
-#if 1
+#if 0
 #define hid_debugf(a, ...) iprintf("\033[1;32mHID: " a "\033[0m\n", ##__VA_ARGS__)
 #else
 #define hid_debugf(...)

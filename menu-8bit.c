@@ -20,16 +20,17 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include "debug.h"
+
 #include "menu.h"
-#include "osd.h"
 #include "menu-8bit.h"
 #include "user_io.h"
 #include "data_io.h"
-#include "hdd.h"
 #include "fat_compat.h"
 #include "cue_parser.h"
 #include "menu_info.h"
+#include "hdd.h"
+#include "osd.h"
+#include "debug.h"
 
 extern char s[OSD_BUF_SIZE];
 
@@ -538,6 +539,6 @@ void Setup8bitMenu() {
 	strcat(helptext_custom, helptexts[HELPTEXT_MAIN]);
 	helptext=helptext_custom;
 
-	iprintf("Setting up 8bit menu\n");
+	iprintf("Setting up 8BIT menu\n");
 	SetupMenu(GetMenuPage_8bit, GetMenuItem_8bit, KeyEvent_8bit);
 }

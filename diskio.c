@@ -4,12 +4,12 @@
 
 #include <string.h>
 
+#include "hardware.h"
 #include "FatFs/ff.h"		/* Obtains integer types */
 #include "FatFs/diskio.h"	/* Declarations of disk functions */
-#include "hardware.h"
-#include "mmc.h"
 #include "usb/storage_ex.h"
 #include "fat_compat.h"
+#include "mmc.h"
 
 /* Definitions of physical drive number for each drive */
 #define DEV_MMC		0

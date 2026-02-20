@@ -95,7 +95,7 @@ extern hardfileTYPE *hardfile[HARDFILES];
 extern hdfTYPE hdf[HARDFILES];
 
 // functions
-void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena);
+FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena);
 unsigned char OpenHardfile(unsigned char unit, bool amiga);
 unsigned char GetHDFFileType(const char *filename);
 void SendHDFCfg();

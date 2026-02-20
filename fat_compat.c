@@ -107,7 +107,7 @@ bool FindDrive(void) {
 		for (int i=0; i<partitioncount; ++i) {
 			iprintf("partition %d:\n", i);
 			iprintf("  start: %lu\n", partitions[i].start_lba);
-			iprintf("  size: %lu MiB\n", partitions[i].size >> 11);
+			iprintf("  size:  %lu MiB\n", partitions[i].size >> 11);
 		}
 	}
 
@@ -123,7 +123,7 @@ bool FindDrive(void) {
 	debugf("fat_number: %u", fs.n_fats);
 	debugf("fat_start: %u", fs.fatbase);
 	debugf("root_dir_start: %u", fs.dirbase);
-	iprintf("dir_entries: %u\n", fs.n_rootdir);
+	debugf("dir_entries: %u", fs.n_rootdir);
 	debugf("data_start: %u", fs.database);
 	if (fs.fs_type != FS_EXFAT)
 		iprintf("free_clusters: %lu\n", fs.free_clst);

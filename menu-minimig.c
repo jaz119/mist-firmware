@@ -3,17 +3,17 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "debug.h"
 #include "menu.h"
-#include "fdd.h"
-#include "hdd.h"
 #include "config.h"
 #include "osd.h"
 #include "fpga.h"
 #include "boot.h"
+#include "fdd.h"
+#include "hdd.h"
 #include "user_io.h"
 #include "misc_cfg.h"
 #include "cue_parser.h"
+#include "debug.h"
 
 static hardfileTYPE t_hardfile[HARDFILES]; // temporary copy of former hardfile configuration
 static unsigned char t_enable_ide[2]; // temporary copy of former IDE configuration

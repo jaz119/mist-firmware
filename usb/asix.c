@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>  // for memcpy
 
-#include "debug.h"
+#include "user_io.h"
 #include "usb.h"
 #include "asix.h"
 #include "timer.h"
@@ -14,8 +14,8 @@
 #include "asix_const.h"
 #include "max3421e.h"
 #include "hardware.h"
+#include "debug.h"
 #include "tos.h"
-#include "user_io.h"
 
 #define MAX_FRAMELEN 1536
 

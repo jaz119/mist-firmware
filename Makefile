@@ -7,7 +7,7 @@ OBJCOPY = $(BASE)-objcopy
 OBJDUMP = $(BASE)-objdump
 SIZE    = $(BASE)-size
 
-TODAY = `date +"%m/%d/%y"`
+TODAY = $(shell date +"%y%m%d")
 PRJ = firmware
 
 SRC = hw/AT91SAM/Cstartup_SAM7.c hw/AT91SAM/hardware.c hw/AT91SAM/spi.c hw/AT91SAM/mmc.c hw/AT91SAM/at91sam_usb.c hw/AT91SAM/usbdev.c
@@ -29,10 +29,10 @@ LIBDIR   =
 
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
-DFLAGS  = -I. -Iusb -Iarch/ -Ihw/AT91SAM -DCONFIG_ARCH_ARMV4TE -DCONFIG_ARCH_ARM
-DFLAGS += -DMIST -DVDATE=\"`date +"%y%m%d"`\" -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80
-CFLAGS  = $(DFLAGS) -march=armv4t -mtune=arm7tdmi -mthumb-interwork -mthumb -Os --std=gnu99
-CFLAGS += -Wdouble-promotion -Wformat=2 -fsigned-char -fno-common
+DFLAGS  = -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV4TE -DVDATE=\"$(TODAY)\"
+DFLAGS += -DMIST -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80
+CFLAGS  = $(DFLAGS) -I. -Iusb -Iarch/ -Ihw/AT91SAM -mcpu=arm7tdmi -mthumb-interwork -mthumb
+CFLAGS += -Os --std=gnu99 -Wdouble-promotion -Wformat=2 -fsigned-char -fno-common
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -mthumb-interwork -mthumb -nostartfiles -Wl,-Map,$(PRJ).map,--cref -T$(LINKMAP) $(LIBDIR)
 LFLAGS += --specs=nano.specs --specs=nosys.specs
@@ -86,7 +86,7 @@ $(PRJ).elf: crt.o $(OBJ)
 	$(SIZE) -B $@
 
 $(PRJ).upg: $(PRJ).bin $(MKUPG)
-	./$(MKUPG) $< $@ `date +"%y%m%d"`
+	./$(MKUPG) $< $@ $(TODAY)
 
 # Compile the C runtime.
 crt.o: hw/AT91SAM/Cstartup.S

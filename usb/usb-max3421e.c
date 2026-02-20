@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "max3421e.h"
 #include "timer.h"
+#include "max3421e.h"
 #include "debug.h"
 #include "usb.h"
 

@@ -113,7 +113,7 @@ static unsigned char ps2_mouse_samplerate;
 
 // set by OSD code to suppress forwarding of those keys to the core which
 // may be in use by an active OSD
-static char osd_is_visible = false;
+char osd_is_visible = false;
 
 static char autofire;
 static unsigned long autofire_timer;
@@ -136,10 +136,6 @@ static uint8_t hdmi_hiclk = 0;
 #define CONF_TBL_MAX 64
 ALIGNED(4) static uint16_t conf_idx[CONF_TBL_MAX];
 static int conf_items = 0;
-
-char user_io_osd_is_visible() {
-	return osd_is_visible;
-}
 
 void user_io_reset() {
 	// no sd card image selected, SD card accesses will go directly
@@ -252,7 +248,7 @@ static void user_io_send_core_mod() {
 	spi_uio_cmd64(UIO_SET_MOD2, core_mod);
 }
 
-void user_io_send_rtc(void) {
+FORCE_ARM static void user_io_send_rtc(void) {
 	uint8_t date[7]; //year,month,date,hour,min,sec,day
 	uint8_t i;
 
@@ -355,7 +351,7 @@ void user_io_detect_core_type() {
 		break;
 
 	default:
-		iprintf("Unable to identify core (0x%x)\n", core_type);
+		iprintf("Unable to identify core: 0x%x\n", core_type);
 		core_type = CORE_TYPE_UNKNOWN;
 	}
 }
@@ -679,7 +675,7 @@ uint8_t user_io_sd_get_status(uint32_t *lba, uint8_t *drive_index, uint8_t *blks
 }
 
 // read 8 bit keyboard LEDs status from FPGA
-static uint8_t user_io_kbdled_get_status(void) {
+FORCE_ARM static uint8_t user_io_kbdled_get_status(void) {
 	uint8_t c;
 
 	spi_uio_cmd_cont(UIO_GET_KBD_LED);
@@ -1002,7 +998,7 @@ unsigned long long user_io_8bit_set_status(unsigned long long new_status, unsign
 
 char kbd_reset = 0;
 
-void user_io_send_buttons(char force) {
+FORCE_ARM void user_io_send_buttons(char force) {
 	static unsigned char key_map = 0;
 
 	// frequently poll the adc the switches
@@ -1069,7 +1065,7 @@ static void set_kbd_led(unsigned char led, bool on)
 	}
 }
 
-static void handle_ps2_kbd_commands()
+FORCE_ARM static void handle_ps2_kbd_commands()
 {
 	unsigned char c, cmd;
 	spi_uio_cmd_cont(UIO_KEYBOARD_IN);
@@ -1155,7 +1151,7 @@ ALIGNED(4) static const int ps2_typematic_rates[] = {
 	148, 162, 176, 192, 210, 229, 250, 272, 297, 324, 353, 385, 420, 458, 500
 };
 
-static void handle_ps2_typematic_repeat()
+FORCE_ARM static void handle_ps2_typematic_repeat()
 {
 	if (ps2_typematic_rate & 0x80) return;
 	if (ps2_kbd_state != PS2_KBD_IDLE) return;
@@ -1174,7 +1170,7 @@ static void handle_ps2_typematic_repeat()
 	}
 }
 
-static void handle_ps2_mouse_commands()
+FORCE_ARM static void handle_ps2_mouse_commands()
 {
 	unsigned char c, cmd;
 	spi_uio_cmd_cont(UIO_MOUSE_IN);
@@ -1244,7 +1240,7 @@ static void handle_ps2_mouse_commands()
 	}
 }
 
-FAST void user_io_poll() {
+FORCE_ARM void user_io_poll() {
 
 	// check of core has changed from a good one to a not supported on
 	// as this likely means that the user is reloading the core via jtag
@@ -1347,7 +1343,6 @@ FAST void user_io_poll() {
 	uint16_t joy_state = 0, joy_map = 0;
 
 	if(GetDB9(0, &joy_state)) {
-
 		joy_map = virtual_joystick_mapping(0x00db, 0x0000, joy_state);
 
 		uint8_t idx = joystick_renumber(0);
@@ -1359,8 +1354,8 @@ FAST void user_io_poll() {
 		StateUsbJoySet(joy_state, joy_state >> 8, id);
 		virtual_joystick_keyboard(joy_map);
 	}
-	if(GetDB9(1, &joy_state)) {
 
+	if(GetDB9(1, &joy_state)) {
 		joy_map = virtual_joystick_mapping(0x00db, 0x0001, joy_state);
 
 		uint8_t idx = joystick_renumber(1);
@@ -1950,7 +1945,7 @@ static void send_keycode(unsigned short code) {
 		archie_kbd(code);
 }
 
-FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) {
+FORCE_ARM void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) {
 
 	// send mouse data as minimig expects it
 	if((core_type == CORE_TYPE_MINIMIG) ||
@@ -2162,7 +2157,7 @@ ALIGNED(4) static const char kr_fn_table[] = {
 	0x28, 0x58  //KP Enter
 };
 
-FAST static void keyrah_trans(unsigned char *m, unsigned char *k)
+FORCE_ARM static void keyrah_trans(unsigned char *m, unsigned char *k)
 {
 	static char keyrah_fn_state = 0;
 	char fn = 0;
@@ -2234,7 +2229,7 @@ FAST static void keyrah_trans(unsigned char *m, unsigned char *k)
 //Keyrah v2: USB\VID_18D8&PID_0002\A600/A1200_MULTIMEDIA_EXTENSION_VERSION
 #define KEYRAH_ID (mist_cfg.keyrah_mode && (((((uint32_t)vid)<<16) | pid) == mist_cfg.keyrah_mode))
 
-FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
+FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
 {
 	static char caps=0;
 	// ignore lower priority clears if higher priority key was pressed

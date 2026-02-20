@@ -1,8 +1,8 @@
 #include <stdio.h>
 
+#include "timer.h"
 #include "usb.h"
 #include "max3421e.h"
-#include "timer.h"
 #include "debug.h"
 
 static uint8_t usb_hub_clear_hub_feature(usb_device_t *dev, uint8_t fid) {

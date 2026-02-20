@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+
+#include "user_io.h"
 #include "max3421e.h"
 #include "usb.h"
 #include "timer.h"
@@ -31,7 +33,6 @@
 #include "joymapping.h"
 #include "mist_cfg.h"
 #include "state.h"
-#include "user_io.h"
 #include "debug.h"
 
 
@@ -176,7 +177,7 @@ uint8_t usb_xbox_release(usb_device_t *dev) {
 	return 0;
 }
 
-FAST static void usb_xbox_read_report(usb_device_t *dev, uint16_t len, uint8_t *buf) {
+FORCE_ARM static void usb_xbox_read_report(usb_device_t *dev, uint16_t len, uint8_t *buf) {
 	if(!buf) return;
 //	hexdump(buf, len, 0);
 	if(buf[0] != 0x00 || buf[1] != 0x14) { // Check if it's the correct report - the controller also sends different status reports

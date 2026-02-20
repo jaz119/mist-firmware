@@ -2,19 +2,19 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "user_io.h"
 #include "usb.h"
 #include "max3421e.h"
 #include "timer.h"
 #include "hidparser.h"
-#include "debug.h"
 #include "joymapping.h"
 #include "joystick.h"
 #include "hardware.h"
 #include "utils.h"
-#include "user_io.h"
 #include "mist_cfg.h"
 #include "osd.h"
 #include "state.h"
+#include "debug.h"
 
 static unsigned char kbd_led_state = 0;  // default: all leds off
 static unsigned char keyboards = 0;      // number of detected usb keyboards
@@ -805,7 +805,7 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 
 				// report joysticks to OSD
 				StateJoySet(jmap, idx);
-				StateJoySetExtra( btn_extra, idx);
+				StateJoySetExtra(btn_extra, idx);
 
 				// Send right joy to OSD
 				jmap = 0;
@@ -893,7 +893,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 }
 
 
-void hid_set_kbd_led(unsigned char led, bool on) {
+FORCE_ARM void hid_set_kbd_led(unsigned char led, bool on) {
 	// check if led state has changed
 	if( (on && !(kbd_led_state&led)) || (!on && (kbd_led_state&led))) {
 		if(on) kbd_led_state |=  led;

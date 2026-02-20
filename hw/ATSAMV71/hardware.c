@@ -262,11 +262,6 @@ void USART_Init(unsigned long baudrate) {
     UART0->UART_IER = UART_IER_RXRDY;  // enable rx interrupt
 }
 
-unsigned long CheckButton(void)
-{
-    return MenuButton();
-}
-
 void timer0_c_irq_handler(void) {
   //* Acknowledge interrupt status
 //unsigned int dummy = AT91C_BASE_TC0->TC_SR;
@@ -307,32 +302,6 @@ void InitRTTC() {
 
 int GetSPICLK() {
   return (MCLK / ((SPI0->SPI_CSR[0] & SPI_CSR_SCBR_Msk) >> SPI_CSR_SCBR_Pos) / 1000000);
-}
-
-// user, menu, DIP1, DIP2
-static unsigned char Buttons() {
-    unsigned char map = 0;
-    if (!(BTN_PORT->PIO_PDSR & BTN_RESET)) map |= 0x08;
-    if (!(BTN_PORT->PIO_PDSR & BTN_OSD)) map |= 0x04;
-    if (!(PIOD->PIO_PDSR & SW1)) map |= 0x02;
-    if (!(PIOD->PIO_PDSR & SW2)) map |= 0x01;
-    return (map);
-}
-
-unsigned char MenuButton() {
-    return (!(BTN_PORT->PIO_PDSR & BTN_OSD));
-}
-
-unsigned char UserButton() {
-    return (!(BTN_PORT->PIO_PDSR & BTN_RESET));
-}
-
-bool is_dip_switch1_on() {
-    return !!(Buttons() & 2) || DEBUG_MODE;
-}
-
-bool is_dip_switch2_on() {
-    return !!(Buttons() & 1);
 }
 
 static char md_state[2] = {0, 0};

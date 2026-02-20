@@ -4,7 +4,6 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "boot.h"
 #include "hardware.h"
 #include "timer.h"
 #include "debug.h"
@@ -12,7 +11,7 @@
 #include "spi.h"
 #include "fat_compat.h"
 #include "font.h"
-
+#include "boot.h"
 
 static void mem_upload_init(unsigned long addr) {
   spi_osd_cmd32le_cont(OSD_CMD_WR, addr);

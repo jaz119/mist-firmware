@@ -36,13 +36,12 @@ This is the Minimig OSD (on-screen-display) handler.
 #include <string.h>
 #include <stdio.h>
 
-#include "osd.h"
 #include "spi.h"
-
 #include "logo.h"
 #include "state.h"
 #include "user_io.h"
 #include "font.h"
+#include "osd.h"
 
 // conversion table of Amiga keyboard scan codes to ASCII codes
 ALIGNED(4) static const char keycode_table[128] =
@@ -515,7 +514,7 @@ void ConfigFeatures(unsigned char audiofiltermode, unsigned char powerledoffstat
       spi_osd_cmd8(OSD_CMD_FEATURES, ((powerledoffstate & 0x01) << 2) | (audiofiltermode & 0x03));
 }
 
-static unsigned char disable_menu = 0;
+unsigned char disable_menu = 0;
 
 // get key status
 unsigned char OsdGetCtrl(void)
@@ -592,11 +591,6 @@ unsigned char OsdGetCtrl(void)
     }
 
     return(c);
-}
-
-void OsdDisableMenuButton(unsigned char disable)
-{
-    disable_menu = disable;
 }
 
 unsigned char GetASCIIKey(unsigned char keycode)

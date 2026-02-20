@@ -11,13 +11,13 @@
 #include <stdio.h>
 #include <string.h>  // for memcpy
 
-#include "debug.h"
+#include "user_io.h"
 #include "usb.h"
-#include "pl2303.h"
 #include "max3421e.h"
 #include "utils.h"
-#include "user_io.h"
 #include "timer.h"
+#include "debug.h"
+#include "pl2303.h"
 
 // list of supported vid/pid pairs
 static const unsigned short supported_devices[][2] = {

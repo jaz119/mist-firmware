@@ -1,10 +1,10 @@
 #include <stdio.h>
 
-#include "max3421e.h"
 #include "timer.h"
 #include "debug.h"
 #include "spi.h"
 #include "mist_cfg.h"
+#include "max3421e.h"
 
 RAMFUNC void max3421e_write_u08(uint8_t reg, uint8_t data) {
   spi_max_start();

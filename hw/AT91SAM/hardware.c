@@ -89,7 +89,7 @@ void __init_hardware(void)
     *AT91C_PIOA_SODR  = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B;
     *AT91C_PIOA_OER   = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B;
     *AT91C_PIOA_PPUDR = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B |
-      XILINX_INIT_B | XILINX_DONE;
+    XILINX_INIT_B | XILINX_DONE;
 #endif
 
 #ifdef ALTERA_DCLK
@@ -97,7 +97,7 @@ void __init_hardware(void)
     *AT91C_PIOA_SODR  = ALTERA_DCLK | ALTERA_DATA0 |  ALTERA_NCONFIG;
     *AT91C_PIOA_OER   = ALTERA_DCLK | ALTERA_DATA0 |  ALTERA_NCONFIG;
     *AT91C_PIOA_PPUDR = ALTERA_DCLK | ALTERA_DATA0 |  ALTERA_NCONFIG |
-      ALTERA_NSTATUS | ALTERA_DONE;
+    ALTERA_NSTATUS | ALTERA_DONE;
 #endif
 
 #ifdef MMC_CLKEN
@@ -229,16 +229,7 @@ void USART_Init(unsigned long baudrate) {
     AT91C_BASE_US0->US_IER = AT91C_US_RXRDY;  // enable rx interrupt
 }
 
-unsigned long CheckButton(void)
-{
-#ifdef BUTTON
-    return((~*AT91C_PIOA_PDSR) & BUTTON);
-#else
-    return MenuButton();
-#endif
-}
-
-FAST static void timer0_c_irq_handler(void) {
+static void timer0_c_irq_handler(void) {
   //* Acknowledge interrupt status
   unsigned int dummy = AT91C_BASE_TC0->TC_SR;
 
@@ -301,12 +292,12 @@ int GetSPICLK() {
 }
 
 // permanent state of adc inputs used for dip switches
-volatile static unsigned char adc_state = 0;
+volatile unsigned char adc_state = 0;
 
 AT91PS_ADC a_pADC = AT91C_BASE_ADC;
 AT91PS_PMC a_pPMC = AT91C_BASE_PMC;
 
-static void PollOneADC() {
+RAMFUNC static void PollOneADC() {
   static unsigned char adc_cnt = 0xff;
 
   // fetch result from previous run
@@ -356,34 +347,13 @@ void InitADC(void) {
 }
 
 // poll one adc channel every 25ms
-void PollADC() {
+RAMFUNC void PollADC() {
   static long adc_timer = 0;
 
   if(CheckTimer(adc_timer)) {
     adc_timer = GetTimer(25);
     PollOneADC();
   }
-}
-
-// user, menu, DIP1, DIP2
-static inline unsigned char Buttons() {
-  return (adc_state);
-}
-
-unsigned char MenuButton() {
-  return (adc_state & 4);
-}
-
-unsigned char UserButton() {
-  return (adc_state & 8);
-}
-
-bool is_dip_switch1_on() {
-    return !!(Buttons() & 2) || DEBUG_MODE;
-}
-
-bool is_dip_switch2_on() {
-    return !!(Buttons() & 1);
 }
 
 // poll db9 joysticks

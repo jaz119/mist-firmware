@@ -29,7 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <string.h>
 #include "errors.h"
-#include "utils.h"
 #include "fat_compat.h"
 #include "osd.h"
 #include "state.h"
@@ -51,6 +50,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "settings.h"
 #include "usb.h"
 #include "usbdev.h"
+#include "utils.h"
 #ifdef CONFIG_HAVE_ETH
 #include "eth.h"
 #endif

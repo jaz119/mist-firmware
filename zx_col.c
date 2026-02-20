@@ -18,10 +18,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sxmlc/sxmlc.h"
+
 #include "fat_compat.h"
-#include "data_io.h"
+#include "sxmlc/sxmlc.h"
 #include "menu.h"
+#include "data_io.h"
 
 static unsigned char *zx_col_table;
 //static char *col_state_s[] = {"None", "Border", "Entry", "Line", "Paper", "Ink"};

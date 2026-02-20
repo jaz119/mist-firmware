@@ -133,7 +133,14 @@ void ConfigIDE(unsigned char gayle, unsigned char master, unsigned char slave);
 void ConfigAutofire(unsigned char autofire);
 void ConfigFeatures(unsigned char audiofiltermode, unsigned char powerledoffstate);
 unsigned char OsdGetCtrl(void);
-void OsdDisableMenuButton(unsigned char disable);
+
+extern unsigned char disable_menu;
+
+static inline void OsdDisableMenuButton(unsigned char disable)
+{
+    disable_menu = disable;
+}
+
 unsigned char GetASCIIKey(unsigned char c);
 void OsdWriteDoubleSize(unsigned char n, char *s, unsigned char pass);
 //void OsdDrawLogo(unsigned char n, char row);

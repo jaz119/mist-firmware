@@ -132,8 +132,6 @@ void USART_Write(unsigned char c);
 unsigned char USART_Read(void);
 void USART_Poll(void);
 
-unsigned long CheckButton(void);
-
 void Timer_Init(void);
 
 // 12 bits accuracy at 1ms = 4096 ms
@@ -165,15 +163,35 @@ static inline unsigned long GetRTTC() {
 
 int GetSPICLK();
 
+extern volatile unsigned char adc_state;
+
 void InitADC(void);
-void PollADC();
+RAMFUNC void PollADC();
 
 // user, menu, DIP2, DIP1
-unsigned char MenuButton();
-unsigned char UserButton();
+static inline unsigned char UserButton() {
+  return !!(adc_state & 8);
+}
 
-bool is_dip_switch1_on();
-bool is_dip_switch2_on();
+static inline unsigned char MenuButton() {
+  return !!(adc_state & 4);
+}
+
+static inline bool is_dip_switch2_on() {
+  return !!(adc_state & 1);
+}
+
+static inline bool is_dip_switch1_on() {
+  return !!(adc_state & 2) || DEBUG_MODE;
+}
+
+static inline bool CheckButton() {
+#ifdef BUTTON
+    return((~*AT91C_PIOA_PDSR) & BUTTON);
+#else
+    return MenuButton();
+#endif
+}
 
 static inline void InitDB9() {};
 FAST char GetDB9(char index, uint16_t *joy_map);

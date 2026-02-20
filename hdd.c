@@ -26,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 
 #include "swab.h"
-#include "utils.h"
 #include "errors.h"
 #include "hardware.h"
 #include "fat_compat.h"
@@ -42,6 +41,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "user_io.h"
 #endif
 #include "debug.h"
+#include "utils.h"
 
 hardfileTYPE  *hardfile[HARDFILES];
 
@@ -1512,7 +1512,7 @@ static inline void ATA_WriteSectors(unsigned char* tfr, unsigned short sector, u
 
 
 // HandleHDD()
-void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
+FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
 {
   unsigned char  tfr[8];
   unsigned short i;

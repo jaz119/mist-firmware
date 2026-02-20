@@ -97,7 +97,7 @@ typedef struct  {
 // interface to usb core
 extern const usb_device_class_config_t usb_hid_class;
 
-void hid_set_kbd_led(unsigned char led, bool on);
+FORCE_ARM void hid_set_kbd_led(unsigned char led, bool on);
 uint8_t hid_get_joysticks(void);
 int8_t hid_keyboard_present(void);
 unsigned char get_keyboards(void);

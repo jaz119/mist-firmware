@@ -6,14 +6,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
-#include "ini_parser.h"
-#include "utils.h"
 
 #ifndef INI_PARSER_TEST
 #include "debug.h"
 #include "fat_compat.h"
 #endif
+
+#include "utils.h"
+#include "ini_parser.h"
 
 //// defines ////
 #define INI_EOT                 4 // End-Of-Transmission

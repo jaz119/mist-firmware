@@ -16,11 +16,11 @@
 */
 
 #include <string.h>
-#include "ini_parser.h"
-#include "settings.h"
 #include "user_io.h"
-#include "usb/joymapping.h"
 #include "osd.h"
+#include "ini_parser.h"
+#include "usb/joymapping.h"
+#include "settings.h"
 
 extern char s[OSD_BUF_SIZE];
 

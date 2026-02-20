@@ -9,12 +9,12 @@
 
 #include "swab.h"
 #include "scsi.h"
-#include "utils.h"
 #include "storage_control.h"
 #include "fat_compat.h"
 #include "usbdev.h"
 #include "FatFs/diskio.h"
 #include "debug.h"
+#include "utils.h"
 
 typedef struct
 {

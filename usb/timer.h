@@ -7,7 +7,6 @@
 #include <stdbool.h>
 
 #include "hardware.h"
-#include "attrs.h"
 
 typedef uint32_t msec_t;
 

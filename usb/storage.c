@@ -7,13 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "debug.h"
+#include "timer.h"
 #include "usb.h"
 #include "storage.h"
-#include "timer.h"
 #include "max3421e.h"
 #include "utils.h"
 #include "swab.h"
+#include "debug.h"
 
 uint8_t storage_devices = 0;
 

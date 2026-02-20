@@ -3,13 +3,14 @@
 
 //// includes ////
 #include <string.h>
-#include "ini_parser.h"
-#include "mist_cfg.h"
+
 #include "user_io.h"
 #include "data_io.h"
 #include "usb/usb.h"
 #include "usb/hid.h"
 #include "usb/joymapping.h"
+#include "ini_parser.h"
+#include "mist_cfg.h"
 
 // call data_io_rom_upload but reload sector_buffer afterwards since the io
 // operations in data_io_rom_upload may have overwritten the buffer

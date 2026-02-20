@@ -216,6 +216,9 @@ void reset_handler(void)
 	/* initialize SoC / board */
 //	board_init();
 
+	SCB_EnableICache();
+	SCB_EnableDCache();
+
 	/* branch to main function */
 	main();
 
