@@ -501,22 +501,24 @@ char SetRTC(unsigned char *d) {
 }
 
 RAMFUNC void UnlockFlash() {
-    // FIXME: Attempt to unblock non-existent regions (above 1Mb)
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 2048; i += 16) {
         while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
         EEFC->EEFC_FCR = EEFC_FCR_FCMD_CLB | EEFC_FCR_FARG(i) | EEFC_FCR_FKEY_PASSWD; // unlock page
         while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
+        __DSB();
+        __ISB();
     }
 }
 
 RAMFUNC void WriteFlash(unsigned long page) {
-    uint32_t status;
     while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
     if (!(page & 0xf)) {
-        EEFC->EEFC_FCR = EEFC_FCR_FCMD_EPA | EEFC_FCR_FARG(0x02 | page) | EEFC_FCR_FKEY_PASSWD; // erase 16 pages
+        EEFC->EEFC_FCR = EEFC_FCR_FCMD_EPA | EEFC_FCR_FARG(0x02 | (page & 0xfffc)) | EEFC_FCR_FKEY_PASSWD; // erase 16 pages
         while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
     }
 
+    __DSB();
     EEFC->EEFC_FCR = EEFC_FCR_FCMD_WP | EEFC_FCR_FARG(page) | EEFC_FCR_FKEY_PASSWD; // write page
     while (!(EEFC->EEFC_FSR & EEFC_FSR_FRDY));  // wait for ready
+    __ISB();
 }

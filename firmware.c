@@ -240,7 +240,6 @@ RAMFUNC void WriteFirmware(char *name)
             SCB_CleanDCache_by_Addr(
                 (uint32_t*)IFLASH_ADDR + page * FLASH_PAGESIZE, FLASH_PAGESIZE);
             __DSB();
-            __ISB();
 #endif
             WriteFlash(page);
             page++;
