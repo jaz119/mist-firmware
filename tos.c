@@ -1737,7 +1737,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					tos_reset(0);
 					} break;
 				case 16:  // TOS
-					SelectFileNG("IMG", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
+					SelectFileNG("IMGROM", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
 					break;
 				case 17: {
 					unsigned long system_ctrl = tos_system_ctrl();
