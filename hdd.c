@@ -46,7 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 hardfileTYPE  *hardfile[HARDFILES];
 
 // hardfile structure
-hdfTYPE hdf[HARDFILES];
+ALIGNED(4) hdfTYPE hdf[HARDFILES];
 
 #define AUDIO_PLAYING  0x11
 #define AUDIO_PAUSED   0x12
@@ -67,7 +67,7 @@ typedef struct
 
 static cdrom_t cdrom;
 
-static void SwapBytes(char *c, unsigned int len)
+FAST static void SwapBytes(char *c, unsigned int len)
 {
   char temp;
 
@@ -81,7 +81,7 @@ static void SwapBytes(char *c, unsigned int len)
 }
 
 // RDBChecksum()
-static void RDBChecksum(unsigned long *p)
+FAST static void RDBChecksum(unsigned long *p)
 {
   unsigned long count=p[1];
   unsigned long c2;
@@ -186,7 +186,7 @@ static void FakeRDB(int unit,int block)
 // builds Identify Device struct
 static void IdentifyDevice(unsigned short *pBuffer, unsigned char unit)
 {
-  char *p, i, x;
+  char *p, x;
   unsigned long total_sectors = hdf[unit].cylinders * hdf[unit].heads * hdf[unit].sectors;
   memset(pBuffer, 0, 512);
 
@@ -209,7 +209,7 @@ static void IdentifyDevice(unsigned short *pBuffer, unsigned char unit)
       } else {
         memcpy(p, "YAQUBE                                  ", 40); // model name - byte swapped
         p += 8;
-        for (i = 0; (x = hardfile[unit]->name[i]) && i < 16; i++) // copy file name as model name
+        for (int i = 0; (x = hardfile[unit]->name[i]) && i < 16; i++) // copy file name as model name
           p[i] = x;
       }
       SwapBytes((char*)&pBuffer[27], 40);
@@ -1132,7 +1132,6 @@ static inline void ATA_Diagnostic(unsigned char* tfr)
 // ATA_IdentifyDevice()
 static void ATA_IdentifyDevice(unsigned char* tfr, unsigned char unit, char packet)
 {
-  int i;
   unsigned short *id = (unsigned short *)sector_buffer;
   // Identify Device (0xec)
   hdd_debugf("IDE%d: Identify %s Device", unit, packet ? "Packet" : "");
@@ -1169,7 +1168,7 @@ static void ATA_IdentifyDevice(unsigned char* tfr, unsigned char unit, char pack
   SPI(0x00);
   SPI(0x00);
   SPI(0x00);
-  for (i = 0; i < 256; i++) {
+  for (int i = 0; i < 256; i++) {
     SPI((unsigned char)id[i]);
     SPI((unsigned char)(id[i] >> 8));
   }
@@ -1515,7 +1514,6 @@ static inline void ATA_WriteSectors(unsigned char* tfr, unsigned short sector, u
 FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
 {
   unsigned char  tfr[8];
-  unsigned short i;
   unsigned short sector;
   unsigned short cylinder;
   unsigned char  head;
@@ -1533,7 +1531,7 @@ FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
     SPI(0x00);
     SPI(0x00);
     SPI(0x00);
-    for (i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
       tfr[i] = SPI(0);
       if (i == 6 && cs1ena) cs1 = tfr[i] & 0x01;
       tfr[i] = SPI(0);

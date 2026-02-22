@@ -105,7 +105,7 @@
 #include <inttypes.h>
 
 /*functions*/
-FAST void OsdSetTitle(char *s,int arrow); // arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
+FAST void OsdSetTitle(const char *s, int arrow); // arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
 FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char inver, unsigned char stipple, char offset); // Used for scrolling "Exit" text downwards...
 
 static inline void OsdWrite(unsigned char n, char *s, unsigned char invert, unsigned char stipple)

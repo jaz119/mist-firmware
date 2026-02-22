@@ -190,7 +190,6 @@ char UploadKickstart(char *name)
   return(0);
 }
 
-
 //// UploadActionReplay() ////
 FAST char UploadActionReplay()
 {
@@ -294,7 +293,6 @@ FAST char UploadActionReplay()
   return(0);
 }
 
-
 //// SetConfigurationFilename() ////
 void SetConfigurationFilename(int config)
 {
@@ -303,7 +301,6 @@ void SetConfigurationFilename(int config)
   else
     strcpy(configfilename,"/MINIMIG.CFG");
 }
-
 
 //// ConfigurationExists() ////
 unsigned char ConfigurationExists(char *filename)
@@ -327,7 +324,7 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
 {
   char updatekickstart=0;
   char result=0;
-  unsigned char key, i;
+  uint32_t key, i;
   ini_cfg_t config_ini_cfg;
   FIL file;
 
@@ -396,7 +393,7 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
 
   // wait up to 3 seconds for keyboard to appear. If it appears wait another
   // two seconds for the user to press a key
-  int8_t keyboard_present = 0;
+  bool keyboard_present = 0;
   for(i=0;i<3;i++) {
     unsigned long to = GetTimer(1000);
     while(!CheckTimer(to))
@@ -424,7 +421,6 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
   }
 
   ApplyConfiguration(updatekickstart);
-
   return(result);
 }
 
@@ -460,7 +456,7 @@ static void ApplyConfiguration(char reloadkickstart)
     ConfigFloppy(config.floppy.drives, config.floppy.speed);
   }
 
-  char idxfail = 0;
+  bool idxfail = 0;
 
   for (int i = 0; i < ARRAY_SIZE(config.hardfile); i++)
     hardfile[i] = &config.hardfile[i];

@@ -143,7 +143,7 @@ FAST static void rotatechar(unsigned char *in,unsigned char *out)
 	}
 }
 
-FAST void OsdSetTitle(char *s,int a)
+FAST void OsdSetTitle(const char *s, int a)
 {
 	// Compose the title, condensing character gaps
 	arrow=a;

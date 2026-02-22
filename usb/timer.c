@@ -3,19 +3,8 @@
 // this is a 32 bit counter which overflows after 2^32 milliseconds
 // -> after 46 days
 
-void timer_init() {
-  // reprogram the realtime timer to run at 1Khz
-  InitRTTC();
-}
-
-FAST bool timer_check(msec_t ref, msec_t delay) {
+RAMFUNC void timer_delay_msec(msec_t t) {
   msec_t now = GetRTTC();
-  return ((now-ref) >= delay);
-}
-
-FAST void timer_delay_msec(msec_t t) {
-  msec_t now = GetRTTC();
-
   while(GetRTTC() - now < t);
 }
 

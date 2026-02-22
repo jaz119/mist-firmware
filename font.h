@@ -8,6 +8,6 @@
 extern unsigned char charfont[128][8];
 
 void font_load();
-char char_row(char c, char row);
+uint8_t char_row(int c, int row);
 
 #endif // FONT_H

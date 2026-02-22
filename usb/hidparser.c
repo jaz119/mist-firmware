@@ -85,9 +85,6 @@ FAST bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t 
 	int8_t generic_desktop = -1;   // depth at which first gen_desk was found
 	uint8_t collection_depth = 0;
 
-	uint8_t i;
-
-	//
 	int8_t skip_report = 0;
 	uint8_t report_size = 0, report_count = 0;
 	uint16_t bit_count = 0, usage_count = 0;
@@ -104,7 +101,7 @@ FAST bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t 
 	uint8_t btns = 0;
 	int8_t hat = -1;
 
-	for (i=0; i<MAX_AXES; i++) axis[i] = -1;
+	for (int i=0; i<MAX_AXES; i++) axis[i] = -1;
 
 	conf->type = REPORT_TYPE_NONE;
 
@@ -234,7 +231,7 @@ FAST bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t 
 					if (!skip_report) bit_count += report_count * report_size;
 					usage_count = 0;
 					btns = 0;
-					for (i=0; i<MAX_AXES; i++) axis[i] = -1;
+					for (int i=0; i<MAX_AXES; i++) axis[i] = -1;
 					hat = -1;
 					break;
 

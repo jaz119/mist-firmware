@@ -155,7 +155,7 @@ static uint8_t usb_hub_init(
   }
 
   // Power on all ports
-  for (uint8_t i=1; i<=info->bNbrPorts; i++)
+  for (uint32_t i=1; i<=info->bNbrPorts; i++)
     usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_POWER, i, 0); // HubPortPowerOn(i);
 
   if (!dev->parent)

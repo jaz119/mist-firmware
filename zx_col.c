@@ -109,7 +109,6 @@ static int zx_col_start_node(const XMLNode* node, SAX_Data* sd)
 
 static int zx_col_end_node(const XMLNode* node, SAX_Data* sd)
 {
-
 	switch (col_state) {
 		case STATE_BORDER:
 		case STATE_PAPER:

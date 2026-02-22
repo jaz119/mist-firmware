@@ -29,9 +29,9 @@ extern int partitioncount;
 #define MAXDIRENTRIES 16
 #define iCurrentDirectory fs.cdir
 
-extern unsigned char nDirEntries;
-extern unsigned char maxDirEntries;
-extern unsigned char iSelectedEntry;
+extern unsigned int nDirEntries;
+extern unsigned int maxDirEntries;
+extern unsigned int iSelectedEntry;
 extern char cwd[FF_LFN_BUF + 1];
 
 extern FILINFO  DirEntries[MAXDIRENTRIES];
@@ -60,16 +60,16 @@ extern unsigned char sector_buffer[SECTOR_BUFFER_SIZE];
 // functions
 bool FindDrive(void);
 void ChangeDirectoryName(const char *name);
+FAST const char *GetExtension(const char *fileName);
 char ScanDirectory(unsigned long mode, char *extension, unsigned char options);
 
-FAST const char *GetExtension(const char *fileName);
 RAMFUNC FRESULT FileReadNextBlock(FIL *, void *pBuffer);
 
-void fat_switch_to_usb(void);
-char *fs_type_to_string(void);
-int8_t fat_medium_present(void);
-const char *get_short_name(const char *);
 int8_t fat_uses_mmc(void);
+void fat_switch_to_usb(void);
+int8_t fat_medium_present(void);
+const char *fs_type_to_string(void);
+const char *get_short_name(const char *);
 void purge_dir_cache();
 
 #endif

@@ -339,9 +339,6 @@ RAMFUNC unsigned char MMC_Read(unsigned long lba, unsigned char *pReadBuffer)
     // check of card has been removed and try to re-initialize it
     if(!check_card()) return 0;
 
-    unsigned long i;
-    unsigned char *p;
-
     if (CardType != CARDTYPE_SDHC) // SDHC cards are addressed in sectors not bytes
         lba = lba << 9; // otherwise convert sector adddress to byte address
 
@@ -504,7 +501,7 @@ RAMFUNC unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *
 // MMC command
 RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg)
 {
-  unsigned char c,b;
+    unsigned char c,b;
 
     crc = 0;
 
@@ -555,7 +552,6 @@ RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg)
 
     return response;
 }
-
 
 // stop multi block data transmission
 RAMFUNC static unsigned char MMC_CMD12(void)
@@ -608,5 +604,5 @@ RAMFUNC static void MMC_CRC(unsigned char c)
 }
 
 unsigned char MMC_IsSDHC(void) {
-  return(CardType == CARDTYPE_SDHC);
+  return (CardType == CARDTYPE_SDHC);
 }

@@ -191,6 +191,8 @@
 #define UIO_PRIORITY_KEYBOARD 0
 #define UIO_PRIORITY_GAMEPAD  1
 
+extern bool osd_is_visible;
+
 extern hardfileTYPE hardfiles[HARDFILES];
 
 // serial status data type returned from the core
@@ -206,25 +208,32 @@ void user_io_reset();
 void user_io_init();
 void user_io_detect_core_type();
 void user_io_init_core();
-unsigned char user_io_core_type();
+uint32_t user_io_core_type();
 uint32_t user_io_get_core_features();
-char minimig_v1();
-char minimig_v2();
+
+static inline bool minimig_v1() {
+  return(user_io_core_type() == CORE_TYPE_MINIMIG);
+}
+
+static inline bool minimig_v2() {
+  return(user_io_core_type() == CORE_TYPE_MINIMIG_AGA);
+}
+
 char user_io_is_8bit_with_config_string();
 FORCE_ARM void user_io_poll();
-void user_io_osd_key_enable(char);
+void user_io_osd_key_enable(bool);
 void user_io_serial_tx(char *, uint16_t);
 FAST char *user_io_8bit_get_string(unsigned char);
 unsigned long long user_io_8bit_set_status(unsigned long long, unsigned long long);
 void user_io_sd_set_config(void);
 char user_io_serial_status(serial_status_t *, uint8_t);
-char user_io_is_mounted(unsigned char index);
+bool user_io_is_mounted(unsigned char index);
 void user_io_file_mount(const unsigned char*, unsigned char);
-char user_io_is_cue_mounted();
+bool user_io_is_cue_mounted();
 char user_io_cue_mount(const unsigned char*, unsigned char);
-char *user_io_get_core_name();
+const char *user_io_get_core_name();
 void user_io_set_core_mod(int64_t);
-void user_io_sd_ack(char drive_index);
+void user_io_sd_ack(uint8_t drive_index);
 
 // io controllers interface for FPGA ethernet emulation using usb ethernet
 // devices attached to the io controller (ethernec emulation)
@@ -240,14 +249,12 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 #define CONFIG_ROOT 1   // create config filename in the root directory
 #define CONFIG_VHD  2   // create config filename according to VHD= in arc file
 
-char user_io_create_config_name(char *s, const char *ext, char flags);
+char user_io_create_config_name(char *s, const char *ext, uint8_t flags);
 void user_io_digital_joystick(unsigned char, unsigned char);
 void user_io_digital_joystick_ext(unsigned char, uint32_t);
-FAST void user_io_analog_joystick(unsigned char, char, char, char, char);
+FAST void user_io_analog_joystick(unsigned char, int, int, int, int);
 
-extern char osd_is_visible;
-
-static inline char user_io_osd_is_visible() {
+static inline bool user_io_osd_is_visible() {
 	return osd_is_visible;
 }
 

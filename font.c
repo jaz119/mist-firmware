@@ -7,8 +7,8 @@
 
 ALIGNED(4) unsigned char charfont[128][8];
 
-char char_row(char c, char row) {
-	char r=0;
+FAST uint8_t char_row(int c, int row) {
+	uint8_t r=0;
 	for(int i=0;i<8;i++) {
 		r |= (((charfont[c & 0x7f][7-i]>>row) & 0x01)<<i);
 	}

@@ -381,9 +381,8 @@ FAST void usb_poll() {
 		poll = timer_get_msec();
 
 		// poll all configured devices
-		uint8_t i;
 		usb_device_t *dev = usb_get_devices();
-		for (i=0; i<USB_NUMDEVICES; i++)
+		for (uint32_t i=0; i<USB_NUMDEVICES; i++)
 		if(dev[i].bAddress && dev[i].class && dev[i].class->poll)
 			rcode = dev[i].class->poll(dev+i);
 
@@ -392,7 +391,7 @@ FAST void usb_poll() {
 			usb_reset_state();
 
 			// just remove everything ...
-			for (i=0; i<USB_NUMDEVICES; i++) {
+			for (uint32_t i=0; i<USB_NUMDEVICES; i++) {
 				if(dev[i].bAddress && dev[i].class) {
 					rcode = dev[i].class->release(dev+i);
 					dev[i].bAddress = 0;

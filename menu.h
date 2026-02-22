@@ -26,7 +26,7 @@ enum MENU
 };
 
 typedef struct {
-    char *title;
+    const char *title;
     uint8_t flags;
     uint32_t timer;
     uint8_t stdexit;

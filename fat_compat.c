@@ -40,32 +40,25 @@ void fat_switch_to_usb() {
 	fat_device = 1;
 }
 
-static const char fs_type_none[] = "NONE";
-static const char fs_type_fat12[] = "FAT12";
-static const char fs_type_fat16[] = "FAT16";
-static const char fs_type_fat32[] = "FAT32";
-static const char fs_type_exfat[] = "exFAT";
-static const char fs_type_unknown[] = "UNKNOWN";
-
-char *fs_type_to_string(void) {
+const char *fs_type_to_string(void) {
 	switch (fs.fs_type) {
 	case 0:
-		return (char *)&fs_type_none;
+		return "NONE";
 		break;
 	case FS_FAT12:
-		return (char *)&fs_type_fat12;
+		return "FAT12";
 		break;
 	case FS_FAT16:
-		return (char *)&fs_type_fat16;
+		return "FAT16";
 		break;
 	case FS_FAT32:
-		return (char *)&fs_type_fat32;
+		return "FAT32";
 		break;
 	case FS_EXFAT:
-		return (char *)&fs_type_exfat;
+		return "exFAT";
 		break;
 	default:
-		return (char *)&fs_type_unknown;
+		return "UNKNOWN";
 		break;
 	}
 }
@@ -227,18 +220,18 @@ RAMFUNC FRESULT FileReadNextBlock (
 }
 #pragma section_no_code_init
 
-FILINFO       DirEntries[MAXDIRENTRIES];
+FILINFO DirEntries[MAXDIRENTRIES];
 unsigned char sort_table[MAXDIRENTRIES];
-unsigned char nDirEntries = 0;          // entries in DirEntry table
-unsigned char iSelectedEntry = 0;       // selected entry index
-unsigned char maxDirEntries = 0;
+unsigned int nDirEntries = 0;          // entries in DirEntry table
+unsigned int iSelectedEntry = 0;       // selected entry index
+unsigned int maxDirEntries = 0;
 
-static FILINFO       t_DirEntries[MAXDIRENTRIES];
+static FILINFO t_DirEntries[MAXDIRENTRIES];
 static unsigned char t_sort_table[MAXDIRENTRIES];
 
-static DIR           dir;
-static FILINFO       fil;
-static unsigned char nNewEntries = 0;      // indicates if a new entry has been found (used in scroll mode)
+static DIR dir;
+static FILINFO fil;
+static unsigned int nNewEntries = 0;   // indicates if a new entry has been found (used in scroll mode)
 
 FAST static int CompareDirEntries(FILINFO *pDirEntry1, FILINFO *pDirEntry2)
 {
@@ -256,9 +249,9 @@ FAST static int CompareDirEntries(FILINFO *pDirEntry1, FILINFO *pDirEntry2)
 	return(rc);
 }
 
-FAST static char CompareExt(const char *fileName, const char *extension)
+FAST static bool CompareExt(const char *fileName, const char *extension)
 {
-	char found = 0;
+	bool found = 0;
 	const char *fileExt = GetExtension(fileName);
 	if (!fileExt) return 0;
 
@@ -309,12 +302,11 @@ FAST static void SortTempTable(char prev) {
 //mode: SCAN_INIT, SCAN_PREV, SCAN_NEXT, SCAN_PREV_PAGE, SCAN_NEXT_PAGE
 char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 
-	char rc = 0; //return code
+	char rc = 0; // return code
 	char find_file = 0;
 	char find_dir = 0;
-	char is_file = 0;
-	char initial = 1;
-	int i;
+	bool is_file = 0;
+	bool initial = 1;
 	unsigned char x;
 
 	maxDirEntries = OsdLines();
@@ -323,7 +315,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 	{
 		nDirEntries = 0;
 		iSelectedEntry = 0;
-		for (i = 0; i < maxDirEntries; i++)
+		for (int i = 0; i < maxDirEntries; i++)
 			sort_table[i] = i;
 		if (f_opendir(&dir, ".") != FR_OK) return 0;
 	}
@@ -406,7 +398,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 					// replace the last entry with the new one if appropriate
 					DirEntries[sort_table[maxDirEntries-1]] = fil;
 				}
-				for (i = nDirEntries - 1; i > 0; i--) {// one pass bubble-sorting (table is already sorted, only the new item must be placed in order)
+				for (int i = nDirEntries - 1; i > 0; i--) {// one pass bubble-sorting (table is already sorted, only the new item must be placed in order)
 					if (CompareDirEntries(&DirEntries[sort_table[i]], &DirEntries[sort_table[i-1]])<0) // compare items
 					{
 						x = sort_table[i];
@@ -419,7 +411,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 			} else if (mode == SCAN_INIT_FIRST) {
 				// find a dir entry with given cluster number and store it in the buffer
 				if (fil.fclust == iPreviousDirectory) { // directory entry found
-					for (i = 0; i< maxDirEntries; i++)
+					for (int i = 0; i< maxDirEntries; i++)
 						sort_table[i] = i; // init sorting table
 
 					nDirEntries = 1;
@@ -441,7 +433,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 						}
 					}
 
-					for (i = nDirEntries - 1; i > 0; i--) {// one pass bubble-sorting (table is already sorted, only the new item must be placed in order)
+					for (int i = nDirEntries - 1; i > 0; i--) {// one pass bubble-sorting (table is already sorted, only the new item must be placed in order)
 						if (CompareDirEntries(&DirEntries[sort_table[i]], &DirEntries[sort_table[i-1]]) < 0) {// compare items and swap if necessary
 							x = sort_table[i];
 							sort_table[i] = sort_table[i-1];
@@ -457,7 +449,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 						DirEntries[sort_table[0]] = fil;
 						// scroll entries' indices
 						x = sort_table[0];
-						for (i = 0; i < maxDirEntries-1; i++)
+						for (int i = 0; i < maxDirEntries-1; i++)
 							sort_table[i] = sort_table[i+1];
 						sort_table[maxDirEntries-1] = x; // last entry is the found one
 					}
@@ -476,7 +468,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 						DirEntries[sort_table[maxDirEntries-1]] = fil;
 						// scroll entries' indices
 						x = sort_table[maxDirEntries-1];
-						for (i = maxDirEntries - 1; i > 0; i--)
+						for (int i = maxDirEntries - 1; i > 0; i--)
 							sort_table[i] = sort_table[i-1];
 						sort_table[0] = x; // the first entry is the found one
 					}
@@ -539,25 +531,25 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 
 	if (nNewEntries) {
 		if (mode == SCAN_NEXT_PAGE) {
-			unsigned char j = maxDirEntries - nNewEntries; // number of remaining old entries to scroll
-			for (i = 0; i < j; i++) {
+			int j = maxDirEntries - nNewEntries; // number of remaining old entries to scroll
+			for (int i = 0; i < j; i++) {
 				x = sort_table[i];
 				sort_table[i] = sort_table[i + nNewEntries];
 				sort_table[i + nNewEntries] = x;
 			}
 			// copy temporary buffer to display
-			for (i = 0; i < nNewEntries; i++) {
+			for (int i = 0; i < nNewEntries; i++) {
 				DirEntries[sort_table[i+j]] = t_DirEntries[t_sort_table[i]];
 			}
 		} else if (mode == SCAN_PREV_PAGE) { // note: temporary buffer entries are in reverse order
-			unsigned char j = nNewEntries - 1;
-			for (i = maxDirEntries - 1; i > j; i--) {
+			int j = nNewEntries - 1;
+			for (int i = maxDirEntries - 1; i > j; i--) {
 				x = sort_table[i];
 				sort_table[i] = sort_table[i - nNewEntries];
 				sort_table[i - nNewEntries] = x;
 			}
 			// copy temporary buffer to display
-			for (i = 0; i < nNewEntries; i++) {
+			for (int i = 0; i < nNewEntries; i++) {
 				DirEntries[sort_table[j-i]] = t_DirEntries[t_sort_table[i]];
 			}
 			nDirEntries += nNewEntries;
@@ -573,7 +565,7 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options) {
 					x = (t_DirEntries[t_sort_table[0]].fattrib & AM_DIR) == (DirEntries[sort_table[iSelectedEntry]].fattrib & AM_DIR);
 				}
 				if (x) { // first entry is what we were searching for
-					for (i = 0; i < nNewEntries; i++) {
+					for (int i = 0; i < nNewEntries; i++) {
 						DirEntries[sort_table[i]] = t_DirEntries[t_sort_table[i]];
 					}
 					nDirEntries = nNewEntries;

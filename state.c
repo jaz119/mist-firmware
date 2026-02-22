@@ -87,7 +87,7 @@ void StateKeyboardPressedPS2(uint16_t *keycodes) {
 
 FORCE_ARM void StateKeyboardSet(
 	uint8_t modifier, uint8_t* keycodes, uint16_t* keycodes_ps2) {
-	unsigned i=0,j=0;
+	unsigned int i=0,j=0;
 	key_modifier = modifier;
 	for(i=0; i<6; i++) {
 		// iprintf("Key N=%d, USB=%x, PS2=%x\n", i, keycodes[i], keycodes_ps2[i]);

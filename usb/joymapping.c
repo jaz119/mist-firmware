@@ -87,8 +87,7 @@ void virtual_joystick_remap_init(char save) {
 
 char virtual_joystick_remap(char *s, char action, int tag) {
 
-  uint8_t i;
-  uint8_t count;
+  uint32_t count;
   uint8_t len = strlen(s);
   uint16_t value = 0;
   uint16_t pid, vid;
@@ -148,7 +147,7 @@ char virtual_joystick_remap(char *s, char action, int tag) {
   }
 
   // parse remap request
-  for(i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
+  for(uint32_t i=0; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
     // update if the same vid/pid/tag found, or use the first empty slot
     if((joystick_mappers[i].vid == vid &&
         joystick_mappers[i].pid == pid &&
@@ -187,7 +186,7 @@ char virtual_joystick_remap(char *s, char action, int tag) {
 }
 
 void virtual_joystick_remap_update(joymapping_t *map) {
-	for(int i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
+	for(uint32_t i=0; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
 		if((joystick_mappers[i].vid == map->vid &&
 		    joystick_mappers[i].pid == map->pid &&
 		    joystick_mappers[i].tag == map->tag) ||
@@ -202,7 +201,7 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 {
 	// first search for the entry to update with the largest tag
 	int old = -1, new = -1, oldtag = 0;
-	for(int i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
+	for(uint32_t i=0; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
 		if(joystick_mappers[i].vid == vid &&
 		   joystick_mappers[i].pid == pid &&
 		   joystick_mappers[i].tag >= oldtag) {
@@ -213,7 +212,7 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 	if (old == -1) return; // old entry not found
 
 	// now search if the entry with the same newtag already there
-	for(int i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
+	for(uint32_t i=0; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
 		if(joystick_mappers[i].vid == vid &&
 		   joystick_mappers[i].pid == pid &&
 		   joystick_mappers[i].tag == newtag) {
@@ -229,7 +228,7 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 	} else if (new != old) {
 		memcpy(&joystick_mappers[new].mapping, &joystick_mappers[old].mapping, 16*sizeof(uint16_t));
 		// delete the old entry
-		for(int i = old; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
+		for(uint32_t i = old; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
 			if (i==(MAX_VIRTUAL_JOYSTICK_REMAP-1)) {
 				memset(&joystick_mappers[i], 0, sizeof(joymapping_t));
 			} else {
@@ -269,7 +268,7 @@ static const struct {
 };
 
 const char* get_joystick_name( uint16_t vid, uint16_t pid ) {
-	for (int n = 0; n < ARRAY_SIZE(joy_devs); n++)
+	for (uint32_t n = 0; n < ARRAY_SIZE(joy_devs); n++)
 	{
 		if (joy_devs[n].vid == vid && joy_devs[n].pid == pid)
 		{
@@ -284,15 +283,13 @@ const char* get_joystick_name( uint16_t vid, uint16_t pid ) {
 
 FORCE_ARM uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_t joy_input ) {
 
-	uint8_t i;
-
 	// defines translations between physical buttons and virtual joysticks
 	uint16_t mapping[16];
 	// keep directions by default
-	for(i=0; i<4; i++)
+	for(int i=0; i<4; i++)
 	   mapping[i]=default_joystick_mapping[i];
 	// blank the rest
-	for(i=4; i<16; i++) mapping[i]=0;
+	for(int i=4; i<16; i++) mapping[i]=0;
 
 	uint8_t use_default=1;
 	uint8_t btn_off = 3; // start at three since array is 0 based, so 4 = button 1
@@ -426,11 +423,10 @@ FORCE_ARM uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_
 	// 0 - mist.ini
 	// 1 - mistcfg.ini
 	// 2 - [corename].cfg
-	uint8_t j;
 	int tag = 0;
-	for(j=0;j<MAX_VIRTUAL_JOYSTICK_REMAP;j++) {
+	for(int j=0; j<MAX_VIRTUAL_JOYSTICK_REMAP; j++) {
 		if(joystick_mappers[j].vid==vid && joystick_mappers[j].pid==pid && joystick_mappers[j].tag >= tag) {
-			for(i=0; i<16; i++)
+			for(int i=0; i<16; i++)
 				mapping[i]=joystick_mappers[j].mapping[i];
 			use_default=0;
 			tag = joystick_mappers[j].tag + 1;
@@ -439,12 +435,12 @@ FORCE_ARM uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_
 
 	// apply default mapping to rest of buttons if requested
 	if (use_default) {
-	  for(i=4; i<16; i++)
+	  for(int i=4; i<16; i++)
 		if (mapping[i]==0) mapping[i]=default_joystick_mapping[i];
 	}
 
 	uint16_t vjoy = 0;
-	for(i=0; i<16; i++)
+	for(int i=0; i<16; i++)
 	  if (joy_input & (0x01<<i))  vjoy |= mapping[i];
 
   return vjoy;
@@ -471,13 +467,11 @@ void joy_key_map_init(void) {
   memset(joy_key_map, 0, sizeof(joy_key_map));
 }
 
-
 char joystick_key_map(char *s, char action, int tag) {
-  uint8_t i,j;
-  uint8_t count;
-  uint8_t assign=0;
-  uint8_t len = strlen(s);
-  uint8_t scancode=0;
+  uint32_t count;
+  uint32_t assign=0;
+  uint32_t len = strlen(s);
+  uint32_t scancode=0;
   char *token;
 
   hid_debugf("%s(%s)", __FUNCTION__, s);
@@ -490,11 +484,11 @@ char joystick_key_map(char *s, char action, int tag) {
   }
 
   // parse remap request
-  for(i=0;i<MAX_JOYSTICK_KEYBOARD_MAP;i++) {
+  for(uint32_t i=0; i<MAX_JOYSTICK_KEYBOARD_MAP; i++) {
     // fill sequentially the available mapping slots, stopping at first empty one
     if(!joy_key_map[i].mask) {
       joy_key_map[i].modifier = 0;
-      for(j=0;j<6;j++)
+      for(uint32_t j=0; j<6; j++)
         joy_key_map[i].keys[j] = 0;
       count  = 0;
       token  = strtok (s, ",");
@@ -596,12 +590,12 @@ FORCE_ARM bool virtual_joystick_keyboard( uint16_t vjoy ) {
 	}
 
 	// process mapped keyboard commands from mist.ini
-	uint8_t i, j, k, count=0;
+	uint32_t count=0;
 	uint8_t mapped_hit = 0;
 	uint8_t modifier = 0;
 	uint8_t has_mapping = 0;
 	//uint8_t joy_buf[6] = { 0,0,0,0,0,0 };
-	for(i=0;i<MAX_JOYSTICK_KEYBOARD_MAP;i++) {
+	for(uint32_t i=0; i<MAX_JOYSTICK_KEYBOARD_MAP; i++) {
 		if(vjoy & joy_key_map[i].mask) {
 			has_mapping = 1;
 			//iprintf("joy2key:%d\n", joy_key_map[i].mask);
@@ -612,11 +606,11 @@ FORCE_ARM bool virtual_joystick_keyboard( uint16_t vjoy ) {
 			}
 			// only override up to 6 keys,
 			// and preserve overrides from further up this function
-			k = 0;
-			for (j=0; j<6; j++) {
+			uint32_t k = 0;
+			for (uint32_t j=0; j<6; j++) {
 				if(buf[j]!=0) k=j+1; //next index to assign
 			}
-			for (j=0; j<6; j++) {
+			for (uint32_t j=0; j<6; j++) {
 				if (k>=6) break; // max keys reached
 				if (joy_key_map[i].keys[j]) {
 					buf[k++] = joy_key_map[i].keys[j];

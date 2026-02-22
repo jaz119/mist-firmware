@@ -57,7 +57,7 @@ static unsigned char tx_queue_rptr, tx_queue_wptr;
 #define QUEUE_NEXT(a) ((a+1)&(QUEUE_LEN-1))
 
 static unsigned long ack_timeout;
-static short mouse_x, mouse_y;
+static int mouse_x, mouse_y;
 
 #define FLAG_SCAN_ENABLED  0x01
 #define FLAG_MOUSE_ENABLED 0x02
@@ -79,7 +79,6 @@ static inline const char *archie_get_cmos_name(void) {
 }
 
 static const char *archie_get_floppy_name(char i) {
-
   if(!floppy_name[i][0]) {
     return "* no disk *";
   } else
@@ -97,7 +96,7 @@ static void archie_save_config(void) {
   }
 }
 
-static void archie_set_floppy(char i, const unsigned char *name) {
+static void archie_set_floppy(int i, const unsigned char *name) {
   user_io_file_mount(name, i);
 
   if (user_io_is_mounted(i)) {

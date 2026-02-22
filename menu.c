@@ -60,8 +60,8 @@ extern bool bHDMIMode;
 extern BYTE HPD;
 #endif
 
-static uint8_t menu_last, scroll_down, scroll_up;
-static uint8_t page_idx, last_page[4], last_menusub[4], last_menu_first[4], page_level;
+static uint32_t menu_last, scroll_down, scroll_up;
+static uint32_t page_idx, last_page[4], last_menusub[4], last_menu_first[4], page_level;
 static menu_item_t menu_item;
 static menu_page_t menu_page;
 static uint8_t menuidx[16];
@@ -130,7 +130,7 @@ unsigned char fs_MenuSelect = 0;
 /////// System menu ///////
 ///////////////////////////
 
-static uint8_t setup_phase = 0;
+static uint32_t setup_phase = 0;
 static joymapping_t mapping;
 static const char *buttons [16] = {
 	"RIGHT",
@@ -649,9 +649,9 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 				case 27:
 					if (!setup_phase) {
 						get_joystick_state(joy_string, joy_string2, page_idx-4); //grab state of joy
-						siprintf(s, "       Test Joystick %d", page_idx-4+1);
+						siprintf(s, "       Test Joystick %lu", page_idx-4+1);
 					} else {
-						siprintf(s, "      Setup Joystick %d", page_idx-4+1);
+						siprintf(s, "      Setup Joystick %lu", page_idx-4+1);
 					}
 					item->item = s;
 					break;
@@ -1089,14 +1089,14 @@ void SetupMenu(menu_get_page_t menu_page_cb, menu_get_items_t menu_item_cb, menu
 void HandleUI(uint8_t key)
 {
 	unsigned char i, up, down, select, backsp, menu, right, left, plus, minus;
-	static unsigned char ctrl = false;
-	static unsigned char lalt = false;
+	static bool ctrl = false;
+	static bool lalt = false;
 	static long helptext_timer;
 	static long page_timer;
 	static char helpstate=0;
 	const int osdlines = OsdLines();
 	int firstline = osdlines <= 8 ? 0 : 2;
-	uint8_t keys[6] = {0,0,0,0,0,0};
+	ALIGNED(4) uint8_t keys[6] = {0,0,0,0,0,0};
 
 	// decode and set events
 	menu = false;
@@ -1105,9 +1105,9 @@ void HandleUI(uint8_t key)
 	down = false;
 	left = false;
 	right = false;
-	plus=false;
-	minus=false;
-	backsp=false;
+	plus = false;
+	minus = false;
+	backsp = false;
 
 	switch (key)
 	{
@@ -1739,14 +1739,13 @@ void HandleUI(uint8_t key)
 		/* dialog box                                                     */
 		/******************************************************************/
 		case MENU_DIALOG1: {
-			char i=0, l=0;
+			int i=0, l=0;
 			const char *message = dialog_text;
 			menumask = 0;
 			parentstate = menustate;
 			s[0]=0;
 			while (l<firstline) OsdWrite(l++, s, 0, 0);
 			do {
-
 				// line full or line break
 				if((i == 29) || (*message == '\n') || !*message) {
 					s[i] = 0;
@@ -1832,7 +1831,7 @@ FAST static char* GetDiskInfo(char* lfn, long len)
 // then the number substrings are extracted and put into the temporary buffer for further processing
 // comparison is case sensitive
 
-    short i, k;
+    int i, k;
     static char info[] = "XX/XX"; // temporary buffer
     static char template[4] = " of "; // template substring to search for
     char *ptr1, *ptr2, c;
@@ -1894,13 +1893,13 @@ FAST static char* GetDiskInfo(char* lfn, long len)
 // print directory contents
 static void PrintDirectory(void)
 {
-    unsigned char i;
-    unsigned char k;
+    unsigned int i;
+    unsigned int k;
     unsigned long len;
     char *lfn;
     char *info;
     char *p;
-    unsigned char j;
+    unsigned int j;
 
     s[32] = 0; // set temporary string length to OSD line length
 

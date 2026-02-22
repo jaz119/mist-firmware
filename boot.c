@@ -56,15 +56,13 @@ static void BootEnableMem()
 //// BootClearScreen() ////
 static void BootClearScreen(int adr, int size)
 {
-  int i;
   mem_upload_init(adr);
-  for (i=0; i<size; i++) {
+  for (int i=0; i<size; i++) {
     mem_write16(0x0000);
     //mem_write16(i);
   }
   mem_upload_fini();
 }
-
 
 //// BootUploadLogo() ////
 static void BootUploadLogo()
@@ -298,7 +296,6 @@ static void BootCustomInit()
   mem_upload_fini();
 }
 
-
 //// BootInit() ////
 void BootInit()
 {
@@ -321,8 +318,8 @@ void BootInit()
 //// BootPrint() ////
 FAST void BootPrintEx(char * str)
 {
-  unsigned char i,j;
-  unsigned char len;
+  uint32_t i,j;
+  uint32_t len;
 
   debugf("%s", str);
 

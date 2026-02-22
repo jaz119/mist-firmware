@@ -36,6 +36,6 @@ unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector);
 unsigned char GetData(void);
 void WriteTrack(adfTYPE *drive);
 void UpdateDriveStatus(void);
-void HandleFDD(unsigned char c1, unsigned char c2);
+void HandleFDD(unsigned int c1, unsigned int c2);
 
 #endif

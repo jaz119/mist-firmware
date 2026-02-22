@@ -155,8 +155,6 @@ static void eject_all_media()
     f_unmount("");
 }
 
-extern void inserttestfloppy();
-
 #ifdef USB_STORAGE
 int GetUSBStorageDevices()
 {

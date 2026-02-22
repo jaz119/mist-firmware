@@ -58,7 +58,7 @@ static unsigned long emu_timer = 0;
 #define EMU_MOUSE_FREQ 5
 
 // keep state over core type and its capabilities
-static unsigned char core_type = CORE_TYPE_UNKNOWN;
+static uint32_t core_type = CORE_TYPE_UNKNOWN;
 static char core_type_8bit_with_config_string = 0;
 
 // extra features in the firmware requested by the core
@@ -68,7 +68,7 @@ static uint32_t core_features = 0;
 static int64_t core_mod = 0;
 
 // keep state of caps lock
-static char caps_lock_toggle = 0;
+static bool caps_lock_toggle = 0;
 
 // avoid multiple keyboard/controllers to interfere
 static uint8_t latest_keyb_priority = 0;  // keyboard=0, joypad with key mappings=1
@@ -79,14 +79,14 @@ static uint8_t latest_keyb_priority = 0;  // keyboard=0, joypad with key mapping
 #define Z 2
 #define MOUSE_FREQ 20   // 20 ms -> 50hz
 
-ALIGNED(4) static int16_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
+ALIGNED(4) static int32_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
 static uint8_t mouse_flags[2] = { 0, 0 };
 static unsigned long mouse_timer;
 
 #define LED_FREQ 100   // 100 ms
 
 static unsigned long led_timer;
-char keyboard_leds = 0;
+int keyboard_leds = 0;
 
 bool caps_status = 0;
 bool num_status = 0;
@@ -107,22 +107,22 @@ static char ps2_kbd_scan_set = 2;
 typedef enum { PS2_MOUSE_IDLE, PS2_MOUSE_SETRESOLUTION, PS2_MOUSE_SETSAMPLERATE } ps2_mouse_state_t;
 static ps2_mouse_state_t ps2_mouse_state;
 
-static unsigned char ps2_mouse_status;
-static unsigned char ps2_mouse_resolution;
-static unsigned char ps2_mouse_samplerate;
+static unsigned int ps2_mouse_status;
+static unsigned int ps2_mouse_resolution;
+static unsigned int ps2_mouse_samplerate;
 
 // set by OSD code to suppress forwarding of those keys to the core which
 // may be in use by an active OSD
-char osd_is_visible = false;
+bool osd_is_visible = false;
 
-static char autofire;
+static int autofire;
 static unsigned long autofire_timer;
 static uint32_t autofire_map;
 static uint32_t autofire_mask;
-static char autofire_joy;
+static int autofire_joy;
 
 // ATA drives
-hardfileTYPE hardfiles[HARDFILES];
+ALIGNED(4) hardfileTYPE hardfiles[HARDFILES];
 
 static uint8_t i2c_flags;
 
@@ -164,7 +164,6 @@ void user_io_reset() {
 }
 
 void user_io_init() {
-
 	user_io_reset();
 
 	if(VIDEO_KEEP_VAR != VIDEO_KEEP_VALUE) VIDEO_ALTERED_VAR = 0;
@@ -185,20 +184,12 @@ void user_io_init() {
 	ikbd_init();
 }
 
-unsigned char user_io_core_type() {
+uint32_t user_io_core_type() {
 	return core_type;
 }
 
-char minimig_v1() {
-	return(core_type == CORE_TYPE_MINIMIG);
-}
-
-char minimig_v2() {
-	return(core_type == CORE_TYPE_MINIMIG_AGA);
-}
-
-char user_io_create_config_name(char *s, const char *ext, char flags) {
-	char *p = 0;
+char user_io_create_config_name(char *s, const char *ext, uint8_t flags) {
+	const char *p = 0;
 	if (flags & CONFIG_VHD) p = arc_get_vhdname();
 	if (!p || !*p) p = user_io_get_core_name();
 	if(p[0]) {
@@ -219,8 +210,8 @@ char user_io_is_8bit_with_config_string() {
 
 ALIGNED(4) static char core_name[16+1];  // max 16 bytes for core name
 
-char *user_io_get_core_name() {
-	char *arc_core_name = arc_get_corename();
+const char *user_io_get_core_name() {
+	const char *arc_core_name = arc_get_corename();
 	return *arc_core_name ? arc_core_name : core_name;
 }
 
@@ -228,7 +219,7 @@ static void user_io_read_core_name() {
 	core_name[0] = 0;
 
 	if(user_io_is_8bit_with_config_string()) {
-		char *p = user_io_8bit_get_string(0);  // get core name
+		const char *p = user_io_8bit_get_string(0);  // get core name
 		if(p && p[0]) strncpy(core_name, p, sizeof(core_name));
 		core_name[sizeof(core_name)-1] = 0;
 	}
@@ -249,23 +240,21 @@ static void user_io_send_core_mod() {
 }
 
 FORCE_ARM static void user_io_send_rtc(void) {
-	uint8_t date[7]; //year,month,date,hour,min,sec,day
-	uint8_t i;
+	uint8_t date[7];
 
-	if (GetRTC((uint8_t*)&date)) {
-		//iprintf("Sending time of day %u:%02u:%02u %u.%u.%u\n",
-		//  date[T_HOUR], date[T_MIN], date[T_SEC], date[T_DAY], date[T_MONTH], 1900 + date[T_YEAR]);
-		spi_uio_cmd_cont(UIO_SET_RTC);
-		spi8(bin2bcd(date[T_SEC])); // sec
-		spi8(bin2bcd(date[T_MIN])); // min
-		spi8(bin2bcd(date[T_HOUR])); // hour
-		spi8(bin2bcd(date[T_DAY])); // date
-		spi8(bin2bcd(date[T_MONTH])); // month
-		spi8(bin2bcd(date[T_YEAR]-100)); // year
-		spi8(bin2bcd(date[T_WDAY])-1); //day 1-7 -> 0-6
-		spi8(0x40); // flag
-		DisableIO();
-	}
+	if (!GetRTC((uint8_t*)&date))
+		return;
+
+	spi_uio_cmd_cont(UIO_SET_RTC);
+	spi8(bin2bcd(date[T_SEC]));
+	spi8(bin2bcd(date[T_MIN]));
+	spi8(bin2bcd(date[T_HOUR]));
+	spi8(bin2bcd(date[T_DAY]));
+	spi8(bin2bcd(date[T_MONTH]));
+	spi8(bin2bcd(date[T_YEAR]-100));
+	spi8(bin2bcd(date[T_WDAY])-1); //day 1-7 -> 0-6
+	spi8(0x40); // flag
+	DisableIO();
 }
 
 uint32_t user_io_get_core_features() {
@@ -283,7 +272,9 @@ static void user_io_read_core_features() {
 		core_features = (core_features<<8) | spi_in();
 	}
 	DisableIO();
-	if (core_features & FEAT_PS2REP) ps2_typematic_rate = 0x08;
+
+	if (core_features & FEAT_PS2REP)
+		ps2_typematic_rate = 0x08;
 }
 
 void user_io_detect_core_type() {
@@ -351,14 +342,13 @@ void user_io_detect_core_type() {
 		break;
 
 	default:
-		iprintf("Unable to identify core: 0x%x\n", core_type);
+		iprintf("Unable to identify core: 0x%lx\n", core_type);
 		core_type = CORE_TYPE_UNKNOWN;
 	}
 }
 
 void user_io_init_core() {
 	if(core_type == CORE_TYPE_8BIT) {
-
 		// send a reset
 		user_io_8bit_set_status(UIO_STATUS_RESET, ~0);
 
@@ -470,7 +460,7 @@ void user_io_init_core() {
 #endif
 }
 
-static unsigned short usb2amiga(unsigned  char k) {
+static inline unsigned short usb2amiga(unsigned char k) {
 	//  replace MENU key by RGUI to allow using Right Amiga on reduced keyboards
 	// (it also disables the use of Menu for OSD)
 	if (mist_cfg.key_menu_as_rgui && k==0x65) {
@@ -479,7 +469,7 @@ static unsigned short usb2amiga(unsigned  char k) {
 	return usb2ami[k];
 }
 
-static unsigned short usb2ps2code(unsigned char k) {
+static inline unsigned short usb2ps2code(unsigned char k) {
 	//  replace MENU key by RGUI e.g. to allow using RGUI on reduced keyboards without physical key
 	// (it also disables the use of Menu for OSD)
 	if (mist_cfg.key_menu_as_rgui && k==0x65) {
@@ -488,7 +478,7 @@ static unsigned short usb2ps2code(unsigned char k) {
 	return (ps2_kbd_scan_set == 1) ? usb2ps2_set1[k] : usb2ps2[k];
 }
 
-FAST void user_io_analog_joystick(unsigned char joystick, char valueX, char valueY, char valueX2, char valueY2) {
+FAST void user_io_analog_joystick(unsigned char joystick, int valueX, int valueY, int valueX2, int valueY2) {
 	if(osd_is_visible) return;
 
 	if(core_type == CORE_TYPE_8BIT || core_type == CORE_TYPE_MINIMIG_AGA) {
@@ -553,14 +543,14 @@ static inline char dig2ana(char min, char max) {
 	return 0;
 }
 
-void user_io_joystick(unsigned char joystick, uint16_t map) {
+static void user_io_joystick(unsigned char joystick, uint16_t map) {
   // digital joysticks also send analog signals
 	user_io_digital_joystick(joystick, map);
 	user_io_digital_joystick_ext(joystick, map);
 	user_io_analog_joystick(joystick,
-		       dig2ana(map&JOY_LEFT, map&JOY_RIGHT),
-		       dig2ana(map&JOY_UP, map&JOY_DOWN),
-		       0 ,0);
+		dig2ana(map & JOY_LEFT, map & JOY_RIGHT),
+		dig2ana(map & JOY_UP, map & JOY_DOWN),
+		0 ,0);
 }
 
 // transmit serial/rs232 data into core
@@ -574,7 +564,7 @@ void user_io_serial_tx(char *chr, uint16_t cnt) {
 }
 
 char user_io_serial_status(serial_status_t *status_in, uint8_t status_out) {
-	uint8_t i, *p = (uint8_t*)status_in;
+	uint8_t *p = (uint8_t*)status_in;
 
 	spi_uio_cmd_cont(UIO_SERIAL_STAT);
 
@@ -586,7 +576,7 @@ char user_io_serial_status(serial_status_t *status_in, uint8_t status_out) {
 	}
 
 	// read the whole structure
-	for(i=0;i<sizeof(serial_status_t);i++)
+	for(uint32_t i=0; i<sizeof(serial_status_t); i++)
 		*p++ = spi_in();
 
 	DisableIO();
@@ -594,16 +584,14 @@ char user_io_serial_status(serial_status_t *status_in, uint8_t status_out) {
 }
 
 // transmit midi data into core
-static inline void user_io_midi_tx(char chr) {
+static inline void user_io_midi_tx(uint8_t chr) {
 	spi_uio_cmd8(UIO_MIDI_OUT, chr);
 }
 
 // send ethernet mac address into FPGA
 void user_io_eth_send_mac(uint8_t *mac) {
-	uint8_t i;
-
 	spi_uio_cmd_cont(UIO_ETH_MAC);
-	for(i=0;i<6;i++) spi8(*mac++);
+	for(uint32_t i=0; i<6; i++) spi8(*mac++);
 	DisableIO();
 }
 
@@ -644,7 +632,7 @@ void user_io_sd_set_config(void) {
 	//  hexdump(data, sizeof(data), 0);
 }
 
-void user_io_sd_ack(char drive_index) {
+void user_io_sd_ack(uint8_t drive_index) {
 	spi_uio_cmd_cont(UIO_SD_ACK);
 	spi8(drive_index);
 	DisableIO();
@@ -792,7 +780,7 @@ static void kbd_fifo_poll() {
 	kbd_fifo_r = (kbd_fifo_r + 1)&(KBD_FIFO_SIZE-1);
 }
 
-char user_io_is_cue_mounted() {
+bool user_io_is_cue_mounted() {
 	return toc.valid;
 }
 
@@ -820,14 +808,14 @@ char user_io_cue_mount(const unsigned char *name, unsigned char index) {
 	return res;
 }
 
-static inline char sd_index(unsigned char index) {
+static inline unsigned char sd_index(unsigned char index) {
 	if (core_type == CORE_TYPE_ARCHIE)
 		return (index + 2) & 3;
 	else
 		return index & 3;
 }
 
-char user_io_is_mounted(unsigned char index) {
+bool user_io_is_mounted(unsigned char index) {
 	return sd_image[sd_index(index)].valid;
 }
 
@@ -878,8 +866,8 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 // to treat it
 
 FAST char *user_io_8bit_get_string(unsigned char index) {
-	unsigned char i, lidx = 0, j = 0, d = 0, arc = 0;
-	int arc_ptr = 0;
+	unsigned char i, lidx = 0, d = 0, arc = 0;
+	int arc_ptr = 0, j = 0;
 	char dip[3];
 	ALIGNED(4) static char buffer[128+1];  // max 128 bytes per config item
 	uint16_t start_chr;
@@ -996,7 +984,7 @@ unsigned long long user_io_8bit_set_status(unsigned long long new_status, unsign
 	return status;
 }
 
-char kbd_reset = 0;
+int kbd_reset = 0;
 
 FORCE_ARM void user_io_send_buttons(char force) {
 	static unsigned char key_map = 0;
@@ -1157,7 +1145,7 @@ FORCE_ARM static void handle_ps2_typematic_repeat()
 	if (ps2_kbd_state != PS2_KBD_IDLE) return;
 	if (CheckTimer(ps2_typematic_timer)) {
 		ps2_typematic_timer = GetTimer(ps2_typematic_rates[ps2_typematic_rate & 0x1f]);
-		for (char i=5; i>=0; i--) {
+		for (int i=5; i>=0; i--) {
 			if (pressed[i]) {
 				unsigned short code = keycode(pressed[i]);
 
@@ -1241,7 +1229,6 @@ FORCE_ARM static void handle_ps2_mouse_commands()
 }
 
 FORCE_ARM void user_io_poll() {
-
 	// check of core has changed from a good one to a not supported on
 	// as this likely means that the user is reloading the core via jtag
 	unsigned char ct;
@@ -1407,9 +1394,9 @@ FORCE_ARM void user_io_poll() {
 			mouse_timer = GetTimer(MOUSE_FREQ);
 
 			// has ps2 mouse data been updated in the meantime
-			for (char idx = 0; idx < 2; idx ++) {
+			for (char idx = 0; idx < 2; idx++) {
 				if(mouse_flags[idx] & 0x80) {
-					char x, y, z;
+					int x, y, z;
 					// ----- X axis -------
 					if(mouse_pos[idx][X] < -128) {
 						x = -128;
@@ -1477,7 +1464,7 @@ FORCE_ARM void user_io_poll() {
 
 	// serial IO - TODO: merge with MiST2
 	if(core_type == CORE_TYPE_8BIT) {
-		unsigned char c = 1, f, p=0;
+		uint32_t c = 1, f, p=0;
 
 		// check for input data on usart
 		USART_Poll(); // TODO: currently doesn't send anything for 8BIT
@@ -1585,7 +1572,6 @@ FORCE_ARM void user_io_poll() {
 
 					// ... and write it to disk
 					DISKLED_ON;
-
 #if 1
 					if(sd_image[sd_index(drive_index)].valid) {
 						if(((f_size(&sd_image[sd_index(drive_index)].file)-1) >> (9+blksz)) >= lba) {
@@ -1597,7 +1583,6 @@ FORCE_ARM void user_io_poll() {
 #else
 					hexdump(sector_buffer, 32, 0);
 #endif
-
 					DISKLED_OFF;
 				}
 			}
@@ -1680,10 +1665,10 @@ FORCE_ARM void user_io_poll() {
 		if(CheckTimer(mouse_timer)) {
 			mouse_timer = GetTimer(MOUSE_FREQ);
 
-			for (char idx=0; idx<2; idx++) {
+			for (int idx=0; idx<2; idx++) {
 				// has ps2 mouse data been updated in the meantime
 				if(mouse_flags[idx] & 0x08) {
-					unsigned char ps2_mouse[4];
+					ALIGNED(4) unsigned char ps2_mouse[4];
 
 					// PS2 format:
 					// YOvfl, XOvfl, dy8, dx8, 1, mbtn, rbtn, lbtn
@@ -1770,7 +1755,7 @@ FORCE_ARM void user_io_poll() {
 
 	if(core_features & FEAT_IDE_MASK)
 	{
-		unsigned char  c1;
+		unsigned char c1;
 
 		EnableFpga();
 		c1 = SPI(0); // cmd request
@@ -1816,7 +1801,7 @@ FORCE_ARM void user_io_poll() {
 	// check for long press > 1 sec on menu button
 	// and toggle scandoubler on/off then
 	static unsigned long timer = 1;
-	static unsigned char ypbpr_toggle = 0;
+	static bool ypbpr_toggle = 0;
 	if(MenuButton())
 	{
 		if(timer == 1)
@@ -1906,7 +1891,7 @@ static void send_keycode(unsigned short code) {
 			// pause does not have a break code
 			if(!(code & BREAK)) {
 				// Pause key sends E11477E1F014E077
-				static const unsigned char c[] = {
+				ALIGNED(4) static const unsigned char c[] = {
 					0xe1, 0x14, 0x77, 0xe1, 0xf0, 0x14, 0xf0, 0x77, 0x00 };
 				const unsigned char *p = c;
 
@@ -1975,7 +1960,7 @@ FORCE_ARM void user_io_mouse(unsigned char idx, unsigned char b, char x, char y,
 
 // check if this is a key that's supposed to be suppressed
 // when emulation is active
-FAST static unsigned char is_emu_key(unsigned char c, unsigned alt) {
+FAST static unsigned char is_emu_key(unsigned int c, unsigned int alt) {
 	ALIGNED(4) static const unsigned char m[] = { JOY_RIGHT, JOY_LEFT, JOY_DOWN, JOY_UP };
 	ALIGNED(4) static const unsigned char m2[] = {
 		0x5A, JOY_DOWN,
@@ -2031,7 +2016,7 @@ static unsigned short keycode(unsigned char in) {
 
 static void check_reset(unsigned short modifiers, char useKeys)
 {
-	const unsigned short combo[] = {
+	ALIGNED(4) static const unsigned short combo[] = {
 		0x45,  // lctrl+lalt+ralt
 		0x89,  // lctrl+lgui+rgui
 		0x105, // lctrl+lalt+del
@@ -2041,7 +2026,9 @@ static void check_reset(unsigned short modifiers, char useKeys)
 	{
 		if(modifiers & 2) // with lshift - MiST reset
 		{
-			if(mist_cfg.keep_video_mode) VIDEO_KEEP_VAR = VIDEO_KEEP_VALUE;
+			if(mist_cfg.keep_video_mode)
+				VIDEO_KEEP_VAR = VIDEO_KEEP_VALUE;
+
 			MCUReset(); // HW reset
 			for(;;);
 		}
@@ -2072,28 +2059,28 @@ static unsigned short modifier_keycode(unsigned char index) {
 
 	if((core_type == CORE_TYPE_MINIMIG) ||
 	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
-		static const unsigned short amiga_modifier[] =
+		ALIGNED(4) static const unsigned short amiga_modifier[] =
 			{ 0x63, 0x60, 0x64, 0x66, 0x63, 0x61, 0x65, 0x67 };
 		return amiga_modifier[index];
 	}
 
 	if(core_type == CORE_TYPE_MIST) {
-		static const unsigned short atari_modifier[] =
+		ALIGNED(4) static const unsigned short atari_modifier[] =
 			{ 0x1d, 0x2a, 0x38, MISS, 0x1d, 0x36, 0x38, MISS };
 		return atari_modifier[index];
 	}
 
 	if((core_type == CORE_TYPE_8BIT) ||
 	   (core_type == CORE_TYPE_MISTERY)) {
-		static const unsigned short ps2_modifier[] =
+		ALIGNED(4) static const unsigned short ps2_modifier[] =
 			{ 0x14, 0x12, 0x11, EXT|0x1f, EXT|0x14, 0x59, EXT|0x11, EXT|0x27 };
-		static const unsigned short ps2_modifier_set1[] =
+		ALIGNED(4) static const unsigned short ps2_modifier_set1[] =
 			{ 0x1d, 0x2a, 0x38, MISS, EXT|0x1d, 0x36, EXT|0x38, MISS };
 		return (ps2_kbd_scan_set == 1) ? ps2_modifier_set1[index] : ps2_modifier[index];
 	}
 
 	if(core_type == CORE_TYPE_ARCHIE) {
-		static const unsigned short archie_modifier[] =
+		ALIGNED(4) static const unsigned short archie_modifier[] =
 			{ 0x36, 0x4c, 0x5e, MISS, 0x61, 0x58, 0x60, MISS };
 		return archie_modifier[index];
 	}
@@ -2101,7 +2088,7 @@ static unsigned short modifier_keycode(unsigned char index) {
 	return MISS;
 }
 
-void user_io_osd_key_enable(char on) {
+void user_io_osd_key_enable(bool on) {
 	iprintf("OSD is now %s\n", on ? "visible" : "invisible");
 	osd_is_visible = on;
 }
@@ -2122,7 +2109,7 @@ static char key_used_by_osd(unsigned short s) {
 	       (core_type == CORE_TYPE_8BIT));
 }
 
-ALIGNED(4) static const char kr_fn_table[] = {
+ALIGNED(4) static const uint8_t kr_fn_table[] = {
 	0x54, 0x48, // pause/break
 	0x55, 0x46, // prnscr
 	0x50, 0x4a, // home
@@ -2231,7 +2218,7 @@ FORCE_ARM static void keyrah_trans(unsigned char *m, unsigned char *k)
 
 FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
 {
-	static char caps=0;
+	static int caps=0;
 	// ignore lower priority clears if higher priority key was pressed
 	if(m==0 && (k[0] + k[1] + k[2] + k[3] + k[4] + k[5])==0)
 	{
@@ -2268,7 +2255,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 
 		// CAPSLOCK/LCTRL mapping
 		// First map Caps Lock to L Ctrl
-		for(char i=0;i<6;i++) {
+		for(int i=0; i<6; i++) {
 			if(k[i] == 0x39) {
 				m |= 0x1;
 				k[i] = 0;
@@ -2280,7 +2267,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 		switch(mist_cfg.amiga_mod_keys) {
 			case 1:	// Map L Ctrl to Caps Lock
 				if(m_in & 0x1) {
-					for(char i=0;i<6;i++) {
+					for(int i=0; i<6; i++) {
 						if(k[i] == 0) {
 							k[i] = 0x39;
 							break;
@@ -2293,7 +2280,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 				// If Caps Lock is pressed and released with no other key events in between, generate a Caps Lock keypress.
 				// (In modern keyboard firmware parlance, the Caps Lock key has "mod-tap")
 				if(!(m & 0x01)) { // is Caps Lock (afer mapping to L Ctrl) no longer pressed?
-					for(char i=0;i<6;++i) {
+					for(int i=0; i<6; ++i) {
 						if(k[i] == 0) { // We have an empty slot in the key report
 							if(caps&0x80) // Were other (non-modfier) keys were pressed before capslock was released?
 								caps=0;
@@ -2311,8 +2298,8 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 		}
 	}
 
-	unsigned short reset_m = m;
-	for(char i=0;i<6;i++) if(k[i] == 0x4c) reset_m |= 0x100;
+	unsigned int reset_m = m;
+	for(int i=0; i<6; i++) if(k[i] == 0x4c) reset_m |= 0x100;
 	check_reset(reset_m, KEYRAH_ID ? 1 : mist_cfg.reset_combo);
 
 	if( (core_type == CORE_TYPE_MINIMIG) ||
@@ -2325,13 +2312,13 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 		//iprintf("KBD: %d\n", m);
 		//hexdump(k, 6, 0);
 
-		char keycodes[6] = { 0,0,0,0,0,0 };
-		uint16_t keycodes_ps2[6] = { 0,0,0,0,0,0 };
+		ALIGNED(4) uint8_t keycodes[6] = { 0,0,0,0,0,0 };
+		ALIGNED(4) uint16_t keycodes_ps2[6] = { 0,0,0,0,0,0 };
 
 		// remap keycodes if requested
-		for(char i=0;(i<6) && k[i];i++)
+		for(int i=0; (i<6) && k[i]; i++)
 		{
-			for(char j=0;j<MAX_REMAP;j++)
+			for(int j=0; j<MAX_REMAP; j++)
 			{
 				if(key_remap_table[j][0] == k[i])
 				{
@@ -2346,7 +2333,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 		//  key  LCTRL LSHIFT LALT LGUI RCTRL RSHIFT RALT RGUI
 		if(false)
 		{ // (disabled until we configure it via INI)
-			uint8_t default_mod_mapping [8] =
+			ALIGNED(4) static const uint8_t default_mod_mapping [8] =
 			{
 				0x1,
 				0x2,
@@ -2358,14 +2345,14 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 				0x80
 			};
 			uint8_t modifiers = 0;
-			for(char i=0; i<8; i++) if (m & (0x01<<i))  modifiers |= default_mod_mapping[i];
+			for(int i=0; i<8; i++) if (m & (0x01<<i))  modifiers |= default_mod_mapping[i];
 			m = modifiers;
 		}
 
 		// modifier keys are used as buttons in emu mode
 		if(emu_mode != EMU_NONE && !osd_is_visible)
 		{
-			char last_btn = emu_state & (JOY_BTN1 | JOY_BTN2 | JOY_BTN3 | JOY_BTN4);
+			int last_btn = emu_state & (JOY_BTN1 | JOY_BTN2 | JOY_BTN3 | JOY_BTN4);
 			if(keyrah!=2)
 			{
 				if(m & (1<<EMU_BTN1)) emu_state |=  JOY_BTN1;
@@ -2400,7 +2387,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 		// handle modifier keys
 		if(m != modifier && !osd_is_visible)
 		{
-			for(char i=0;i<8;i++)
+			for(char i=0; i<8; i++)
 			{
 				// Do we have a downstroke on a modifier key?
 				if((m & (1<<i)) && !(modifier & (1<<i)))
@@ -2426,7 +2413,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 
 		// check if there are keys in the pressed list which aren't
 		// reported anymore
-		for(char i=0;i<6;i++)
+		for(int i=0; i<6; i++)
 		{
 			unsigned short code = keycode(pressed[i]);
 
@@ -2435,8 +2422,8 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 				if (is_dip_switch1_on())
 					iprintf("key 0x%X break: 0x%X\n", pressed[i], code);
 
-				char j;
-				for(j=0;j<6 && pressed[i] != k[j];j++);
+				int j;
+				for(j=0; j<6 && pressed[i] != k[j]; j++);
 
 				// don't send break for caps lock
 				if(j == 6)
@@ -2465,7 +2452,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 							user_io_joystick_emu();
 							if(keyrah == 2)
 							{
-								unsigned char b = 0;
+								unsigned int b = 0;
 								if(emu_state & JOY_BTN1) b |= 1;
 								if(emu_state & JOY_BTN2) b |= 2;
 								user_io_mouse(0, b, 0, 0, 0);
@@ -2480,15 +2467,15 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 			}
 		}
 
-		for(char i=0;i<6;i++)
+		for(int i=0; i<6; i++)
 		{
-			unsigned short code = keycode(k[i]);
+			unsigned int code = keycode(k[i]);
 
 			if(k[i] && (k[i] <= KEYCODE_MAX) && code != MISS)
 			{
-				char j;
+				int j;
 				// check if this key is already in the list of pressed keys
-				for(j=0;j<6 && k[i] != pressed[j];j++);
+				for(j=0; j<6 && k[i] != pressed[j]; j++);
 
 				if(j == 6)
 				{
@@ -2533,7 +2520,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 							user_io_joystick_emu();
 							if(keyrah == 2)
 							{
-								unsigned char b = 0;
+								unsigned int b = 0;
 								if(emu_state & JOY_BTN1) b |= 1;
 								if(emu_state & JOY_BTN2) b |= 2;
 								user_io_mouse(0, b, 0, 0, 0);
@@ -2599,7 +2586,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 			}
 		}
 
-		for(char i=0;i<6;i++)
+		for(int i=0; i<6; i++)
 		{
 			pressed[i] = k[i];
 			keycodes[i] = pressed[i]; // send raw USB code, not amiga - keycode(pressed[i]);
@@ -2616,12 +2603,12 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 /* translates a USB modifiers into scancodes */
 FAST void add_modifiers(uint8_t mod, uint16_t* keys_ps2)
 {
-	uint8_t i;
+	uint32_t i;
 	uint8_t offset = 1;
-	uint8_t index = 0;
+	uint32_t index = 0;
 	while(offset)
 	{
-		if(mod&offset)
+		if(mod & offset)
 		{
 			uint16_t ps2_value = modifier_keycode(index);
 			if(ps2_value != MISS)
@@ -2650,8 +2637,7 @@ char user_io_key_remap(char *s, char action, int tag) {
 		return 0;
 	}
 
-	char i;
-	for(i=0;i<MAX_REMAP;i++) {
+	for(int i=0; i<MAX_REMAP; i++) {
 		if(!key_remap_table[i][0]) {
 			key_remap_table[i][0] = strtol(s, NULL, 16);
 			key_remap_table[i][1] = strtol(s+3, NULL, 16);
@@ -2665,8 +2651,8 @@ char user_io_key_remap(char *s, char action, int tag) {
 }
 
 FAST unsigned char user_io_ext_idx(const char *name, const char* ext) {
-	unsigned char idx = 0;
-	char ext3[4]; // extension truncated or extended to 3 chars
+	unsigned int idx = 0;
+	ALIGNED(4) char ext3[4]; // extension truncated or extended to 3 chars
 	int len = strlen(ext);
 	int extlen;
 

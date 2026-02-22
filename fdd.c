@@ -39,7 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 unsigned char drives = 0; // number of active drives reported by FPGA (may change only during reset)
 
 adfTYPE *pdfx;            // drive select pointer
-adfTYPE df[4];            // drive 0 information structure
+ALIGNED(4) adfTYPE df[4];            // drive 0 information structure
 
 #define TRACK_SIZE 12668
 #define HEADER_SIZE 0x40
@@ -651,9 +651,9 @@ void UpdateDriveStatus(void)
     DisableFpga();
 }
 
-void HandleFDD(unsigned char c1, unsigned char c2)
+void HandleFDD(unsigned int c1, unsigned int c2)
 {
-    unsigned char sel;
+    unsigned int sel;
     drives = (c1 >> 4) & 0x03; // number of active floppy drives
 
     if (c1 & CMD_RDTRK)

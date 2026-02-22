@@ -16,7 +16,7 @@
 #include "debug.h"
 
 static hardfileTYPE t_hardfile[HARDFILES]; // temporary copy of former hardfile configuration
-static unsigned char t_enable_ide[2]; // temporary copy of former IDE configuration
+static unsigned int t_enable_ide[2]; // temporary copy of former IDE configuration
 static unsigned char t_ide_idx;
 
 extern char s[OSD_BUF_SIZE];

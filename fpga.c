@@ -239,11 +239,10 @@ FAST unsigned char ConfigureFpga(const char *name)
 
 
 #ifdef ALTERA_DCLK
-FAST static inline void ShiftFpga(unsigned char data)
+FAST static inline void ShiftFpga(unsigned int data)
 {
-    unsigned char i;
 #pragma GCC unroll 8
-    for ( i = 0; i < 8; i++ )
+    for (uint32_t i = 0; i < 8; i++)
     {
         /* Dump to DATA0 and insert a positive edge pulse at the same time */
         ALTERA_DATA0_RESET;
@@ -597,8 +596,8 @@ FAST char BootDraw(char *data, unsigned short len, unsigned short offset)
     unsigned char c1, c2, c3, c4;
     unsigned char cmd;
     const char *p;
-    unsigned short n;
-    unsigned short i;
+    unsigned int n;
+    unsigned int i;
 
     n = (len+3)&(~3);
     i = 0;

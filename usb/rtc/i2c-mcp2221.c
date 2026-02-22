@@ -350,7 +350,7 @@ static uint8_t mcp_init(
     // Reset runtime info
     info->chip_type = info->i2c_clock = -1;
 
-    for (uint8_t i = 0; ep[i]; i++)
+    for (uint32_t i = 0; ep[i]; i++)
     {
         ep[i]->epAddr = 1;
         ep[i]->epType = 0;

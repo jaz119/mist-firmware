@@ -53,7 +53,7 @@
 /* ------------------- transmit queue ------------------- */
 #define QUEUE_LEN 16    // power of 2!
 ALIGNED(4) static unsigned short tx_queue[QUEUE_LEN];
-static unsigned char wptr = 0, rptr = 0;
+static unsigned int wptr = 0, rptr = 0;
 static unsigned long ikbd_timer = 0;
 
 /* -------- main structure to keep track of ikbd state -------- */
@@ -115,11 +115,11 @@ static struct {
 } ikbd ALIGNED(4);
 
 // read a 16 bit word in big endian
-unsigned short be16(unsigned short in) {
+static inline unsigned short be16(unsigned short in) {
   return ((in & 0xff)<<8) + ((in & 0xff00)>>8);
 }
 
-FAST static void enqueue(unsigned short b) {
+static inline void enqueue(unsigned short b) {
   if(((wptr + 1)&(QUEUE_LEN-1)) == rptr)
     return;
 
@@ -128,8 +128,8 @@ FAST static void enqueue(unsigned short b) {
 }
 
 // convert internal joystick format into atari ikbd format
-static unsigned char joystick_map2ikbd(unsigned char in) {
-  unsigned char out = 0;
+static inline unsigned char joystick_map2ikbd(uint32_t in) {
+  uint32_t out = 0;
 
   if(in & JOY_UP)    out |= 0x01;
   if(in & JOY_DOWN)  out |= 0x02;
@@ -375,7 +375,7 @@ void ikbd_handle_input(unsigned char cmd) {
   ikbd.buffer.byte[ikbd.buffer.size++] = cmd;
 
   // check if there's a known command in the buffer
-  char c;
+  int c;
   for(c=0;ikbd_command_handler[c].length &&
 	(ikbd_command_handler[c].code != ikbd.buffer.command.code);c++);
 
@@ -486,7 +486,7 @@ void ikbd_poll(void) {
 
 	if(ikbd.mouse.x || ikbd.mouse.y || (b != ikbd.mouse.but_prev)) {
 	  do {
-	    char x, y;
+	    int x, y;
 	    if(ikbd.mouse.x < -128)      x = -128;
 	    else if(ikbd.mouse.x >  127) x =  127;
 	    else                         x =  ikbd.mouse.x;
@@ -577,7 +577,7 @@ void ikbd_poll(void) {
 }
 
 // called from external parts to report joystick states
-void ikbd_joystick(unsigned char joystick, unsigned char map) {
+void ikbd_joystick(unsigned char joystick, uint32_t map) {
   ikbd.joy[joystick].state = joystick_map2ikbd(map);
 }
 
@@ -588,7 +588,7 @@ void ikbd_keyboard(unsigned char code) {
   enqueue(code);
 }
 
-void ikbd_mouse(unsigned char b, char x, char y) {
+void ikbd_mouse(unsigned char b, int x, int y) {
 
   // honour reversal of y axis
   if(ikbd.state & IKBD_STATE_MOUSE_Y_BOTTOM)
@@ -648,7 +648,7 @@ FAST void ikbd_update_time(void) {
       31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
   short year = 1900 + ikbd.date[T_YEAR];
-  char is_leap = (!(year % 4) && (year % 100)) || !(year % 400);
+  bool is_leap = (!(year % 4) && (year % 100)) || !(year % 400);
 
   // advance seconds
   ikbd.date[T_SEC]++;

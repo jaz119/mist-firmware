@@ -114,8 +114,8 @@ static unsigned char getIdx(char *opt) {
 }
 
 static unsigned char getStatus(char *opt, unsigned long long status) {
-	char idx1 = getIdx(opt);
-	char idx2 = getIdx(opt+1);
+	int idx1 = getIdx(opt);
+	int idx2 = getIdx(opt+1);
 	unsigned char x = (status & ((unsigned long long)1<<idx1)) ? 1 : 0;
 
 	if(idx2>idx1) {
@@ -200,7 +200,7 @@ static char CueFileSelected(uint8_t idx, const char *SelectedName) {
 static char GetMenuPage_8bit(uint8_t idx, char action, menu_page_t *page) {
 	if (action == MENU_PAGE_EXIT) return 0;
 
-	char *p = user_io_get_core_name();
+	const char *p = user_io_get_core_name();
 	if(!p[0]) page->title = "8BIT";
 	else      page->title = p;
 	page->flags = OSD_ARROW_RIGHT;
@@ -512,10 +512,10 @@ static char KeyEvent_8bit(uint8_t key) {
 }
 
 void Setup8bitMenu() {
-	char *c, *p;
+	char *p;
 	int i;
 
-	c = user_io_get_core_name();
+	const char *c = user_io_get_core_name();
 	if(!c[0]) OsdCoreNameSet("8BIT");
 	else      OsdCoreNameSet(c);
 

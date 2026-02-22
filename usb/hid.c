@@ -52,7 +52,7 @@ void hid_joystick_button_remap_init(void) {
 }
 
 FAST char hid_joystick_button_remap(char *s, char action, int tag) {
-	uint8_t i;
+	uint32_t i;
 
 	hid_debugf("%s(%s)", __FUNCTION__, s);
 
@@ -64,7 +64,7 @@ FAST char hid_joystick_button_remap(char *s, char action, int tag) {
 	}
 
 	// parse remap request
-	for(i=0;i<MAX_JOYSTICK_BUTTON_REMAP;i++) {
+	for(i=0; i<MAX_JOYSTICK_BUTTON_REMAP; i++) {
 		if(!joystick_button_remap[i].vid) {
 			// first two entries are comma seperated
 			joystick_button_remap[i].vid = strtol(s, NULL, 16);
@@ -309,7 +309,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 	info->bPollEnable = false;
 	info->bNumIfaces = 0;
 
-	for(uint8_t i=0;i<MAX_IFACES;i++) {
+	for(uint32_t i=0; i<MAX_IFACES; i++) {
 		info->iface[i].qLastPollTime = 0;
 		info->iface[i].ep.epAddr     = i;
 		info->iface[i].ep.epType     = 0;
@@ -325,7 +325,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 	uint8_t num_of_conf = dev_desc->bNumConfigurations;
 	//  hid_debugf("number of configurations: %d", num_of_conf);
 
-	for(uint8_t i=0; i<num_of_conf; i++) {
+	for(uint32_t i=0; i<num_of_conf; i++) {
 		if((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), i, &conf_desc)))
 			return rcode;
 
@@ -345,7 +345,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 	if (rcode) hid_debugf("hid_set_conf error: %d", rcode);
 
 	// process all supported interfaces
-	for(uint8_t i=0; i<info->bNumIfaces; i++) {
+	for(uint32_t i=0; i<info->bNumIfaces; i++) {
 
 		// no boot mode, try to parse HID report descriptor
 		// when running archie core force the usage of the HID descriptor as
@@ -387,14 +387,14 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 				  info->iface[i].conf.report_id,
 				  info->iface[i].conf.report_size);
 
-				for(k=0;k<MAX_AXES;k++)
+				for(k=0; k<MAX_AXES; k++)
 					iprintf("Axis%d: %d@%d %d->%d\n", k,
 					  info->iface[i].conf.joystick_mouse.axis[k].size,
 					  info->iface[i].conf.joystick_mouse.axis[k].offset/8,
 					  info->iface[i].conf.joystick_mouse.axis[k].logical.min,
 					  info->iface[i].conf.joystick_mouse.axis[k].logical.max);
 
-				for(k=0;k<info->iface[i].conf.joystick_mouse.button_count;k++)
+				for(k=0; k<info->iface[i].conf.joystick_mouse.button_count; k++)
 				  iprintf("Button%d: @%d/%d\n", k,
 				  info->iface[i].conf.joystick_mouse.button[k].byte_offset,
 				  info->iface[i].conf.joystick_mouse.button[k].bitmask);
@@ -412,8 +412,8 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 			}
 
 			// apply remap information from mist.ini if present
-			uint8_t j;
-			for(j=0;j<MAX_JOYSTICK_BUTTON_REMAP;j++) {
+			uint32_t j;
+			for(j=0; j<MAX_JOYSTICK_BUTTON_REMAP; j++) {
 				if((joystick_button_remap[j].vid == vid) && (joystick_button_remap[j].pid == pid)) {
 					uint8_t but = joystick_button_remap[j].button;
 					  info->iface[0].conf.joystick_mouse.button[but].byte_offset = joystick_button_remap[j].offset >> 3;
@@ -446,7 +446,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 	puts("HID configured");
 
 	// update leds
-	for(uint8_t i=0;i<MAX_IFACES;i++)
+	for(uint32_t i=0; i<MAX_IFACES; i++)
 		if(dev->hid_info.iface[i].device_type == HID_DEVICE_KEYBOARD)
 			hid_set_report(dev, dev->hid_info.iface[i].iface_idx, 2, 0, 1, &kbd_led_state);
 
@@ -466,7 +466,7 @@ FAST static uint8_t usb_hid_release(usb_device_t *dev) {
 
 	hid_debugf("%s()", __FUNCTION__);
 
-	for(uint8_t i=0;i<info->bNumIfaces;i++) {
+	for(uint32_t i=0; i<info->bNumIfaces; i++) {
 		// check if a joystick is released
 		if(info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
 			uint8_t c_jindex = joystick_index(info->iface[i].jindex);
@@ -485,12 +485,11 @@ FAST static uint8_t usb_hid_release(usb_device_t *dev) {
 			hid_debugf("releasing mouse #%d, renumbering", info->iface[i].jindex);
 			// search for all mouse interfaces on all hid devices
 			usb_device_t *dev = usb_get_devices();
-			uint8_t j;
-			for(j=0;j<USB_NUMDEVICES;j++) {
+			for(uint32_t j=0; j<USB_NUMDEVICES; j++) {
 				if(dev[j].bAddress && (dev[j].class == &usb_hid_class)) {
 					// search for mouse interfaces, decrease the index with a higher id
-					uint8_t k;
-					for(k=0;k<MAX_IFACES;k++) {
+					uint32_t k;
+					for(k=0; k<MAX_IFACES; k++) {
 						if(dev[j].hid_info.iface[k].device_type == HID_DEVICE_MOUSE) {
 							uint8_t jindex = dev[j].hid_info.iface[k].jindex;
 							if(jindex > c_jindex) {
@@ -543,7 +542,7 @@ static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, ui
 
 	// build map of pressed keys
 	uint16_t keys = 0;
-	for(uint8_t i=0;button_map[i].mask;i++)
+	for(uint32_t i=0; button_map[i].mask; i++)
 		if(buf[button_map[i].byte_offset] & button_map[i].mask)
 			keys |= (1<<i);
 
@@ -553,7 +552,7 @@ static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, ui
 		uint8_t p = 0;
 
 		// report up to 6 pressed keys
-		for(uint8_t i=0;(i<16)&&(p<6);i++)
+		for(uint32_t i=0; (i<16)&&(p<6); i++)
 			if(keys & (1<<i))
 				buf[p++] = button_map[i].key_code[jindex];
 
@@ -628,7 +627,7 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 		// check size of report. If a report id was given then one
 		// additional byte is present with a matching report id
 		if((read == conf->report_size+(conf->report_id?1:0)) &&
-		  (!conf->report_id || (buf[0] == conf->report_id))) {
+			(!conf->report_id || (buf[0] == conf->report_id))) {
 
 			uint8_t btn = 0, jmap = 0;
 			uint8_t btn_extra = 0;
@@ -641,7 +640,7 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 			// hid_debugf("data:"); hexdump(buf, read, 0);
 
 			// several axes ...
-			for(uint8_t i=0;i<MAX_AXES;i++) {
+			for(uint32_t i=0; i<MAX_AXES; i++) {
 				// if logical minimum is > logical maximum then logical minimum
 				// is signed. This means that the value itself is also signed
 				bool is_signed = conf->joystick_mouse.axis[i].logical.min >
@@ -651,12 +650,12 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 			}
 
 			// ... and four  first buttons
-			for(uint8_t i=0;i<4;i++)
+			for(uint32_t i=0; i<4; i++)
 				if(p[conf->joystick_mouse.button[i].byte_offset] &
 				 conf->joystick_mouse.button[i].bitmask) btn |= (1<<i);
 
 			// ... and the eight extra buttons
-			for(uint8_t i=4;i<12;i++)
+			for(uint32_t i=4;i<12;i++)
 				if(p[conf->joystick_mouse.button[i].byte_offset] &
 				 conf->joystick_mouse.button[i].bitmask) btn_extra |= (1<<(i-4));
 
@@ -667,7 +666,7 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 			if(iface->device_type == HID_DEVICE_MOUSE) {
 				// iprintf("mouse %d %d 0x%x\n", (int16_t)a[0], (int16_t)a[1], btn);
 				// limit mouse movement to +/- 128
-				for(uint8_t i=0;i<3;i++) {
+				for(uint32_t i=0; i<3; i++) {
 					if (i<2) {
 						a[i] = a[i]*mist_cfg.mouse_speed+rem[i];
 						rem[i] = a[i];
@@ -683,7 +682,7 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 			// ---------- process joystick -------------
 			if(iface->device_type == HID_DEVICE_JOYSTICK) {
 
-				for(uint8_t i=0;i<MAX_AXES;i++) {
+				for(uint32_t i=0; i<MAX_AXES; i++) {
 					if (conf->joystick_mouse.axis[i].size == 0) {
 						a[i] = 128;
 					} else {
@@ -864,7 +863,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	if (!info->bPollEnable)
 		return 0;
 
-	for(int8_t i=0;i<info->bNumIfaces;i++) {
+	for(uint32_t i=0; i<info->bNumIfaces; i++) {
 		usb_hid_iface_info_t *iface = info->iface+i;
 		if(iface->device_type != HID_DEVICE_UNKNOWN) {
 
@@ -892,7 +891,6 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	return 0;
 }
 
-
 FORCE_ARM void hid_set_kbd_led(unsigned char led, bool on) {
 	// check if led state has changed
 	if( (on && !(kbd_led_state&led)) || (!on && (kbd_led_state&led))) {
@@ -902,11 +900,11 @@ FORCE_ARM void hid_set_kbd_led(unsigned char led, bool on) {
 		// search for all keyboard interfaces on all hid devices
 		usb_device_t *dev = usb_get_devices();
 		int i;
-		for(i=0;i<USB_NUMDEVICES;i++) {
+		for(i=0; i<USB_NUMDEVICES; i++) {
 			if(dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
 				// search for keyboard interfaces
 				int j;
-				for(j=0;j<MAX_IFACES;j++)
+				for(j=0; j<MAX_IFACES; j++)
 					if(dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD)
 				hid_set_report(dev+i, dev[i].hid_info.iface[j].iface_idx, 2, 0, 1, &kbd_led_state);
 			}
@@ -917,10 +915,10 @@ FORCE_ARM void hid_set_kbd_led(unsigned char led, bool on) {
 int8_t hid_keyboard_present(void) {
 	// check all USB devices for keyboards
 	usb_device_t *dev = usb_get_devices();
-	for(int i=0;i<USB_NUMDEVICES;i++) {
+	for(int i=0; i<USB_NUMDEVICES; i++) {
 		if(dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
 			// search for keyboard interfaces
-			for(int j=0;j<MAX_IFACES;j++)
+			for(uint32_t j=0; j<MAX_IFACES; j++)
 				if(dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD)
 			return 1;
 		}
