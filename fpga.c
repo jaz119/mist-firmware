@@ -980,7 +980,7 @@ unsigned char fpga_init(const char *name) {
       BootPrintEx("Original Minimig by Dennis van Weeren");
       BootPrintEx("Updates by Jakub Bednarski, Tobias Gubener, Sascha Boing, A.M. Robinson & others");
       BootPrintEx("MiST by Till Harbaum (till@harbaum.org)");
-      BootPrintEx("For updates & code see https://github.com/rkrajnc/minimig-mist");
+      BootPrintEx(" ");
       BootPrintEx(" ");
     }
 
