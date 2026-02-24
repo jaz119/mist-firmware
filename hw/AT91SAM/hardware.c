@@ -267,7 +267,9 @@ void Timer_Init(void) {
   AT91C_BASE_AIC->AIC_ICCR = 1 << AT91C_ID_TC0;
 
   AT91C_BASE_TC0->TC_IER = AT91C_TC_CPCS;  //  IRQ enable CPC
+#ifdef LEGACY_ST_IKBD
   AT91C_BASE_AIC->AIC_IECR = 1 << AT91C_ID_TC0;
+#endif
 
   //* Start timer0
   AT91C_BASE_TC0->TC_CCR = AT91C_TC_SWTRG ;

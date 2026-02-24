@@ -20,7 +20,7 @@ Branch **clean** has the following non-merged differences from the original (mas
     - firmware upgrading: flash pages full unlock is fixed;
     - SD card hot swap (*it may require hardware modification*);
     - disks images and ROMs can be loaded from any directories for *Minimig*, *ST*, *Archie*;
-    - *disabled useless Asix and PL2303 drivers by default*;
+    - *incomplete PL2303 driver is disabled by default*;
     - 8BIT: using indexing for ROMs files;
     - FatFs updated to 0.16 version;
 
