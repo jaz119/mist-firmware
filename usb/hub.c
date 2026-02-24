@@ -275,7 +275,7 @@ static uint8_t usb_hub_port_status_change(
 
     // Unhandled event, this shouldn't happen under normal conditions
   default:
-    usb_debugf("hub: unexpected status 0x%lx on port %d", evt->bmEvent, port);
+    iprintf("hub: unexpected status 0x%lx on port %d\n", evt->bmEvent, port);
 
     if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_SUSPEND)
       usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_SUSPEND, port, 0);
