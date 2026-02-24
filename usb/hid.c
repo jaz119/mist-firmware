@@ -655,7 +655,7 @@ FORCE_ARM static void usb_process_iface (usb_device_t *dev,
 				 conf->joystick_mouse.button[i].bitmask) btn |= (1<<i);
 
 			// ... and the eight extra buttons
-			for(uint32_t i=4;i<12;i++)
+			for(uint32_t i=4; i<12; i++)
 				if(p[conf->joystick_mouse.button[i].byte_offset] &
 				 conf->joystick_mouse.button[i].bitmask) btn_extra |= (1<<(i-4));
 
@@ -863,7 +863,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	if (!info->bPollEnable)
 		return 0;
 
-	for(uint32_t i=0; i<info->bNumIfaces; i++) {
+	for(int i=0; i<info->bNumIfaces; i++) {
 		usb_hid_iface_info_t *iface = info->iface+i;
 		if(iface->device_type != HID_DEVICE_UNKNOWN) {
 
@@ -899,12 +899,10 @@ FORCE_ARM void hid_set_kbd_led(unsigned char led, bool on) {
 
 		// search for all keyboard interfaces on all hid devices
 		usb_device_t *dev = usb_get_devices();
-		int i;
-		for(i=0; i<USB_NUMDEVICES; i++) {
+		for(int i=0; i<USB_NUMDEVICES; i++) {
 			if(dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
 				// search for keyboard interfaces
-				int j;
-				for(j=0; j<MAX_IFACES; j++)
+				for(int j=0; j<MAX_IFACES; j++)
 					if(dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD)
 				hid_set_report(dev+i, dev[i].hid_info.iface[j].iface_idx, 2, 0, 1, &kbd_led_state);
 			}
@@ -918,7 +916,7 @@ int8_t hid_keyboard_present(void) {
 	for(int i=0; i<USB_NUMDEVICES; i++) {
 		if(dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
 			// search for keyboard interfaces
-			for(uint32_t j=0; j<MAX_IFACES; j++)
+			for(int j=0; j<MAX_IFACES; j++)
 				if(dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD)
 			return 1;
 		}

@@ -403,7 +403,6 @@ FAST void SendFile(FIL *file)
 {
     UINT br;
     unsigned char  c1, c2;
-    unsigned long  j;
     unsigned long  n;
     unsigned char *p;
 
@@ -437,7 +436,7 @@ FAST void SendFile(FIL *file)
         SPI(0);
         p = sector_buffer;
 
-        for (j = 0; j < 512; j++)
+        for (int j = 0; j < 512; j++)
             SPI(*p++);
 
         DisableFpga();
@@ -995,10 +994,8 @@ unsigned char fpga_init(const char *name) {
   } // end of minimig setup
 
   if((user_io_core_type() == CORE_TYPE_MIST) || (user_io_core_type() == CORE_TYPE_MISTERY)) {
-    puts("Running miST setup");
-
+    puts("Running MiSTery setup");
     tos_upload(NULL);
-
   } // end of mist setup
 
   if(user_io_core_type() == CORE_TYPE_ARCHIE) {

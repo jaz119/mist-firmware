@@ -18,7 +18,7 @@ static unsigned long flush_timer = 0;
 
 extern const char version[];
 
-// send everything in buffer 
+// send everything in buffer
 void cdc_control_flush(void) {
   if(fill) usb_cdc_write(buffer, fill);
   fill = 0;
@@ -34,8 +34,6 @@ void cdc_control_tx(char c) {
 }
 
 static void cdc_puts(char *str) {
-  unsigned char i=0;
-  
   while(*str) {
     if(*str == '\n')
       cdc_control_tx('\r');
@@ -90,41 +88,41 @@ void cdc_control_poll(void) {
 	    cdc_puts("\033[7mM\033[0mIDI redirect");
 	    cdc_puts("");
 	    break;
-	    
+
 	  case 'r':
 	    cdc_puts("Reset ...");
 	    tos_reset(0);
 	    break;
-	    
+
 	  case 'c':
 	    cdc_puts("Coldreset ...");
 	    tos_reset(1);
 	    break;
-	    
+
 	  case 'd':
 	    cdc_puts("Debug output redirect enabled");
 	    tos_set_cdc_control_redirect(CDC_REDIRECT_DEBUG);
 	    break;
-	    
+
 	  case 's':
 	    cdc_puts("RS232 redirect enabled");
 	    tos_set_cdc_control_redirect(CDC_REDIRECT_RS232);
 	    break;
-	    
+
 	  case 'p':
 	    cdc_puts("Parallel redirect enabled");
 	    tos_set_cdc_control_redirect(CDC_REDIRECT_PARALLEL);
 	    break;
-	    
+
 	  case 'm':
 	    cdc_puts("MIDI redirect enabled");
 	    tos_set_cdc_control_redirect(CDC_REDIRECT_MIDI);
 	    break;
-	    
+
 	  }
 	  break;
 	}
-  
+
 	default:
 	  break;
       }

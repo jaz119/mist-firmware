@@ -167,13 +167,13 @@
 // core type value should be unlikely to be returned by broken cores
 #define CORE_TYPE_UNKNOWN        0x55
 #define CORE_TYPE_DUMB           0xa0   // core without any io controller interaction
-#define CORE_TYPE_MINIMIG        0xa1   // Minimig amiga core
+#define CORE_TYPE_MINIMIG        0xa1   // legacy Minimig Amiga core
 #define CORE_TYPE_PACE           0xa2   // core from pacedev.net (joystick only)
 #define CORE_TYPE_MIST           0xa3   // legacy Atari ST core
 #define CORE_TYPE_8BIT           0xa4   // generic core type
-#define CORE_TYPE_MINIMIG_AGA    0xa5   // Minimig with AGA
-#define CORE_TYPE_ARCHIE         0xa6   // Acorn Archimedes
-#define CORE_TYPE_MISTERY        0xa7   // MiSTery new Atary STe
+#define CORE_TYPE_MINIMIG_AGA    0xa5   // Minimig Amiga with AGA
+#define CORE_TYPE_ARCHIE         0xa6   // Acorn Archimedes core
+#define CORE_TYPE_MISTERY        0xa7   // MiSTery, modern Atari ST core
 
 // user io status bits (currently only used by 8bit)
 #define UIO_STATUS_RESET   0x01
@@ -255,7 +255,7 @@ void user_io_digital_joystick_ext(unsigned char, uint32_t);
 FAST void user_io_analog_joystick(unsigned char, int, int, int, int);
 
 static inline bool user_io_osd_is_visible() {
-	return osd_is_visible;
+  return osd_is_visible;
 }
 
 FORCE_ARM void user_io_send_buttons(char);

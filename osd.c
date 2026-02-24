@@ -128,13 +128,10 @@ ALIGNED(4) static unsigned char titlebuffer[128];
 
 FAST static void rotatechar(unsigned char *in,unsigned char *out)
 {
-	int a;
-	int b;
-	int c;
-	for(b=0;b<8;++b)
+	for(int b=0; b<8; ++b)
 	{
-		a=0;
-		for(c=0;c<8;++c)
+		int a=0;
+		for(int c=0; c<8; ++c)
 		{
 			a<<=1;
 			a|=(in[c]>>b)&1;
@@ -215,7 +212,7 @@ char OsdLines()
 FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned char stipple,char offset)
 {
   char *text = s;
-  char arrowline[31];
+  ALIGNED(4) char arrowline[31];
   if(n==OsdLines()-1 && arrow) {
     text = arrowline;
     memset(arrowline, 32, sizeof(arrowline));
@@ -233,8 +230,8 @@ FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigne
   OsdPrintText(n, text, 22, OSDLINELEN-3*8, 0, offset, invert, stipple);
 }
 
-FAST void OsdDrawLogo(unsigned char n, char row,char superimpose) {
-  unsigned short i;
+FAST void OsdDrawLogo(unsigned char n, char row, char superimpose) {
+  unsigned int i;
   const unsigned char *p;
   int linelimit=OSDLINELEN;
 
@@ -522,7 +519,7 @@ unsigned char OsdGetCtrl(void)
     static unsigned char c2;
     static unsigned long delay;
     static unsigned long repeat;
-    static unsigned char repeat2;
+    static unsigned long repeat2;
     unsigned char c1=0,c;
 
     // minimig OSD is controlled by key codes from core
@@ -671,10 +668,10 @@ unsigned char OsdKeyGet() {
 static char lastcorename[65] = "CORE";
 
 void OsdCoreNameSet(const char* str) {
-	strncpy(lastcorename, str, sizeof(lastcorename));
-	lastcorename[sizeof(lastcorename)-1] = 0;
+  strncpy(lastcorename, str, sizeof(lastcorename));
+  lastcorename[sizeof(lastcorename)-1] = 0;
 }
 
 char* OsdCoreName() {
-	return lastcorename;
+  return lastcorename;
 }

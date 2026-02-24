@@ -42,6 +42,7 @@ const char *KickstartSelectedName;
 ////////////////////////////
 /////// Minimig menu ///////
 ////////////////////////////
+
 const char *config_memory_fast_txt()
 {
   if (!(((config.cpu & 0x03) == 0x03) && ((config.memory >> 4 & 0x03) == 0x03)))
@@ -407,7 +408,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 				case 10:
 				case 12: {
 					uint8_t slave = idx == 12;
-					uint8_t enabled = t_hardfile[(t_ide_idx << 1)+slave].enabled;
+					bool enabled = t_hardfile[(t_ide_idx << 1)+slave].enabled;
 					if (t_hardfile[(t_ide_idx << 1)+slave].present) {
 						strcpy(s, "                                ");
 						if(enabled == HDF_CDROM)
@@ -628,7 +629,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 10:
 				case 12: {
-					uint8_t hdf_idx = (t_ide_idx << 1) + (idx == 12);
+					int hdf_idx = (t_ide_idx << 1) + (idx == 12);
 					if(t_hardfile[hdf_idx].enabled==HDF_CDROM) {
 						if(toc.valid)
 							toc.valid = 0;

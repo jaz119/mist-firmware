@@ -172,7 +172,7 @@ static void asix_mdio_write(usb_device_t *dev, uint8_t phy_id, uint8_t loc, uint
 static uint32_t asix_get_phyid(usb_device_t *dev) {
   usb_asix_info_t *info = &(dev->asix_info);
 
-  int16_t phy_reg;
+  int32_t phy_reg;
   uint32_t phy_id;
 
   phy_reg = asix_mdio_read(dev, info->phy_id, MII_PHYSID1);
@@ -189,7 +189,7 @@ static uint32_t asix_get_phyid(usb_device_t *dev) {
 /* Get the PHY Identifier from the PHYSID1 & PHYSID2 MII registers */
 static uint32_t asix_get_phyid(usb_device_t *dev) {
   usb_asix_info_t *info = &(dev->asix_info);
-  int16_t phy_reg;
+  int32_t phy_reg;
   uint32_t phy_id;
   int i;
 
@@ -338,7 +338,8 @@ static uint8_t asix_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len) {
 
 static uint8_t usb_asix_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
   usb_asix_info_t *info = &(dev->asix_info);
-  uint8_t i, rcode = 0;
+  uint8_t rcode = 0;
+  int i;
 
   // only one ethernet dongle is supported at a time
   if(eth_present)

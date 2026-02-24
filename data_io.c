@@ -13,7 +13,7 @@
 #include "debug.h"
 
 // core supports direct ROM upload via SS4
-char rom_direct_upload = 0;
+bool rom_direct_upload = 0;
 
 static data_io_processor_t* PROCESSORS[MAX_DATA_IO_PROCESSORS];
 
@@ -70,12 +70,12 @@ void data_io_file_tx_prepare(FIL *file, char index, const char *ext) {
 
   // set index byte (0=bios rom, 1-n=OSD entry index)
   data_io_set_index(index);
+  unsigned long fsize = f_size(file);
 
   // send directory entry
   EnableFpga();
   SPI(DIO_FILE_INFO);
 
-  FSIZE_t fsize = f_size(file);
   spi_n(0, 8);                      // name
   spi8(e[0]);spi8(e[1]);spi8(e[2]); // ext
   spi8(file->obj.attr);             // attr
@@ -97,15 +97,14 @@ void data_io_file_tx_prepare(FIL *file, char index, const char *ext) {
 }
 
 static void data_io_file_tx_send(FIL *file) {
-  FSIZE_t bytes2send = f_size(file);
+  unsigned long bytes2send = f_size(file);
   UINT br;
 
   /* transmit the entire file using one transfer */
-  iprintf("%s: %lu byte(s)\n", __FUNCTION__, (uint32_t) bytes2send);
+  iprintf("%s: %lu byte(s)\n", __FUNCTION__, bytes2send);
 
   while (bytes2send) {
-
-    unsigned short c, chunk = (bytes2send>SECTOR_BUFFER_SIZE)?SECTOR_BUFFER_SIZE:bytes2send;
+    unsigned long c, chunk = (bytes2send > SECTOR_BUFFER_SIZE) ? SECTOR_BUFFER_SIZE : bytes2send;
     char *p;
 
     if (rom_direct_upload && fat_uses_mmc()) {
@@ -130,7 +129,7 @@ static void data_io_file_tx_send(FIL *file) {
         SPI(DIO_FILE_TX_DAT);
 
 //      spi_write(sector_buffer, chunk); // DMA -- too fast for some cores
-        for(p = sector_buffer, c=0;c < chunk;c++)
+        for(p = sector_buffer, c=0; c < chunk; c++)
           SPI(*p++);
 
         DisableFpga();
@@ -230,8 +229,7 @@ static void data_io_file_rx_receive(FIL *file, unsigned int len) {
   iprintf("%s: %u byte(s)\n", __FUNCTION__, bytes2receive);
 
   while (bytes2receive) {
-
-    unsigned short c, chunk = (bytes2receive>2048)?2048:bytes2receive;
+    unsigned int c, chunk = (bytes2receive > 2048) ? 2048 : bytes2receive;
     char *p;
 
     EnableFpga();
@@ -241,7 +239,7 @@ static void data_io_file_rx_receive(FIL *file, unsigned int len) {
       first=0;
     }
 
-    for(p = sector_buffer, c=0;c < chunk;c++)
+    for(p = sector_buffer, c=0; c < chunk; c++)
       *p++ = SPI(0xFF);
 
     DisableFpga();

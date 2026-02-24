@@ -53,7 +53,7 @@ ALIGNED(4) adfTYPE df[4];            // drive 0 information structure
 // note that we do not insert clock bits because they will be stripped by the Amiga software anyway
 void SendSector(unsigned char *pData, unsigned char sector, unsigned char track, unsigned char dsksynch, unsigned char dsksyncl)
 {
-    unsigned char checksum[4];
+    ALIGNED(4) unsigned char checksum[4];
     unsigned short i;
     unsigned char x;
     unsigned char *p;
@@ -284,8 +284,8 @@ void ReadTrack(adfTYPE *drive)
 unsigned char FindSync(adfTYPE *drive)
 // reads data from fifo till it finds sync word or fifo is empty and dma inactive (so no more data is expected)
 {
-    unsigned char  c1, c2, c3, c4;
-    unsigned short n;
+    unsigned char c1, c2, c3, c4;
+    unsigned int n;
 
     while (1)
     {
@@ -479,7 +479,7 @@ unsigned char GetData(void)
     unsigned char c, c1, c2, c3, c4;
     unsigned char i;
     unsigned char *p;
-    unsigned short n;
+    unsigned int n;
     unsigned char checksum[4];
 
     Error = 0;
@@ -598,8 +598,8 @@ void WriteTrack(adfTYPE *drive)
 {
     unsigned char Track;
     unsigned char Sector;
+    unsigned long fpos;
     FRESULT res;
-    FSIZE_t fpos;
     UINT bw;
 
     fdd_debugf("Write track %d\r", drive->track);

@@ -75,9 +75,9 @@ static unsigned char dialog_errorcode;
 static unsigned char dialog_menusub;
 static unsigned char dialog_autoclose;
 
-static unsigned char menustate = MENU_NONE1;
-static unsigned char parentstate;
-unsigned char menusub = 0;
+static unsigned int menustate = MENU_NONE1;
+static unsigned int parentstate;
+unsigned int menusub = 0;
 static unsigned int menumask = 0; // Used to determine which rows are selectable...
 static unsigned long menu_timer = 0;
 static menu_get_items_t menu_item_callback;
@@ -155,7 +155,7 @@ static const char *buttons [16] = {
 // assumes big endian, returns using special characters (checked box/unchecked box)
 static void siprintbinary(char* buffer, uint8_t byte)
 {
-	for (int j=0;j<8;j++) {
+	for (int j=0; j<8; j++) {
 		buffer[j]=(byte & 1)?'\x1a':'\x19';
 		byte >>= 1;
 	}
@@ -1093,7 +1093,7 @@ void HandleUI(uint8_t key)
 	static bool lalt = false;
 	static long helptext_timer;
 	static long page_timer;
-	static char helpstate=0;
+	static int helpstate=0;
 	const int osdlines = OsdLines();
 	int firstline = osdlines <= 8 ? 0 : 2;
 	ALIGNED(4) uint8_t keys[6] = {0,0,0,0,0,0};
@@ -1380,7 +1380,7 @@ void HandleUI(uint8_t key)
 		break;
 
 		case MENU_NG2: {
-			char idx, newidx = 0, items = 0, stdexit = 0, action;
+			int idx, newidx = 0, items = 0, stdexit = 0, action;
 
 			if (menu_page.stdexit == MENU_STD_COMBO_EXIT) {
 				StateKeyboardPressed(keys);
@@ -1949,7 +1949,7 @@ static void PrintDirectory(void)
                 if (fat_medium_present())
                     strcpy(s, "          No files");
                 else
-                    strcpy(s, "     No media detected");
+                    strcpy(s, "     No media inserted");
             }
         }
 

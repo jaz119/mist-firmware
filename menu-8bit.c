@@ -311,13 +311,13 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	if(p && ((p[0] == 'F') || (p[0] == 'S'))) {
 		if(action == MENU_ACT_SEL) {
 			static char ext[13];
-			char iscue = 0;
+			bool is_cue = false;
 			unsigned char firstline = OsdLines() <= 8 ? 0 : 2;
 			selected_drive_slot = (p[0] == 'F') ? (menusub - firstline + 1) : 0;
 			if (p[0]=='S' && (p[1]=='C' || (p[1] && p[1] != ',' && p[2] == 'C'))) {
 				// S[0-9]C - select CUE/ISO file
 				selected_drive_slot = 3;
-				iscue = 1;
+				is_cue = true;
 			}
 			if (p[1]>='0' && p[1]<='9') selected_drive_slot = p[1]-'0';
 			romtype = ROM_NORMAL;
@@ -345,7 +345,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			}
 			substrcpy(ext, p, 1);
 			while(strlen(ext) < 3) strcat(ext, " ");
-			SelectFileNG(ext, SCAN_DIR | SCAN_LFN, (p[0] == 'F')?RomFileSelected:iscue?CueFileSelected:ImageFileSelected, 1);
+			SelectFileNG(ext, SCAN_DIR | SCAN_LFN, (p[0] == 'F') ? RomFileSelected : is_cue ? CueFileSelected : ImageFileSelected, 1);
 		} else if (action == MENU_ACT_BKSP) {
 			if (p[0] == 'S' && p[1] && p[2] == 'U') {
 				// umount image
@@ -444,7 +444,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 
 			// get currently active option
 			substrcpy(s, p, 2+x);
-			char l = strlen(s);
+			int l = strlen(s);
 			if(!l) {
 				// option's index is outside of available values.
 				// reset to 0.

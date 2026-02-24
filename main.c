@@ -88,12 +88,11 @@ unsigned long storage_size = 0;
 
 void FatalError(unsigned long error)
 {
-    unsigned long i;
     iprintf("Fatal error: %lu\r", error);
 
     while (true)
     {
-        for (i = 0; i < error; i++)
+        for (int i = 0; i < error; i++)
         {
           DISKLED_ON;
           WaitTimer(250);

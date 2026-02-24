@@ -80,7 +80,7 @@ static uint8_t latest_keyb_priority = 0;  // keyboard=0, joypad with key mapping
 #define MOUSE_FREQ 20   // 20 ms -> 50hz
 
 ALIGNED(4) static int32_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
-static uint8_t mouse_flags[2] = { 0, 0 };
+static uint32_t mouse_flags[2] = { 0, 0 };
 static unsigned long mouse_timer;
 
 #define LED_FREQ 100   // 100 ms
@@ -102,7 +102,7 @@ static unsigned long ps2_typematic_timer;
 
 typedef enum { PS2_KBD_IDLE, PS2_KBD_SCAN_GETSET, PS2_KBD_TYPEMATIC_SET, PS2_KBD_LED_SET } ps2_kbd_state_t;
 static ps2_kbd_state_t ps2_kbd_state;
-static char ps2_kbd_scan_set = 2;
+static int ps2_kbd_scan_set = 2;
 
 typedef enum { PS2_MOUSE_IDLE, PS2_MOUSE_SETRESOLUTION, PS2_MOUSE_SETSAMPLERATE } ps2_mouse_state_t;
 static ps2_mouse_state_t ps2_mouse_state;
@@ -312,7 +312,7 @@ void user_io_detect_core_type() {
 	case CORE_TYPE_MIST:
 	case CORE_TYPE_MISTERY:
 		strcpy(core_name, "ST");
-		puts("Identified MiST core");
+		puts("Identified MiSTery core");
 		break;
 
 	case CORE_TYPE_ARCHIE:
@@ -591,7 +591,7 @@ static inline void user_io_midi_tx(uint8_t chr) {
 // send ethernet mac address into FPGA
 void user_io_eth_send_mac(uint8_t *mac) {
 	spi_uio_cmd_cont(UIO_ETH_MAC);
-	for(uint32_t i=0; i<6; i++) spi8(*mac++);
+	for(int i=0; i<6; i++) spi8(*mac++);
 	DisableIO();
 }
 
@@ -821,30 +821,30 @@ bool user_io_is_mounted(unsigned char index) {
 
 void user_io_file_mount(const unsigned char *name, unsigned char index) {
 	int slot = sd_index(index);
-	IDXFile *idx = &sd_image[slot];
+	IDXFile *idxfile = &sd_image[slot];
 
 	buffer_lba = 0xffffffff; // invalidate cache
 	if (name) {
-		if (idx->valid)
-			IDXClose(idx);
+		if (idxfile->valid)
+			IDXClose(idxfile);
 
-		FRESULT res = IDXOpen(idx, name, FA_READ | FA_WRITE);
-		if (res != FR_OK) res = IDXOpen(idx, name, FA_READ);
+		FRESULT res = IDXOpen(idxfile, name, FA_READ | FA_WRITE);
+		if (res != FR_OK) res = IDXOpen(idxfile, name, FA_READ);
 		if (res == FR_OK) {
 			iprintf("%s: %lu byte(s) into slot: %d\n",
-				__FUNCTION__, (uint32_t) f_size(&idx->file), slot);
+				__FUNCTION__, (uint32_t) f_size(&idxfile->file), slot);
 
-			idx->valid = 1;
+			idxfile->valid = 1;
 			// build index for fast random access
-			IDXIndex(idx, slot);
+			IDXIndex(idxfile, slot);
 		} else {
 			debugf("%s: file: %s, error %d", __FUNCTION__, name, res);
 			return;
 		}
 	} else {
 		debugf("unmounting slot %d", slot);
-		if (idx->valid) IDXClose(idx);
-		idx->valid = 0;
+		if (idxfile->valid) IDXClose(idxfile);
+		idxfile->valid = 0;
 		if (!index) umounted = 1;
 	}
 
@@ -852,8 +852,8 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 	EnableIO();
 	SPI(UIO_SET_SDINFO);
 	// use LE version, so following BYTE(s) may be used for size extension in the future.
-	spi32le(idx->valid ? f_size(&idx->file) : 0);
-	spi32le(idx->valid ? f_size(&idx->file) >> 32 : 0);
+	spi32le(idxfile->valid ? f_size(&idxfile->file) : 0);
+	spi32le(idxfile->valid ? f_size(&idxfile->file) >> 32 : 0);
 	spi32le(0); // reserved for future expansion
 	spi32le(0); // reserved for future expansion
 	DisableIO();
@@ -878,7 +878,7 @@ FAST char *user_io_8bit_get_string(unsigned char index) {
 	// use the config index table to get where to start
 	// conf_idx stores the starting position of every 4th item
 	// if the index is in a DIP setting, it has 0
-	uint16_t pos = 0, lastpos = 0;
+	uint32_t pos = 0, lastpos = 0;
 
 	i = index>>2;
 	while (i > 0 && (i > conf_items || conf_idx[i] == 0)) i--;
@@ -1131,10 +1131,10 @@ FORCE_ARM static void handle_ps2_kbd_commands()
 }
 
 static void send_keycode(unsigned short code);
-static unsigned short keycode(unsigned char in);
+static unsigned short keycode(unsigned short in);
 
 // 1000/(2^(39-rate)^(1/8))
-ALIGNED(4) static const int ps2_typematic_rates[] = {
+ALIGNED(4) static const short ps2_typematic_rates[] = {
 	34, 37, 40, 44, 48, 52, 57, 62, 68, 74, 81, 88, 96, 105, 114, 125, 136,
 	148, 162, 176, 192, 210, 229, 250, 272, 297, 324, 353, 385, 420, 458, 500
 };
@@ -1271,7 +1271,7 @@ FORCE_ARM void user_io_poll() {
 
 	if((core_type == CORE_TYPE_MIST) ||
 	   (core_type == CORE_TYPE_MISTERY)) {
-		char redirect = tos_get_cdc_control_redirect();
+		uint32_t redirect = tos_get_cdc_control_redirect();
 
 		if (core_type == CORE_TYPE_MIST) ikbd_poll();
 
@@ -1996,7 +1996,7 @@ FAST static unsigned char is_emu_key(unsigned int c, unsigned int alt) {
 #define EMU_BTN3  (2+(keyrah*4))  // left alt
 #define EMU_BTN4  (3+(keyrah*4))  // left gui (usually windows key)
 
-static unsigned short keycode(unsigned char in) {
+static unsigned short keycode(unsigned short in) {
 	if((core_type == CORE_TYPE_MINIMIG) ||
 	   (core_type == CORE_TYPE_MINIMIG_AGA))
 	return usb2amiga(in);
@@ -2146,7 +2146,7 @@ ALIGNED(4) static const uint8_t kr_fn_table[] = {
 
 FORCE_ARM static void keyrah_trans(unsigned char *m, unsigned char *k)
 {
-	static char keyrah_fn_state = 0;
+	static int keyrah_fn_state = 0;
 	char fn = 0;
 	char empty = 1;
 	char rctrl = 0;

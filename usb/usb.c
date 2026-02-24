@@ -25,7 +25,7 @@ FAST usb_device_t *usb_get_device(usb_dev_type_t type) {
 void usb_init() {
 	usb_debugf("%s()", __FUNCTION__);
 
-	for(int i=0;i<USB_NUMDEVICES;i++)
+	for(int i=0; i<USB_NUMDEVICES; i++)
 		usb_devices[i].bAddress = 0;
 
 	usb_hw_init();
@@ -147,8 +147,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		}
 
 		// try to connect device to one of the supported classes
-		uint8_t c;
-		for(c=0;class_list[c];c++) {
+		for(int c=0; class_list[c]; c++) {
 			usb_debugf("trying to init class %d", c);
 
 			unsigned long time = GetRTTC();

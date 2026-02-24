@@ -283,8 +283,6 @@ static void neocd_command() {
 	int track;
 	uint8_t command[10];
 
-	int i;
-
 	EnableFpga();
 	SPI(CD_COMMAND_GET);
 	for (int i = 0; i < 5; i++) {

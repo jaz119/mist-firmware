@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "attrs.h"
 
-FAST unsigned char bin2bcd(unsigned char in) {
+FAST unsigned int bin2bcd(unsigned int in) {
   unsigned int tens = (in * 205) >> 11;
   unsigned int units = in - (tens * 10);
   return (tens << 4) | units;
@@ -41,7 +41,7 @@ FAST int _strnicmp(const char *s1, const char *s2, size_t n)
   return v;
 }
 
-void hexdump(void *data, uint16_t size, uint16_t offset) {
+void hexdump(void *data, int size, int offset) {
   uint8_t i, b2c;
   uint16_t n=0;
   char *ptr = data;

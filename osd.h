@@ -144,7 +144,7 @@ static inline void OsdDisableMenuButton(unsigned char disable)
 unsigned char GetASCIIKey(unsigned char c);
 void OsdWriteDoubleSize(unsigned char n, char *s, unsigned char pass);
 //void OsdDrawLogo(unsigned char n, char row);
-FAST void OsdDrawLogo(unsigned char n, char row,char superimpose);
+FAST void OsdDrawLogo(unsigned char n, char row, char superimpose);
 FAST void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset);
 void ScrollReset();
 void StarsInit();

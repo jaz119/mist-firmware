@@ -19,7 +19,7 @@
 
 #define MAX_DATA_IO_PROCESSORS 10
 
-extern char rom_direct_upload;
+extern bool rom_direct_upload;
 
 typedef struct {
     char id[4];
@@ -40,4 +40,5 @@ void data_io_file_rx(FIL*, char, unsigned int);
 void data_io_rom_upload(char *s, char mode);
 
 char data_io_add_processor(data_io_processor_t *processor);
+
 #endif // DATA_IO_H

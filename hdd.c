@@ -67,7 +67,7 @@ typedef struct
 
 static cdrom_t cdrom;
 
-FAST static void SwapBytes(char *c, unsigned int len)
+FAST static void SwapBytes(char *c, int len)
 {
   char temp;
 
@@ -94,7 +94,7 @@ FAST static void RDBChecksum(unsigned long *p)
 
 // FakeRDB()
 // if the hardfile doesn't have a RigidDiskBlock, we synthesize one
-static void FakeRDB(int unit,int block)
+static void FakeRDB(int unit, int block)
 {
   int i;
   // start by clearing the sector buffer
@@ -652,9 +652,9 @@ static void PKT_SubChannel(unsigned char *cmd, unsigned char unit, unsigned shor
 {
   hdd_debugf("IDE%d: PKT_SubChannel (bytelimit=%d)", unit, bytelimit);
   unsigned short bufsize = (cmd[7] << 8) | cmd[8];
-  unsigned char track;
+  unsigned int track;
   unsigned char msftime = cmd[1] & 0x02;
-  unsigned short respsize = 0;
+  unsigned int respsize = 0;
 
   if (!toc.valid) {
     cdrom_setsense(SENSEKEY_NOT_READY, 0x3a, 0);
@@ -745,9 +745,9 @@ static void PKT_ReadTOC(unsigned char *cmd, unsigned char unit, unsigned short b
   unsigned short bufsize = (cmd[7] << 8) | cmd[8];
   unsigned char track = cmd[6];
   unsigned char msftime = cmd[1] & 0x02;
-  unsigned short tocsize = 4;
+  unsigned int tocsize = 4;
   unsigned char *p = sector_buffer;
-  int lba;
+  unsigned int lba;
 
   if (!toc.valid) {
     cdrom_setsense(SENSEKEY_NOT_READY, 0x3a, 0);
@@ -1413,7 +1413,7 @@ static inline void ATA_ReadSectors(unsigned char* tfr, unsigned short sector, un
 static inline void ATA_WriteSectors(unsigned char* tfr, unsigned short sector, unsigned short cylinder, unsigned char head, unsigned char unit, unsigned short sector_count, bool multiple, char lbamode)
 {
   unsigned short i;
-  unsigned short block_count, block_size, sectors;
+  unsigned int block_count, block_size, sectors;
   unsigned char *buf;
   long lba=chs2lba(cylinder, head, sector, unit, lbamode);
 
@@ -1520,7 +1520,7 @@ FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
   unsigned char  unit;
   unsigned short sector_count;
   unsigned char  lbamode;
-  unsigned char  cs1 = 0;
+  unsigned int   cs1 = 0;
 
   if (c1 & CMD_IDECMD) {
     DISKLED_ON;

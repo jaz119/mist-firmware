@@ -27,8 +27,6 @@ static char configfilename[13];
 char DebugMode=0;
 static unsigned char *romkey = (sector_buffer + 512);
 
-extern unsigned char drives;
-
 static const ini_section_t config_ini_sections[] = {
   {1, "MINIMIG"}
 };
@@ -92,9 +90,9 @@ static void ClearVectorTable(void)
 //// UploadKickstart() ////
 char UploadKickstart(char *name)
 {
-  FSIZE_t keysize=0;
   UINT br;
   FIL romfile, keyfile;
+  unsigned long keysize=0;
 
   ResetMenu();
 

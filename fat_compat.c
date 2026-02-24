@@ -173,7 +173,6 @@ RAMFUNC FRESULT FileReadNextBlock (
 	DWORD clst;
 	WORD csize;
 	LBA_t sect;
-	FSIZE_t remain;
 	UINT rcnt, cc, csect;
 	DWORD cl, ncl, *tbl;
 
