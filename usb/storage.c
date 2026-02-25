@@ -19,10 +19,13 @@ uint8_t storage_devices = 0;
 
 static uint8_t storage_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len) {
   usb_storage_info_t *info = &(dev->storage_info);
-  uint8_t rcode;
   bool is_good_interface = false;
+  uint8_t rcode;
 
-  union buf_u {
+  if (len > USB_MAX_CONFIG_DESC_SIZE)
+    return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
+
+  ALIGNED(4) union buf_u {
     usb_configuration_descriptor_t conf_desc;
     usb_interface_descriptor_t iface_desc;
     usb_endpoint_descriptor_t ep_desc;

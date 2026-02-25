@@ -87,8 +87,11 @@ FAST char hid_joystick_button_remap(char *s, char action, int tag) {
 /*****************************************************************************/
 
 //get HID report descriptor
-FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size)  {
+FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size) {
 	//  hid_debugf("%s(0x%x, if=%d, size=%d)", __FUNCTION__, dev->bAddress, iface, size);
+
+	if (size > USB_MAX_CONFIG_DESC_SIZE)
+		return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 
 	ALIGNED(4) uint8_t buf[size];
 	usb_hid_info_t *info = &(dev->hid_info);

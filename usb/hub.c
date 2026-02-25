@@ -41,6 +41,9 @@ static uint8_t usb_hub_parse_conf(
   uint8_t rcode;
   bool is_good_interface = false;
 
+  if (len > USB_MAX_CONFIG_DESC_SIZE)
+    return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
+
   ALIGNED(4) union buf_u {
     usb_configuration_descriptor_t conf_desc;
     usb_interface_descriptor_t iface_desc;

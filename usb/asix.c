@@ -269,9 +269,12 @@ void mii_nway_restart(usb_device_t *dev) {
 static uint8_t asix_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len) {
   usb_asix_info_t *info = &(dev->asix_info);
   uint8_t rcode;
-  uint8_t epidx = 0;
+  int epidx = 0;
 
-  union buf_u {
+  if (len > USB_MAX_CONFIG_DESC_SIZE)
+    return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
+
+  ALIGNED(4) union buf_u {
     usb_configuration_descriptor_t conf_desc;
     usb_interface_descriptor_t iface_desc;
     usb_endpoint_descriptor_t ep_desc;

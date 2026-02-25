@@ -261,7 +261,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint16_t len)
     usb_mcp_info_t *info = &(dev->mcp_info);
     bool isHID = false;
 
-    if (len > 512)
+    if (len > USB_MAX_CONFIG_DESC_SIZE)
         return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 
     union buf_u {
@@ -329,7 +329,7 @@ static uint8_t mcp_init(
     if ((dev_desc->idVendor != MCP2221_VID) || (dev_desc->idProduct != MCP2221_PID))
         return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 
-    union {
+    ALIGNED(4) union {
         mcp_set_cmd_t cmd;
         mcp_set_resp_t resp;
         usb_configuration_descriptor_t conf_desc;
@@ -350,7 +350,7 @@ static uint8_t mcp_init(
     // Reset runtime info
     info->chip_type = info->i2c_clock = -1;
 
-    for (uint32_t i = 0; ep[i]; i++)
+    for (int i = 0; ep[i]; i++)
     {
         ep[i]->epAddr = 1;
         ep[i]->epType = 0;
@@ -430,7 +430,7 @@ static bool mcp_i2c_bulk_read(
     } rpt;
 
     usb_mcp_info_t *info = &(dev->mcp_info);
-    uint16_t size, i;
+    uint16_t size;
 
     if (!buf || !length || length > sizeof(rpt.resp.data)-1)
         return false;
@@ -486,7 +486,7 @@ static bool mcp_i2c_bulk_write(
         uint8_t raw[REPORT_SIZE];
     } rpt;
 
-    uint16_t size, i;
+    uint16_t size;
 
     if (!buf || !length || length > sizeof(rpt.cmd.data)-1)
         return false;
