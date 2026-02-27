@@ -11,12 +11,12 @@ TODAY = $(shell date +"%y%m%d")
 PRJ = firmware
 
 SRC = hw/AT91SAM/Cstartup_SAM7.c hw/AT91SAM/hardware.c hw/AT91SAM/spi.c hw/AT91SAM/mmc.c hw/AT91SAM/at91sam_usb.c hw/AT91SAM/usbdev.c
-SRC += fdd.c firmware.c fpga.c hdd.c main.c menu.c menu-minimig.c menu-8bit.c menu_info.c osd.c state.c syscalls.c user_io.c settings.c data_io.c boot.c idxfile.c config.c tos.c xmodem.c ini_parser.c cue_parser.c mist_cfg.c archie.c pcecd.c neocd.c snes.c zx_col.c arc_file.c c64files.c font.c utils.c serial_sink.c
+SRC += firmware.c main.c menu.c menu-8bit.c menu_info.c osd.c state.c syscalls.c user_io.c settings.c data_io.c idxfile.c xmodem.c ini_parser.c cue_parser.c mist_cfg.c archie.c pcecd.c neocd.c snes.c zx_col.c arc_file.c c64files.c font.c utils.c serial_sink.c fat_compat.c diskio.c cdc_control.c storage_control.c
 SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/usbdebug.c usb/hub.c usb/hid.c usb/hidparser.c usb/xboxusb.c usb/timer.c usb/storage.c usb/joymapping.c usb/joystick.c
 SRC += usb/rtc.c usb/rtc/i2c-tiny.c usb/rtc/i2c-mcp2221.c usb/rtc/pcf85263.c usb/rtc/ds3231.c
-SRC += cdc_control.c storage_control.c
+SRC += fpga.c boot.c config.c menu-minimig.c hdd.c fdd.c
 SRC += FatFs/ff.c FatFs/ffunicode.c
-SRC += fat_compat.c diskio.c
+SRC += tos.c acsi_hdc.c
 # SRC += ikbd.c # -DLEGACY_ST_IKBD
 # SRC += usb/storage.c # -DUSB_STORAGE
 # SRC += usb/pl2303.c # -DUSB_PL2303_CDC

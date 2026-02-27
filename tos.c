@@ -19,6 +19,7 @@
 #include "mmc.h"
 #include "utils.h"
 #include "FatFs/diskio.h"
+#include "acsi_hdc.h"
 
 extern bool eth_present;
 extern char s[OSD_BUF_SIZE];
@@ -167,7 +168,7 @@ static inline void mist_spi_set_speed(unsigned char speed)
     spi_set_speed(speed);
 }
 
-static void mist_memory_write(const char *data, unsigned long words) {
+static void mist_memory_write(const char *data, size_t words) {
   spi_speed = spi_get_speed();
   mist_spi_set_speed(spi_newspeed);
 
@@ -264,6 +265,101 @@ static void dma_nak(void) {
   DisableFpga();
 }
 
+FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
+  DISKLED_ON;
+  int read = 0;
+#ifndef SD_NO_DIRECT_MODE
+  if (user_io_core_type() == CORE_TYPE_MISTERY && fat_uses_mmc()) {
+    // SD-Card -> FPGA direct SPI transfer on MISTERY
+    spi_speed = spi_get_speed();
+    mist_spi_set_speed(spi_newspeed);
+    if (hdd_direct && target == 0) {
+      if (is_dip_switch1_on())
+        tos_debugf("ACSI: direct read, LBA: %lu", lba);
+      if (disk_read(fs.pdrv, 0, lba, length) == RES_OK)
+        read = length;
+    } else {
+      IDXSeek(&sd_image[target + 2], lba);
+      if (f_read(&sd_image[target + 2].file, 0, 512 * length, &br) == FR_OK)
+        read = length;
+    }
+    mist_spi_set_speed(spi_speed);
+  } else {
+#endif
+    while (length) {
+      int blocksize = MIN(length, SECTOR_BUFFER_SIZE / 512);
+      if (hdd_direct && target == 0) {
+        if (is_dip_switch1_on())
+          tos_debugf("ACSI: direct read, LBA=%lu", lba);
+        if (disk_read(fs.pdrv, sector_buffer, lba, blocksize) == RES_OK)
+          read += blocksize;
+      } else {
+        IDXSeek(&sd_image[target + 2], lba);
+        if (f_read(&sd_image[target + 2].file, sector_buffer, 512*blocksize, &br) == FR_OK)
+          read += blocksize;
+      }
+      // hexdump(sector_buffer, 32, 0);
+      mist_memory_write_blocks(sector_buffer, blocksize);
+      length -= blocksize;
+      lba += blocksize;
+    }
+#ifndef SD_NO_DIRECT_MODE
+  }
+#endif
+  DISKLED_OFF;
+  return read;
+}
+
+FAST static int acsi_disk_write(int target, uint32_t lba, size_t length) {
+  int written = 0;
+  unsigned short blocklen;
+  unsigned char *buf;
+
+  DISKLED_ON;
+  while (length) {
+    UINT bw;
+
+    blocklen = (length > SECTOR_BUFFER_SIZE / 512) ? SECTOR_BUFFER_SIZE / 512 : length;
+    buf = sector_buffer;
+    int n = blocklen;
+    while (n--) {
+      mist_memory_read_block(buf);
+      buf += 512;
+    }
+    if (hdd_direct && target == 0) {
+      if (is_dip_switch1_on())
+        tos_debugf("ACSI: direct write, LBA=%lu", lba);
+      if (disk_write(fs.pdrv, sector_buffer, lba, blocklen) == RES_OK)
+        written += blocklen;
+    } else {
+      IDXSeek(&sd_image[target + 2], lba);
+      if (f_write(&sd_image[target + 2].file, sector_buffer, blocklen * 512, &bw) == FR_OK)
+        written += blocklen;
+    }
+    lba += blocklen;
+    length -= blocklen;
+  }
+  DISKLED_OFF;
+  return written;
+}
+
+static void acsi_init() {
+  memset(&AcsiBus, 0, sizeof(AcsiBus));
+
+  AcsiBus.buffer = sector_buffer;
+  AcsiBus.buffer_size = sizeof(sector_buffer);
+
+  for (int i = 0; i < ARRAY_SIZE(AcsiBus.devs); i++) {
+    SCSI_DEV *dev = &AcsiBus.devs[i];
+
+    dev->blockSize = 512;
+    dev->disk_read = acsi_disk_read;
+    dev->disk_write = acsi_disk_write;
+    dev->dma_write = mist_memory_write;
+    dev->scsi_version = 2;
+  }
+}
+
 static void handle_acsi(unsigned char *buffer) {
 
   static unsigned char asc[2] = { 0,0 };
@@ -356,42 +452,7 @@ static void handle_acsi(unsigned char *buffer) {
         }
 
         if(lba+length <= blocks) {
-          DISKLED_ON;
-#ifndef SD_NO_DIRECT_MODE
-          if (user_io_core_type() == CORE_TYPE_MISTERY && fat_uses_mmc()) {
-            // SD-Card -> FPGA direct SPI transfer on MISTERY
-            spi_speed = spi_get_speed();
-            mist_spi_set_speed(spi_newspeed);
-            if(hdd_direct && target == 0) {
-              if(is_dip_switch1_on())
-                tos_debugf("ACSI: direct read %lu", lba);
-              disk_read(fs.pdrv, 0, lba, length);
-            } else {
-              IDXSeek(&sd_image[target+2], lba);
-              f_read(&sd_image[target+2].file, 0, 512*length, &br);
-            }
-            mist_spi_set_speed(spi_speed);
-          } else {
-#endif
-            while(length) {
-              int blocksize = MIN(length, SECTOR_BUFFER_SIZE/512);
-              if(hdd_direct && target == 0) {
-                if(is_dip_switch1_on())
-                  tos_debugf("ACSI: direct read %lu", lba);
-                disk_read(fs.pdrv, sector_buffer, lba, blocksize);
-              } else {
-                IDXSeek(&sd_image[target+2], lba);
-                f_read(&sd_image[target+2].file, sector_buffer, 512*blocksize, &br);
-              }
-              // hexdump(sector_buffer, 32, 0);
-              mist_memory_write_blocks(sector_buffer, blocksize);
-              length-=blocksize;
-              lba+=blocksize;
-            }
-#ifndef SD_NO_DIRECT_MODE
-          }
-#endif
-          DISKLED_OFF;
+          acsi_disk_read(target, lba, length);
           dma_ack(0x00);
           asc[target] = 0x00;
         } else {
@@ -422,29 +483,7 @@ static void handle_acsi(unsigned char *buffer) {
         }
 
         if(lba+length <= blocks) {
-          DISKLED_ON;
-          while(length) {
-            UINT bw;
-
-            blocklen = (length > SECTOR_BUFFER_SIZE/512) ? SECTOR_BUFFER_SIZE/512 : length;
-            buf = sector_buffer;
-            blocks = blocklen;
-            while (blocks--) {
-              mist_memory_read_block(buf);
-              buf+=512;
-            }
-            if(hdd_direct && target == 0) {
-              if(is_dip_switch1_on())
-                tos_debugf("ACSI: direct write %lu", lba);
-              disk_write(fs.pdrv, sector_buffer, lba, blocklen);
-            } else {
-              IDXSeek(&sd_image[target+2], lba);
-              f_write(&sd_image[target+2].file, sector_buffer, blocklen*512, &bw);
-            }
-            lba+=blocklen;
-            length-=blocklen;
-          }
-          DISKLED_OFF;
+          acsi_disk_write(target, lba, length);
           dma_ack(0x00);
           asc[target] = 0x00;
         } else {
@@ -608,7 +647,7 @@ static void handle_fdc(unsigned char *buffer) {
 }
 
 static void mist_get_dmastate() {
-  ALIGNED(4) unsigned char buffer[32];
+  unsigned char *buffer = AcsiBus.command;
   unsigned int dma_address;
   unsigned char scnt;
 
@@ -645,9 +684,30 @@ static void mist_get_dmastate() {
       handle_fdc(buffer);
     }
   } else { // CORE_TYPE_MISTERY
-    if(buffer[10] & 0x01) {
+    if(buffer[10] & 0x01 /* BUSY */) {
       spi_newspeed = SPI_MMC_CLK_VALUE;
-      handle_acsi(buffer);
+      // handle_acsi(buffer);
+
+      AcsiBus.opcode = AcsiBus.command[0];
+      AcsiBus.target = (AcsiBus.command[10] & 0xE0) >> 5;
+
+      // only a harddisk on ACSI 0/1 is supported
+      // ACSI 0/1 is only supported if a image is loaded
+      // ACSI 0 is only supported for direct IO
+      if (((AcsiBus.target < 2) && disk_inserted[AcsiBus.target + 2]) ||
+          ((AcsiBus.target == 0) && hdd_direct)) {
+        HDC_HandleCommandPacket(&AcsiBus);
+        if (AcsiBus.status != HD_STATUS_OK)
+          iprintf("ACSI: opcode=0x%x, status=0x%x, error=0x%x\n",
+            AcsiBus.opcode, AcsiBus.status, AcsiBus.devs[AcsiBus.target].nLastError);
+        dma_ack(AcsiBus.status);
+      } else {
+        if (is_dip_switch1_on())
+          tos_debugf("ACSI: Unsupported target: %s", HDC_CmdInfoStr(&AcsiBus));
+        // tell acsi state machine that io controller is done
+        // but don't generate a acsi irq
+        dma_nak();
+      }
     }
   }
 }
@@ -1181,6 +1241,13 @@ static void tos_select_hdd_image(char i, const char *name) {
       IDXIndex(idx, slot);
       disk_inserted[slot] = 1;
       config.system_ctrl |= (TOS_ACSI0_ENABLE<<i);
+      // Link file with ACSI driver
+      if (i < 2) {
+        SCSI_DEV *dev = &AcsiBus.devs[i];
+        dev->blockSize = 512;
+        dev->hdSize = f_size(&(idx->file)) / dev->blockSize;
+        dev->nLastError = HD_REQSENS_OK;
+      }
     } else {
       iprintf("Cannot open %s file, error %d\n", name, res);
     }
@@ -1305,6 +1372,7 @@ void tos_reset(char cold) {
     mist_memory_set_address(8);
     mist_memory_set(0x00, 8192-4);
 #else
+    acsi_init();
     tos_upload(NULL);
 #endif
   }
@@ -1347,6 +1415,7 @@ void tos_config_load(char slot) {
 
   // try to load config
   const char *cfname = get_config_fname(new_slot);
+
   if (f_open(&file, cfname, FA_READ) == FR_OK) {
     if(f_size(&file) == sizeof(tos_config_t)) {
       f_read(&file, (unsigned char*) &config, sizeof(tos_config_t), &br);
@@ -1354,6 +1423,8 @@ void tos_config_load(char slot) {
     }
     f_close(&file);
   }
+
+  acsi_init();
 }
 
 // save configuration
