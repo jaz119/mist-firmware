@@ -51,18 +51,19 @@ const char *config_memory_fast_txt()
     return config_memory_fast_msg[(config.memory >> 4 & 0x03) + 1];
 }
 
-FAST static void _strncpy(char* pStr1, const char* pStr2, size_t nCount)
+FAST static void _strncpy(char *p1, const char *p2, size_t n)
 {
-// customized strncpy() function to fill remaing destination string part with spaces
-
-	while (*pStr2 && nCount)
-	{
-		*pStr1++ = *pStr2++; // copy strings
-		nCount--;
+	// customized strncpy() function to fill remaing destination string part with spaces
+	while (n > 0) {
+		if (*p2 == '\0') break;
+		*p1++ = *p2++; // copy strings
+		n--;
 	}
 
-	while (nCount--)
-		*pStr1++ = ' '; // fill remaining space with spaces
+	while (n > 0) {
+		*p1++ = ' '; // fill remaining space with spaces
+		n--;
+	}
 }
 
 // insert floppy image pointed to to by global <file> into <drive>

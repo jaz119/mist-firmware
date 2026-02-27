@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <ctype.h>
+#include "hardware.h"
 #include "utils.h"
 #include "attrs.h"
 
@@ -23,22 +24,19 @@ unsigned char incval(unsigned char in, unsigned char min, unsigned char max) {
   return (in == max) ? min : in+1;
 }
 
-FAST int _strnicmp(const char *s1, const char *s2, size_t n)
-{
-  char c1, c2;
-  int v;
+FAST int _strnicmp(const char *s1, const char *s2, size_t n) {
+    int v = 0;
+    while (n--) {
+        unsigned char c1 = *s1++;
+        unsigned char c2 = *s2++;
 
-  do
-    {
-    c1 = *s1++;
-    c2 = *s2++;
-    if (!c1) break;
-    v = (unsigned int)tolower(c1) - (unsigned int)tolower(c2);
+        if (c1 >= 'A' && c1 <= 'Z') c1 += 32;
+        if (c2 >= 'A' && c2 <= 'Z') c2 += 32;
+
+        v = c1 - c2;
+        if (v != 0 || c1 == 0) break;
     }
-  while (v == 0 && --n > 0);
-
-  if (!c1 && c2) v = -1;
-  return v;
+    return v;
 }
 
 void hexdump(void *data, int size, int offset) {
@@ -46,7 +44,7 @@ void hexdump(void *data, int size, int offset) {
   uint16_t n=0;
   char *ptr = data;
 
-  if(!size) return;
+  if(!size || !is_dip_switch1_on()) return;
 
   while(size>0) {
     iprintf("%04x: ", n + offset);

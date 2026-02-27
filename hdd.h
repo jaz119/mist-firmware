@@ -73,9 +73,9 @@
 // types
 typedef struct
 {
-    volatile unsigned char enabled; // 0: Disabled, 1: Hard file, 2: MMC (entire card), 3-6: Partition 1-4 of MMC card, 10-CDROM
-    volatile unsigned char present;
-    char name[FF_LFN_BUF + 1];
+  volatile int enabled; // 0: Disabled, 1: Hard file, 2: MMC (entire card), 3-6: Partition 1-4 of MMC card, 10-CDROM
+  volatile bool present;
+  char name[FF_LFN_BUF + 1];
 } hardfileTYPE;
 
 typedef struct
@@ -95,7 +95,7 @@ extern hardfileTYPE *hardfile[HARDFILES];
 extern hdfTYPE hdf[HARDFILES];
 
 // functions
-FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena);
+FORCE_ARM void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena);
 unsigned char OpenHardfile(unsigned char unit, bool amiga);
 unsigned char GetHDFFileType(const char *filename);
 void SendHDFCfg();

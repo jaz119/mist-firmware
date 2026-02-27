@@ -115,7 +115,7 @@ static unsigned int ps2_mouse_samplerate;
 // may be in use by an active OSD
 bool osd_is_visible = false;
 
-static int autofire;
+static bool autofire;
 static unsigned long autofire_timer;
 static uint32_t autofire_map;
 static uint32_t autofire_mask;
@@ -819,22 +819,23 @@ bool user_io_is_mounted(unsigned char index) {
 	return sd_image[sd_index(index)].valid;
 }
 
-void user_io_file_mount(const unsigned char *name, unsigned char index) {
+void user_io_file_mount(const unsigned char *name, int index) {
 	int slot = sd_index(index);
 	IDXFile *idxfile = &sd_image[slot];
 
 	buffer_lba = 0xffffffff; // invalidate cache
-	if (name) {
-		if (idxfile->valid)
-			IDXClose(idxfile);
 
+	if (idxfile->valid) {
+		debugf("unmounting slot %d", slot);
+		IDXClose(idxfile);
+	}
+
+	if (name) {
 		FRESULT res = IDXOpen(idxfile, name, FA_READ | FA_WRITE);
 		if (res != FR_OK) res = IDXOpen(idxfile, name, FA_READ);
 		if (res == FR_OK) {
 			iprintf("%s: %lu byte(s) into slot: %d\n",
 				__FUNCTION__, (uint32_t) f_size(&idxfile->file), slot);
-
-			idxfile->valid = 1;
 			// build index for fast random access
 			IDXIndex(idxfile, slot);
 		} else {
@@ -842,9 +843,6 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 			return;
 		}
 	} else {
-		debugf("unmounting slot %d", slot);
-		if (idxfile->valid) IDXClose(idxfile);
-		idxfile->valid = 0;
 		if (!index) umounted = 1;
 	}
 
@@ -862,9 +860,7 @@ void user_io_file_mount(const unsigned char *name, unsigned char index) {
 	spi_uio_cmd8(UIO_SET_SDSTAT, index);
 }
 
-// 8 bit cores have a config string telling the firmware how
-// to treat it
-
+// 8 bit cores have a config string telling the firmware how to treat it
 FAST char *user_io_8bit_get_string(unsigned char index) {
 	unsigned char i, lidx = 0, d = 0, arc = 0;
 	int arc_ptr = 0, j = 0;

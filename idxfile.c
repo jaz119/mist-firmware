@@ -17,6 +17,7 @@ void IDXIndex(IDXFile *idx, int entry) {
 
   if (res == FR_OK) {
     iprintf("Index #%d: created in %lu ms\n", entry, GetRTTC() - time);
+    idx->valid = 1;
     return;
   }
 

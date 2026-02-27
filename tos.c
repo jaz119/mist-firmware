@@ -30,7 +30,7 @@ typedef struct {
   char acsi_img[2][64];
   char video_adjust[2];
   char cdc_control_redirect;
-  char sd_direct;
+  bool sd_direct;
 } tos_config_t;
 
 static tos_config_t config;
@@ -45,8 +45,8 @@ static UINT br;
 ALIGNED(4) static struct {
   FIL file;
   char name[64];
-  unsigned char sides;
-  unsigned char spt;
+  unsigned int sides;
+  unsigned int spt;
 } fdd_image[2];
 
 unsigned long hdd_direct = 0;
@@ -123,10 +123,10 @@ char tos_get_video_adjust(char axis) {
   return config.video_adjust[axis];
 }
 
-static void mist_memory_set_address(unsigned long a, unsigned char s, char rw) {
+static void mist_memory_set_address(unsigned long a, unsigned char s, bool rw) {
   //  iprintf("set addr = %x, %d, %d\n", a, s, rw);
 
-  a |= rw?0x1000000:0;
+  a |= rw ? 0x1000000 : 0;
   a >>= 1;
 
   EnableFpga();
@@ -153,7 +153,7 @@ static void mist_memory_read(char *data, unsigned long words) {
   SPI(MIST_READ_MEMORY);
 
   // transmitted bytes must be multiple of 2 (-> words)
-  while(words--) {
+  while (words--) {
     *data++ = SPI(0);
     *data++ = SPI(0);
   }
@@ -223,7 +223,7 @@ void mist_memory_set(char data, unsigned long words) {
 }
 
 // enable direct sd card access on acsi0
-static void tos_set_direct_hdd(char on) {
+static void tos_set_direct_hdd(bool on) {
   config.sd_direct = on;
 
   if(on) {
@@ -276,7 +276,6 @@ static void handle_acsi(unsigned char *buffer) {
 
   unsigned short blocklen;
   unsigned char *buf;
-  unsigned short blocks;
 
   if(length == 0) length = 256;
 
@@ -585,7 +584,7 @@ static void handle_fdc(unsigned char *buffer) {
       }
       dma_ack(0x00);
     } else if((fdc_cmd & 0xc0) == 0xc0) {
-      char msg[32];
+      ALIGNED(4) char msg[32];
 
       if((fdc_cmd & 0xe0) == 0xc0) iprintf("READ ADDRESS\n");
 
@@ -662,14 +661,12 @@ static void tos_write(char *str);
 static void tos_color_test() {
   ALIGNED(4) unsigned short buffer[COLORS][PLANES];
 
-  int y;
-  for(y=0;y<13;y++) {
-    int i, j;
-    for(i=0;i<COLORS;i++)
-      for(j=0;j<PLANES;j++)
+  for(int y=0; y<13; y++) {
+    for(int i=0; i<COLORS; i++)
+      for(int j=0; j<PLANES; j++)
         buffer[i][j] = ((y+i) & (1<<j))?0xffff:0x0000;
 
-    for(i=0;i<16;i++) {
+    for(int i=0; i<16; i++) {
       mist_memory_set_address(VIDEO_BASE_ADDRESS + (16*y+i)*160, 1, 0);
       mist_memory_write((char*)buffer, COLORS*PLANES);
     }
@@ -697,7 +694,6 @@ static void tos_color_test() {
 
 static void tos_write(char *str) {
   static int y = 0;
-  int l;
 
   // empty string is "cursor home"
   if(!str) {
@@ -712,7 +708,7 @@ static void tos_write(char *str) {
     char buffer[c];
 
     // 16 pixel lines
-    for(l=0;l<16;l++) {
+    for(int l=0; l<16; l++) {
       char *p = str, *f=buffer;
       while(*p)	*f++ = char_row(*p++, l>>1);
       while(f < buffer+c) *f++ = char_row(' ', l>>1);
@@ -736,14 +732,13 @@ static void tos_load_cartridge_mist() {
 
   // upload cartridge
   if(config.cart_img[0] && (f_open(&file, config.cart_img, FA_READ) == FR_OK)) {
-    int i;
     tos_debugf("%s:\n  size = %lu", config.cart_img, (uint32_t) f_size(&file));
 
     int blocks = f_size(&file) / 512;
     tos_debugf("  blocks = %d", blocks);
 
     DISKLED_ON;
-    for(i=0;i<blocks;i++) {
+    for(int i=0;i<blocks;i++) {
       f_read(&file, sector_buffer, 512, &br);
 
       if(!(i&0x7f))
@@ -779,8 +774,7 @@ static void tos_load_cartridge_mistery() {
     return;
   }
 
-  // erase that ram area to remove any previously uploaded
-  // image
+  // erase that ram area to remove any previously uploaded image
   tos_debugf("Erasing cart memory");
   data_io_fill_tx(0xff, 128*1024, 0x02);
 }
@@ -796,7 +790,7 @@ static void tos_load_cartridge(const char *name) {
   }
 }
 
-static inline char tos_cartridge_is_inserted() {
+static inline bool tos_cartridge_is_inserted() {
   return config.cart_img[0];
 }
 
@@ -850,11 +844,9 @@ static void tos_upload_mistery(const char *name) {
 
 static void tos_upload_mist(const char *name) {
   FIL file;
-  int i;
 
   // set video offset in fpga
   tos_set_video_adjust(0, 0);
-
   tos_clr();
 
   // do the MiST core handling
@@ -865,7 +857,6 @@ static void tos_upload_mist(const char *name) {
 
   // upload and verify tos image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
-    int i;
     ALIGNED(4) char buffer[512];
     unsigned long time;
     unsigned long tos_base = TOS_BASE_ADDRESS_192k;
@@ -900,7 +891,7 @@ static void tos_upload_mist(const char *name) {
       int j;
       ALIGNED(4) char b2[512];
 
-      for(j=0;j<512;j++) {
+      for(j=0; j<512; j++) {
         buffer[j] ^= 0x55;
         b2[j] = 0xa5;
       }
@@ -917,7 +908,7 @@ static void tos_upload_mist(const char *name) {
       mist_memory_read(b2, 256);
 
       char ok = 1;
-      for(j=0;j<512;j++)
+      for(j=0; j<512; j++)
        if(buffer[j] != b2[j])
          ok = 0;
 
@@ -937,14 +928,14 @@ static void tos_upload_mist(const char *name) {
       }
 
       if(!((run_ok + run_fail)%10))
-       iprintf("ok %d, failed %d\r", run_ok, run_fail);
+        iprintf("ok %d, failed %d\r", run_ok, run_fail);
     }
 #endif
 
     time = GetRTTC();
     tos_debugf("Uploading ...");
 
-    for(i=0;i<blocks;i++) {
+    for(int i=0; i<blocks; i++) {
       f_read(&file, buffer, 512, &br);
 
       // copy first 8 bytes to address 0 as well
@@ -1047,7 +1038,7 @@ static void tos_upload_mist(const char *name) {
       tos_write("Enabling direct SD card access via ACSI0");
     } else {
       // try to open harddisk image
-      for(i=0;i<2;i++) {
+      for(int i=0; i<2; i++) {
         char msg[] = "Found hard disk image for ACSIX";
         msg[30] = '0'+i;
         tos_write(msg);
@@ -1099,7 +1090,7 @@ void tos_upload(const char *name) {
 static unsigned long get_long(char *buffer, int offset) {
   unsigned long retval = 0;
 
-  for(int i=0;i<4;i++)
+  for(int i=0; i<4; i++)
     retval = (retval << 8) + *(unsigned char*)(buffer+offset+i);
 
   return retval;
@@ -1166,7 +1157,7 @@ static const char *tos_get_cartridge_name() {
     return get_short_name(config.cart_img);
 }
 
-static inline char tos_disk_is_inserted(char index) {
+static inline bool tos_disk_is_inserted(char index) {
   return disk_inserted[index];
 }
 

@@ -87,7 +87,7 @@ FAST static void RDBChecksum(unsigned long *p)
   unsigned long c2;
   long result=0;
   p[2]=0;
-  for(c2=0;c2<count;++c2) result+=p[c2];
+  for(c2=0; c2<count; ++c2) result+=p[c2];
   p[2]=(unsigned long)-result;
 }
 
@@ -181,7 +181,6 @@ static void FakeRDB(int unit, int block)
   }
 }
 
-
 // IdentifiyDevice()
 // builds Identify Device struct
 static void IdentifyDevice(unsigned short *pBuffer, unsigned char unit)
@@ -269,21 +268,20 @@ static void IdentifyPacketDevice(unsigned short *pBuffer, unsigned char unit)
 }
 
 // chs2lba()
-FAST static unsigned long chs2lba(unsigned short cylinder, unsigned char head, unsigned short sector, unsigned char unit, char lbamode)
+static inline unsigned long chs2lba(
+  unsigned short cylinder, unsigned char head, unsigned short sector, unsigned char unit, bool lbamode)
 {
-  if (lbamode){
+  if (lbamode) {
     return ((head<<24) + (cylinder<<8) + sector);
-  }else
+  } else
     return (cylinder * hdf[unit].heads + head) * hdf[unit].sectors + sector - 1;
 }
-
 
 // HardFileSeek()
 static unsigned char HardFileSeek(hdfTYPE *pHDF, unsigned long lba)
 {
   FSIZE_t seek_pos = (FSIZE_t) lba << 9;
-  FRESULT res;
-  res = f_lseek(&pHDF->idxfile->file, seek_pos);
+  FRESULT res = f_lseek(&pHDF->idxfile->file, seek_pos);
   if (res != FR_OK || f_tell(&pHDF->idxfile->file) != seek_pos) {
     hdd_debugf("Seek error: %lu, %lu", (uint32_t) seek_pos, (uint32_t) f_tell(&pHDF->idxfile->file));
     return 0;
@@ -291,9 +289,10 @@ static unsigned char HardFileSeek(hdfTYPE *pHDF, unsigned long lba)
   return 1;
 }
 
-
 // WriteTaskFile()
-static void WriteTaskFile(unsigned char error, unsigned char sector_count, unsigned char sector_number, unsigned char cylinder_low, unsigned char cylinder_high, unsigned char drive_head)
+static void WriteTaskFile(unsigned char error,
+  unsigned char sector_count, unsigned char sector_number,
+  unsigned char cylinder_low, unsigned char cylinder_high, unsigned char drive_head)
 {
   EnableFpga();
 
@@ -323,7 +322,6 @@ static void WriteTaskFile(unsigned char error, unsigned char sector_count, unsig
   DisableFpga();
 }
 
-
 // WriteStatus()
 static void WriteStatus(unsigned char status)
 {
@@ -339,7 +337,8 @@ static void WriteStatus(unsigned char status)
   DisableFpga();
 }
 
-static void WritePacket(unsigned char unit, const unsigned char *buf, unsigned short bufsize, unsigned short bytelimit, char lastpacket)
+static void WritePacket(unsigned char unit,
+  const unsigned char *buf, unsigned short bufsize, unsigned short bytelimit, bool lastpacket)
 {
   unsigned short bytes;
   do {
@@ -376,7 +375,7 @@ static void WritePacket(unsigned char unit, const unsigned char *buf, unsigned s
   } while (bufsize);
 }
 
-static void cdrom_reset()
+static inline void cdrom_reset()
 {
   cdrom.key = cdrom.asc = cdrom.ascq = 0;
   cdrom.currentlba = 0;
@@ -391,7 +390,7 @@ static void cdrom_setsense(unsigned char key, unsigned char asc, unsigned char a
   cdrom.ascq = ascq;
 }
 
-static void cdrom_ok()
+static inline void cdrom_ok()
 {
   cdrom.key = cdrom.asc = cdrom.ascq = 0;
 }
@@ -440,7 +439,8 @@ static void cdrom_playaudio()
     cdrom.currentlba++;
 }
 
-static void PKT_Read(unsigned char unit, unsigned int lba, unsigned int len, unsigned short bytelimit, unsigned short blocksize)
+static void PKT_Read(unsigned char unit,
+  unsigned int lba, unsigned int len, unsigned short bytelimit, unsigned short blocksize)
 {
   UINT br;
   unsigned char *pBuffer;
@@ -916,7 +916,9 @@ static void PKT_ModeSelect6(unsigned char *cmd, unsigned char unit, unsigned sho
   PKT_ModeSelect(unit, bufsize, 0);
 }
 
-static void PKT_ModeSense(unsigned char *cmd, unsigned char unit, unsigned short bytelimit, unsigned short bufsize, unsigned char page)
+static void PKT_ModeSense(
+  unsigned char *cmd, unsigned char unit, unsigned short bytelimit,
+  unsigned short bufsize, unsigned char page)
 {
   //TODO: implement
   cdrom_setsense(SENSEKEY_ILLEGAL_REQUEST, 0x20, 0);
@@ -990,7 +992,7 @@ static void PKT_RequestSense(unsigned char *cmd, unsigned char unit, unsigned sh
 static void PKT_StartStopUnit(unsigned char *cmd, unsigned char unit)
 {
   hdd_debugf("IDE%d: PKT_StartStopUnit", unit);
-  char start = cmd[4] & 0x01;
+  bool start = cmd[4] & 0x01;
   cdrom.audiostatus = AUDIO_NOSTAT;
 
   if ((start && toc.valid) || !start) {
@@ -1004,7 +1006,7 @@ static void PKT_StartStopUnit(unsigned char *cmd, unsigned char unit)
 }
 
 // ATA_Packet()
-static inline void ATA_Packet(unsigned char *tfr, unsigned char unit, unsigned short bytelimit)
+static void ATA_Packet(unsigned char *tfr, unsigned char unit, unsigned short bytelimit)
 {
   unsigned char cmdpkt[12];
   hdd_debugf("IDE%d: ATA_Packet", unit);
@@ -1111,7 +1113,7 @@ static inline void ATA_Packet(unsigned char *tfr, unsigned char unit, unsigned s
 }
 
 // ATA_Recalibrate()
-static inline void ATA_Recalibrate(unsigned char* tfr, unsigned char unit)
+static void ATA_Recalibrate(unsigned char* tfr, unsigned char unit)
 {
   // Recalibrate 0x10-0x1F (class 3 command: no data)
   hdd_debugf("IDE%d: Recalibrate", unit);
@@ -1119,9 +1121,8 @@ static inline void ATA_Recalibrate(unsigned char* tfr, unsigned char unit)
   WriteStatus(IDE_STATUS_END | IDE_STATUS_IRQ);
 }
 
-
 // ATA_Diagnostic()
-static inline void ATA_Diagnostic(unsigned char* tfr)
+static void ATA_Diagnostic(unsigned char* tfr)
 {
   // Execute Drive Diagnostic (0x90)
   hdd_debugf("IDE: Drive Diagnostic");
@@ -1176,9 +1177,8 @@ static void ATA_IdentifyDevice(unsigned char* tfr, unsigned char unit, char pack
   WriteStatus(IDE_STATUS_END | IDE_STATUS_IRQ);
 }
 
-
 // ATA_Initialize()
-static inline void ATA_Initialize(unsigned char* tfr, unsigned char unit)
+static void ATA_Initialize(unsigned char* tfr, unsigned char unit)
 {
   // Initialize Device Parameters (0x91)
   hdd_debugf("Initialize Device Parameters");
@@ -1187,9 +1187,8 @@ static inline void ATA_Initialize(unsigned char* tfr, unsigned char unit)
   WriteStatus(IDE_STATUS_END | IDE_STATUS_IRQ);
 }
 
-
 // ATA_SetMultipleMode()
-static inline void ATA_SetMultipleMode(unsigned char* tfr, unsigned char unit)
+static void ATA_SetMultipleMode(unsigned char* tfr, unsigned char unit)
 {
   // Set Multiple Mode (0xc6)
   hdd_debugf("Set Multiple Mode");
@@ -1202,13 +1201,13 @@ static inline void ATA_SetMultipleMode(unsigned char* tfr, unsigned char unit)
   WriteStatus(IDE_STATUS_END | IDE_STATUS_IRQ);
 }
 
-static inline void ATA_NOP(unsigned char *tfr, unsigned char unit)
+static void ATA_NOP(unsigned char *tfr, unsigned char unit)
 {
   WriteTaskFile(tfr[1], tfr[2], tfr[3], tfr[4], tfr[5], tfr[6]);
   WriteStatus(IDE_STATUS_END | IDE_STATUS_IRQ);
 }
 
-static inline void ATA_DeviceReset(unsigned char *tfr, unsigned char unit)
+static void ATA_DeviceReset(unsigned char *tfr, unsigned char unit)
 {
   hdd_debugf("Device Reset");
   hdd_debugf("IDE%d: %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X", unit, tfr[0], tfr[1], tfr[2], tfr[3], tfr[4], tfr[5], tfr[6], tfr[7]);
@@ -1228,12 +1227,13 @@ static inline void ATA_DeviceReset(unsigned char *tfr, unsigned char unit)
 }
 
 // ATA_ReadSectors()
-static inline void ATA_ReadSectors(unsigned char* tfr, unsigned short sector, unsigned short cylinder, unsigned char head, unsigned char unit, unsigned short sector_count, bool multiple, char lbamode, bool verify)
+FORCE_ARM static void ATA_ReadSectors(
+  unsigned char* tfr, unsigned short sector, unsigned short cylinder, unsigned char head,
+  unsigned char unit, unsigned short sector_count, bool multiple, bool lbamode, bool verify)
 {
   // Read Sectors (0x20)
-  long lba;
-  int i;
-  int block_count, blocks;
+  unsigned long lba;
+  unsigned int block_count, blocks;
   UINT br;
 
   lba=chs2lba(cylinder, head, sector, unit, lbamode);
@@ -1270,7 +1270,7 @@ static inline void ATA_ReadSectors(unsigned char* tfr, unsigned short sector, un
       --sector_count;
     }
     if (lbamode) {
-      long newlba = lba+block_count;
+      unsigned long newlba = lba+block_count;
       sector = newlba & 0xff;
       cylinder = newlba >> 8;
       head = newlba >> 24;
@@ -1408,14 +1408,14 @@ static inline void ATA_ReadSectors(unsigned char* tfr, unsigned short sector, un
   }
 }
 
-
 // ATA_WriteSectors()
-static inline void ATA_WriteSectors(unsigned char* tfr, unsigned short sector, unsigned short cylinder, unsigned char head, unsigned char unit, unsigned short sector_count, bool multiple, char lbamode)
+FORCE_ARM static void ATA_WriteSectors(unsigned char* tfr,
+  unsigned short sector, unsigned short cylinder, unsigned char head,
+  unsigned char unit, unsigned short sector_count, bool multiple, char lbamode)
 {
-  unsigned short i;
-  unsigned int block_count, block_size, sectors;
   unsigned char *buf;
-  long lba=chs2lba(cylinder, head, sector, unit, lbamode);
+  unsigned int block_count, block_size, sectors;
+  unsigned long lba=chs2lba(cylinder, head, sector, unit, lbamode);
 
   // write sectors
   WriteStatus(IDE_STATUS_REQ); // pio out (class 2) command type
@@ -1509,9 +1509,8 @@ static inline void ATA_WriteSectors(unsigned char* tfr, unsigned short sector, u
   }
 }
 
-
 // HandleHDD()
-FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
+FORCE_ARM void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
 {
   unsigned char  tfr[8];
   unsigned short sector;
@@ -1538,7 +1537,7 @@ FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
     }
     DisableFpga();
     unit = (cs1 << 1) | ((tfr[6] & 0x10) >> 4); // primary/secondary/master/slave selection
-    if (0) hdd_debugf("IDE%d: %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X", unit, tfr[0], tfr[1], tfr[2], tfr[3], tfr[4], tfr[5], tfr[6], tfr[7]);
+    hdd_debugf("IDE%d: %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X", unit, tfr[0], tfr[1], tfr[2], tfr[3], tfr[4], tfr[5], tfr[6], tfr[7]);
 
     if (!hardfile[unit]->present) {
       hdd_debugf("IDE%d: not present", unit);
@@ -1610,13 +1609,12 @@ FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
   if (c1 & 0x01) cdrom_playaudio();
 }
 
-
 // GetHardfileGeometry()
 // this function comes from WinUAE, should return the same CHS as WinUAE
 static void GetHardfileGeometry(hdfTYPE *pHDF, bool amiga)
 {
   unsigned long total=0;
-  unsigned long i, head=0, cyl=0, spt=0;
+  unsigned long head=0, cyl=0, spt=0;
   unsigned long sptt[] = { 63, 127, 255, 0 };
   unsigned long cyllimit=65535;
 
@@ -1668,7 +1666,7 @@ static void GetHardfileGeometry(hdfTYPE *pHDF, bool amiga)
 
   if (amiga) {
     // Amiga (WinUAE) compatible geometry
-    for (i = 0; sptt[i] != 0; i++) {
+    for (int i = 0; sptt[i] != 0; i++) {
       spt = sptt[i];
       for (head = 4; head <= 16; head++) {
         cyl = total / (head * spt);
@@ -1716,8 +1714,6 @@ static void GetHardfileGeometry(hdfTYPE *pHDF, bool amiga)
   pHDF->heads = (unsigned short)head;
   pHDF->sectors = (unsigned short)spt;
 }
-
-
 
 // OpenHardfile()
 unsigned char OpenHardfile(unsigned char unit, bool amiga)
@@ -1774,7 +1770,6 @@ unsigned char OpenHardfile(unsigned char unit, bool amiga)
   return 0;
 }
 
-
 // GetHDFFileType()
 unsigned char GetHDFFileType(const char *filename)
 {
@@ -1784,8 +1779,7 @@ unsigned char GetHDFFileType(const char *filename)
 
   if (f_open(&rdbfile,filename, FA_READ) == FR_OK) {
     res = HDF_FILETYPE_UNKNOWN;
-    int i;
-    for(i=0;i<16;++i) {
+    for(int i=0; i<16; ++i) {
       if (f_read(&rdbfile, sector_buffer, 512, &br) != FR_OK) break;
       if (sector_buffer[0]=='R' && sector_buffer[1]=='D' && sector_buffer[2]=='S' && sector_buffer[3]=='K') {
         res = HDF_FILETYPE_RDB;

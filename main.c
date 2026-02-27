@@ -106,7 +106,7 @@ void FatalError(unsigned long error)
     }
 }
 
-void HandleFpga(void)
+static void minimig_handle_drives(void)
 {
     unsigned char  c1, c2;
 
@@ -121,8 +121,7 @@ void HandleFpga(void)
 
     HandleFDD(c1, c2);
     HandleHDD(c1, c2, 1);
-
-    UpdateDriveStatus();
+    UpdateFDDStatus();
 }
 
 static void eject_all_media()
@@ -359,7 +358,7 @@ FAST int main(void)
             case CORE_TYPE_MINIMIG_AGA:
                 if (!mmc_ok)
                     minimig_eject_all();
-                HandleFpga();
+                minimig_handle_drives();
                 break;
 
             case CORE_TYPE_ARCHIE:

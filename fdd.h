@@ -16,8 +16,8 @@
 typedef struct
 {
     FIL           file;
-    volatile unsigned char status; /*status of floppy*/
-    unsigned char tracks; /*number of tracks*/
+    volatile uint32_t status; /*status of floppy*/
+    unsigned int tracks; /*number of tracks*/
     unsigned char sector_offset; /*sector offset to handle tricky loaders*/
     unsigned char track; /*current track*/
     unsigned char track_prev; /*previous track*/
@@ -27,15 +27,7 @@ typedef struct
 extern adfTYPE df[4];
 extern unsigned char drives;
 
-void SectorGapToFpga(void);
-void SectorHeaderToFpga(unsigned char n, unsigned char dsksynch, unsigned char dsksyncl);
-//unsigned short SectorToFpga(unsigned char sector, unsigned char track, unsigned char dsksynch, unsigned char dsksyncl);
-void ReadTrack(adfTYPE *drive);
-unsigned char FindSync(adfTYPE *drive);
-unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector);
-unsigned char GetData(void);
-void WriteTrack(adfTYPE *drive);
-void UpdateDriveStatus(void);
-void HandleFDD(unsigned int c1, unsigned int c2);
+FAST void UpdateFDDStatus(void);
+FAST void HandleFDD(unsigned int c1, unsigned int c2);
 
 #endif
