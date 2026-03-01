@@ -79,8 +79,8 @@ static const char *acsi_cmd_name(int cmd) {
   return cmdname[cmd];
 }
 
-static void tos_insert_disk(char, const char *);
-static void tos_select_hdd_image(char, const char *);
+static void tos_insert_disk(int, const char *);
+static void tos_select_hdd_image(int, const char *);
 
 void assign_full_path(char *buf, int buf_size, const char *fname) {
   if (!buf || !buf_size || !fname || buf == fname) return;
@@ -250,6 +250,10 @@ static void tos_set_direct_hdd(bool on) {
 
 static inline char tos_get_direct_hdd() {
   return config.sd_direct;
+}
+
+static inline bool tos_disk_is_inserted(int index) {
+  return disk_inserted[index & 3];
 }
 
 static void dma_ack(unsigned char status) {
@@ -686,7 +690,6 @@ static void mist_get_dmastate() {
   } else { // CORE_TYPE_MISTERY
     if(buffer[10] & 0x01 /* BUSY */) {
       spi_newspeed = SPI_MMC_CLK_VALUE;
-      // handle_acsi(buffer);
 
       AcsiBus.opcode = AcsiBus.command[0];
       AcsiBus.target = (AcsiBus.command[10] & 0xE0) >> 5;
@@ -694,12 +697,16 @@ static void mist_get_dmastate() {
       // only a harddisk on ACSI 0/1 is supported
       // ACSI 0/1 is only supported if a image is loaded
       // ACSI 0 is only supported for direct IO
-      if (((AcsiBus.target < 2) && disk_inserted[AcsiBus.target + 2]) ||
-          ((AcsiBus.target == 0) && hdd_direct)) {
+      if (AcsiBus.target < 2) {
         HDC_HandleCommandPacket(&AcsiBus);
-        if (AcsiBus.status != HD_STATUS_OK)
+        if (AcsiBus.status != HD_STATUS_OK) {
+          SCSI_DEV *dev = &AcsiBus.devs[AcsiBus.target];
           iprintf("ACSI: opcode=0x%x, status=0x%x, error=0x%x\n",
-            AcsiBus.opcode, AcsiBus.status, AcsiBus.devs[AcsiBus.target].nLastError);
+            AcsiBus.opcode, AcsiBus.status, dev->nLastError);
+          if (!(hdd_direct && AcsiBus.target == 0) && dev->hdSize == 0) {
+            dev->nLastError = HD_REQSENS_NOTREADY;
+          }
+        }
         dma_ack(AcsiBus.status);
       } else {
         if (is_dip_switch1_on())
@@ -1217,13 +1224,10 @@ static const char *tos_get_cartridge_name() {
     return get_short_name(config.cart_img);
 }
 
-static inline bool tos_disk_is_inserted(char index) {
-  return disk_inserted[index];
-}
-
-static void tos_select_hdd_image(char i, const char *name) {
+static void tos_select_hdd_image(int i, const char *name) {
   int slot = i+2;
   IDXFile *idx = &sd_image[slot & 3];
+  SCSI_DEV *acsi_dev = NULL;
 
   // try to re/open harddisk image
   if (disk_inserted[slot]) {
@@ -1233,6 +1237,14 @@ static void tos_select_hdd_image(char i, const char *name) {
 
   config.system_ctrl &= ~(TOS_ACSI0_ENABLE<<i);
 
+  if (i < 2) {
+    // Link file with ACSI driver
+    acsi_dev = &AcsiBus.devs[i];
+    acsi_dev->blockSize = 512;
+    acsi_dev->nLastError = HD_REQSENS_OK;
+    acsi_dev->hdSize = 0;
+  }
+
   if(name && name[0]) {
     FRESULT res = IDXOpen(idx, name, FA_READ | FA_WRITE);
     if (res == FR_OK) {
@@ -1241,13 +1253,8 @@ static void tos_select_hdd_image(char i, const char *name) {
       IDXIndex(idx, slot);
       disk_inserted[slot] = 1;
       config.system_ctrl |= (TOS_ACSI0_ENABLE<<i);
-      // Link file with ACSI driver
-      if (i < 2) {
-        SCSI_DEV *dev = &AcsiBus.devs[i];
-        dev->blockSize = 512;
-        dev->hdSize = f_size(&(idx->file)) / dev->blockSize;
-        dev->nLastError = HD_REQSENS_OK;
-      }
+      if (acsi_dev)
+        acsi_dev->hdSize = f_size(&(idx->file)) / acsi_dev->blockSize;
     } else {
       iprintf("Cannot open %s file, error %d\n", name, res);
     }
@@ -1259,7 +1266,7 @@ static void tos_select_hdd_image(char i, const char *name) {
   mist_set_control(config.system_ctrl);
 }
 
-static void tos_insert_disk(char i, const char *name) {
+static void tos_insert_disk(int i, const char *name) {
   if(i > 1) {
     tos_select_hdd_image(i-2, name);
     return;

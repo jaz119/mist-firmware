@@ -98,6 +98,7 @@ static int HDC_GetCommandByteCount(SCSI_CTRLR *ctr)
 /**
  * Get info string for ACSI command packets.
  */
+#ifdef TOS_DEBUG
 const char *HDC_CmdInfoStr(SCSI_CTRLR *ctr)
 {
     static char buf[48];
@@ -107,6 +108,7 @@ const char *HDC_CmdInfoStr(SCSI_CTRLR *ctr)
 
     return buf;
 }
+#endif
 
 /**
  * Inquiry - return some disk information.
@@ -154,7 +156,7 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
     else
     {
         ctr->status = HD_STATUS_ERROR;
-        dev->nLastError = HD_REQSENS_OPCODE;
+        dev->nLastError = HD_REQSENS_NOTREADY;
     }
 }
 
@@ -203,7 +205,7 @@ static void HDC_Cmd_ReportLuns(SCSI_CTRLR *ctr)
     else
     {
         ctr->status = HD_STATUS_ERROR;
-        dev->nLastError = HD_REQSENS_OPCODE;
+        dev->nLastError = HD_REQSENS_NOTREADY;
     }
 
     dev->bSetLastBlockAddr = false;
@@ -240,7 +242,7 @@ static void HDC_Cmd_ReadCapacity(SCSI_CTRLR *ctr)
     else
     {
         ctr->status = HD_STATUS_ERROR;
-        dev->nLastError = HD_REQSENS_OPCODE;
+        dev->nLastError = HD_REQSENS_NOTREADY;
     }
 
     dev->bSetLastBlockAddr = false;
@@ -312,12 +314,13 @@ static void HDC_Cmd_RequestSense(SCSI_CTRLR *ctr)
 
         switch (dev->nLastError)
         {
-            case HD_REQSENS_OK:      retbuf[2] = 0; break;
-            case HD_REQSENS_OPCODE:  retbuf[2] = 5; break;
-            case HD_REQSENS_INVADDR: retbuf[2] = 5; break;
-            case HD_REQSENS_INVARG:  retbuf[2] = 5; break;
-            case HD_REQSENS_INVLUN:  retbuf[2] = 5; break;
-            default:                 retbuf[2] = 4; break;
+            case HD_REQSENS_OK:         retbuf[2] = 0; break;
+            case HD_REQSENS_NOTREADY:   retbuf[2] = 2; break;
+            case HD_REQSENS_OPCODE:     retbuf[2] = 5; break;
+            case HD_REQSENS_INVADDR:    retbuf[2] = 5; break;
+            case HD_REQSENS_INVARG:     retbuf[2] = 5; break;
+            case HD_REQSENS_INVLUN:     retbuf[2] = 5; break;
+            default:                    retbuf[2] = 4; break;
         }
 
         retbuf[7]  = 14;
@@ -468,7 +471,7 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
     else
     {
         ctr->status = HD_STATUS_ERROR;
-        dev->nLastError = HD_REQSENS_OPCODE;
+        dev->nLastError = HD_REQSENS_NOTREADY;
     }
 }
 
