@@ -17,7 +17,6 @@
 #include "usb.h"
 #include "debug.h"
 #include "keycodes.h"
-#include "ikbd.h"
 #include "idxfile.h"
 #include "spi.h"
 #include "mist_cfg.h"
@@ -180,8 +179,6 @@ void user_io_init() {
 	iprintf("DIP switches: 1:%s, 2:%s\n",
 		is_dip_switch1_on() ? "on" : "off",
 		is_dip_switch2_on() ? "on" : "off");
-
-	ikbd_init();
 }
 
 uint32_t user_io_core_type() {
@@ -295,21 +292,15 @@ void user_io_detect_core_type() {
 		puts("Identified core without user interface");
 		break;
 
-	case CORE_TYPE_MINIMIG:
-		strcpy(core_name, "MINIMIG");
-		puts("Identified Minimig V1 core");
-		break;
-
 	case CORE_TYPE_MINIMIG_AGA:
 		strcpy(core_name, "MINIMIG");
-		puts("Identified Minimig V2 core");
+		puts("Identified Minimig AGA core");
 		break;
 
 	case CORE_TYPE_PACE:
 		puts("Identified PACE core");
 		break;
 
-	case CORE_TYPE_MIST:
 	case CORE_TYPE_MISTERY:
 		strcpy(core_name, "ST");
 		puts("Identified MiSTery core");
@@ -507,13 +498,6 @@ void user_io_digital_joystick(unsigned char joystick, unsigned char map) {
 
 	//iprintf("j%d: %x\n", joystick, map);
 
-	// atari ST handles joystick 0 and 1 through the ikbd emulated by the io controller
-	// but only for joystick 1 and 2
-	if((core_type == CORE_TYPE_MIST) && (joystick < 2)) {
-		ikbd_joystick(joystick, map);
-		return;
-	}
-
 	// every other core else uses this
 	// (even MIST, joystick 3 and 4 were introduced later)
 	spi_uio_cmd8((joystick < 2)?(UIO_JOYSTICK0 + joystick):((UIO_JOYSTICK2 + joystick - 2)), map);
@@ -555,10 +539,7 @@ static void user_io_joystick(unsigned char joystick, uint16_t map) {
 
 // transmit serial/rs232 data into core
 void user_io_serial_tx(char *chr, uint16_t cnt) {
-	if (core_type == CORE_TYPE_MIST)
-		spi_uio_cmd_cont(UIO_SERIAL_OUT);
-	else
-		spi_uio_cmd_cont(UIO_SIO_OUT);
+	spi_uio_cmd_cont(UIO_SIO_OUT);
 	while(cnt--) spi8(*chr++);
 	DisableIO();
 }
@@ -1269,8 +1250,6 @@ FORCE_ARM void user_io_poll() {
 	   (core_type == CORE_TYPE_MISTERY)) {
 		uint32_t redirect = tos_get_cdc_control_redirect();
 
-		if (core_type == CORE_TYPE_MIST) ikbd_poll();
-
 		// check for input data on usart
 		USART_Poll();
 
@@ -1281,10 +1260,7 @@ FORCE_ARM void user_io_poll() {
 		// e.g. the diagnostic cartridge
 #ifdef USB_PL2303_CDC
 		if(!pl2303_is_blocked()) {
-			if (core_type == CORE_TYPE_MIST)
-				spi_uio_cmd_cont(UIO_SERIAL_IN);
-			else
-				spi_uio_cmd_cont(UIO_SIO_IN);
+			spi_uio_cmd_cont(UIO_SIO_IN);
 
 			while(spi_in() && !pl2303_is_blocked()) {
 				c = spi_in();
@@ -1871,11 +1847,6 @@ static void send_keycode(unsigned short code) {
 			kbd_fifo_enqueue(code);
 	}
 
-	if(core_type == CORE_TYPE_MIST) {
-		// atari has "break" marker in msb
-		ikbd_keyboard((code & BREAK) ? ((code & 0xff) | 0x80) : code);
-	}
-
 	if((core_type == CORE_TYPE_8BIT) ||
 	   (core_type == CORE_TYPE_MISTERY)) {
 		// send ps2 keycodes for those cores that prefer ps2
@@ -1947,9 +1918,6 @@ FORCE_ARM void user_io_mouse(unsigned char idx, unsigned char b, char x, char y,
 	}
 
 	// send mouse data as mist expects it
-	if(core_type == CORE_TYPE_MIST)
-		ikbd_mouse(b, x, y);
-
 	if(core_type == CORE_TYPE_ARCHIE)
 		archie_mouse(b, x, y);
 }
@@ -1996,9 +1964,6 @@ static unsigned short keycode(unsigned short in) {
 	if((core_type == CORE_TYPE_MINIMIG) ||
 	   (core_type == CORE_TYPE_MINIMIG_AGA))
 	return usb2amiga(in);
-
-	if(core_type == CORE_TYPE_MIST)
-		return usb2atari[in];
 
 	if(core_type == CORE_TYPE_ARCHIE)
 		return usb2archie[in];
@@ -2058,12 +2023,6 @@ static unsigned short modifier_keycode(unsigned char index) {
 		ALIGNED(4) static const unsigned short amiga_modifier[] =
 			{ 0x63, 0x60, 0x64, 0x66, 0x63, 0x61, 0x65, 0x67 };
 		return amiga_modifier[index];
-	}
-
-	if(core_type == CORE_TYPE_MIST) {
-		ALIGNED(4) static const unsigned short atari_modifier[] =
-			{ 0x1d, 0x2a, 0x38, MISS, 0x1d, 0x36, 0x38, MISS };
-		return atari_modifier[index];
 	}
 
 	if((core_type == CORE_TYPE_8BIT) ||
@@ -2502,7 +2461,6 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 							autofire = ((autofire + 1) & 0x03);
 							InfoMessage(config_autofire_msg[autofire]);
 						}
-
 					}
 
 					// no further processing of any key that is currently

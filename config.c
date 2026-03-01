@@ -122,59 +122,39 @@ char UploadKickstart(char *name)
     } else if(f_size(&romfile) == 0x80000) {
       // 512KB Kickstart ROM
       BootPrint("Uploading 512KB Kickstart ...");
-      if (minimig_v1()) {
-        PrepareBootUpload(0xF8, 0x08);
-        SendFile(&romfile);
-      } else {
-        SendFileV2(&romfile, NULL, 0, 0xf80000, f_size(&romfile)>>9);
-        f_rewind(&romfile);
-        SendFileV2(&romfile, NULL, 0, 0xe00000, f_size(&romfile)>>9);
-        ClearVectorTable();
-      }
+      SendFileV2(&romfile, NULL, 0, 0xf80000, f_size(&romfile)>>9);
+      f_rewind(&romfile);
+      SendFileV2(&romfile, NULL, 0, 0xe00000, f_size(&romfile)>>9);
+      ClearVectorTable();
       f_close(&romfile);
       return(1);
     } else if ((f_size(&romfile) == 0x8000b) && keysize) {
       // 512KB Kickstart ROM
       BootPrint("Uploading 512 KB Kickstart (Probably Amiga Forever encrypted...)");
-      if (minimig_v1()) {
-        PrepareBootUpload(0xF8, 0x08);
-        SendFileEncrypted(&romfile,romkey,keysize);
-      } else {
-        SendFileV2(&romfile, romkey, keysize, 0xf80000, f_size(&romfile)>>9);
-        f_rewind(&romfile);
-        SendFileV2(&romfile, romkey, keysize, 0xe00000, f_size(&romfile)>>9);
-        ClearVectorTable();
-      }
+      SendFileV2(&romfile, romkey, keysize, 0xf80000, f_size(&romfile)>>9);
+      f_rewind(&romfile);
+      SendFileV2(&romfile, romkey, keysize, 0xe00000, f_size(&romfile)>>9);
+      ClearVectorTable();
       f_close(&romfile);
       return(1);
     } else if (f_size(&romfile) == 0x40000) {
       // 256KB Kickstart ROM
       BootPrint("Uploading 256 KB Kickstart...");
-      if (minimig_v1()) {
-        PrepareBootUpload(0xF8, 0x04);
-        SendFile(&romfile);
-      } else {
-        SendFileV2(&romfile, NULL, 0, 0xf80000, f_size(&romfile)>>9);
-        f_rewind(&romfile);
-        SendFileV2(&romfile, NULL, 0, 0xfc0000, f_size(&romfile)>>9);
-        ClearVectorTable();
-        ClearKickstartMirrorE0();
-      }
+      SendFileV2(&romfile, NULL, 0, 0xf80000, f_size(&romfile)>>9);
+      f_rewind(&romfile);
+      SendFileV2(&romfile, NULL, 0, 0xfc0000, f_size(&romfile)>>9);
+      ClearVectorTable();
+      ClearKickstartMirrorE0();
       f_close(&romfile);
       return(1);
     } else if ((f_size(&romfile) == 0x4000b) && keysize) {
       // 256KB Kickstart ROM
       BootPrint("Uploading 256 KB Kickstart (Probably Amiga Forever encrypted...");
-      if (minimig_v1()) {
-        PrepareBootUpload(0xF8, 0x04);
-        SendFileEncrypted(&romfile,romkey,keysize);
-      } else {
-        SendFileV2(&romfile, romkey, keysize, 0xf80000, f_size(&romfile)>>9);
-        f_rewind(&romfile);
-        SendFileV2(&romfile, romkey, keysize, 0xfc0000, f_size(&romfile)>>9);
-        ClearVectorTable();
-        ClearKickstartMirrorE0();
-      }
+      SendFileV2(&romfile, romkey, keysize, 0xf80000, f_size(&romfile)>>9);
+      f_rewind(&romfile);
+      SendFileV2(&romfile, romkey, keysize, 0xfc0000, f_size(&romfile)>>9);
+      ClearVectorTable();
+      ClearKickstartMirrorE0();
       f_close(&romfile);
       return(1);
     } else {
@@ -193,24 +173,7 @@ FAST char UploadActionReplay()
 {
   FIL romfile;
 
-  if(minimig_v1()) {
-    if (f_open(&romfile, "AR3.ROM", FA_READ) == FR_OK) {
-      if (f_size(&romfile) == 0x40000) {
-        // 256 KB Action Replay 3 ROM
-        BootPrint("\nUploading Action Replay ROM...");
-        PrepareBootUpload(0x40, 0x04);
-        SendFile(&romfile);
-        ClearMemory(0x440000, 0x40000);
-        f_close(&romfile);
-        return(1);
-      } else {
-        BootPrint("\nUnsupported AR3.ROM file size!!!");
-        /* FatalError(6); */
-        f_close(&romfile);
-        return(0);
-      }
-    }
-  } else {
+  {
     if (f_open(&romfile, "HRTMON.ROM", FA_READ) == FR_OK) {
       int adr, data;
       puts("Uploading HRTmon ROM... ");
@@ -380,7 +343,7 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
   if (minimig_v2() && printconfig) {
     char cfg_str[81];
     siprintf(cfg_str, "CPU:     %s", config_cpu_msg[config.cpu & 0x03]); BootPrintEx(cfg_str);
-    siprintf(cfg_str, "Chipset: %s", config_chipset_msg [(config.chipset >> 2) & (minimig_v1()?3:7)]); BootPrintEx(cfg_str);
+    siprintf(cfg_str, "Chipset: %s", config_chipset_msg[(config.chipset >> 2) & 7]); BootPrintEx(cfg_str);
     siprintf(cfg_str, "Memory:  CHIP: %s  FAST: %s  SLOW: %s%s",
         config_memory_chip_msg[(config.memory >> 0) & 0x03],
         config_memory_fast_txt(),
@@ -428,28 +391,7 @@ static void ApplyConfiguration(char reloadkickstart)
 {
   ConfigCPU(config.cpu);
 
-  if(reloadkickstart) {
-    if(minimig_v1()) {
-      ConfigChipset(config.chipset | CONFIG_TURBO); // set CPU in turbo mode
-      ConfigFloppy(1, CONFIG_FLOPPY2X); // set floppy speed
-      OsdReset(RESET_BOOTLOADER);
-
-      if (!UploadKickstart(config.kickstart)) {
-        strcpy(config.kickstart, "KICK.ROM");
-        if (!UploadKickstart(config.kickstart)) {
-          strcpy(config.kickstart, "AROS.ROM");
-          if (!UploadKickstart(config.kickstart)) {
-            FatalError(ERROR_KICKSTART_UPLOAD);
-          }
-        }
-      }
-
-      //if (!CheckButton() && !config.disable_ar3) {
-        // load Action Replay
-        UploadActionReplay();
-      //}
-    }
-  } else {
+  if(!reloadkickstart) {
     ConfigChipset(config.chipset);
     ConfigFloppy(config.floppy.drives, config.floppy.speed);
   }
@@ -539,20 +481,7 @@ static void ApplyConfiguration(char reloadkickstart)
   ConfigCPU(config.cpu);
   ConfigAutofire(config.autofire);
 
-  if(minimig_v1()) {
-    MM1_ConfigFilter(config.filter.lores, config.filter.hires);
-    MM1_ConfigScanlines(config.scanlines);
-
-    if(reloadkickstart) {
-      WaitTimer(5000);
-      BootExit();
-    } else {
-      OsdReset(RESET_NORMAL);
-    }
-
-    ConfigChipset(config.chipset);
-    ConfigFloppy(config.floppy.drives, config.floppy.speed);
-  } else {
+  {
     ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
     ConfigChipset(config.chipset);
     ConfigFloppy(config.floppy.drives, config.floppy.speed);

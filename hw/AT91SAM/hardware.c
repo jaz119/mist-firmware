@@ -25,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "user_io.h"
 #include "xmodem.h"
 #include "debug.h"
-#include "ikbd.h"
 
 void __init_hardware(void)
 {
@@ -232,8 +231,6 @@ void USART_Init(unsigned long baudrate) {
 static void timer0_c_irq_handler(void) {
   //* Acknowledge interrupt status
   unsigned int dummy = AT91C_BASE_TC0->TC_SR;
-
-  ikbd_update_time();
 }
 
 void Timer_Init(void) {
@@ -267,7 +264,7 @@ void Timer_Init(void) {
   AT91C_BASE_AIC->AIC_ICCR = 1 << AT91C_ID_TC0;
 
   AT91C_BASE_TC0->TC_IER = AT91C_TC_CPCS;  //  IRQ enable CPC
-#ifdef LEGACY_ST_IKBD
+#if 0
   AT91C_BASE_AIC->AIC_IECR = 1 << AT91C_ID_TC0;
 #endif
 

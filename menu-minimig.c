@@ -195,17 +195,7 @@ static char KickstartReload(uint8_t idx) {
 		CloseMenu();
 		sniprintf(config.kickstart, sizeof(config.kickstart) - 1, "%s/%s",
 			cwd, KickstartSelectedName);
-		if(minimig_v1()) {
-			OsdDisable();
-			OsdReset(RESET_BOOTLOADER);
-			ConfigChipset(config.chipset | CONFIG_TURBO);
-			ConfigFloppy(config.floppy.drives, CONFIG_FLOPPY2X);
-			if (UploadKickstart(config.kickstart)) {
-				BootExit();
-			}
-			ConfigChipset(config.chipset); // restore CPU speed mode
-			ConfigFloppy(config.floppy.drives, config.floppy.speed); // restore floppy speed mode
-		} else {
+		{
 			// reset bootscreen cursor position
 			BootHome();
 			OsdDisable();
@@ -494,7 +484,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 35:
 					strcpy(s, "  Chipset  : ");
-					strcat(s, config_chipset_msg[(config.chipset >> 2) & (minimig_v1()?3:7)]);
+					strcat(s, config_chipset_msg[(config.chipset >> 2) & 7]);
 					item->item = s;
 					break;
 				case 36:
@@ -552,9 +542,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					item->item = s;
 					break;
 				case 49:
-					if(minimig_v1()) {
-						item->active = 0;
-					} else {
+					{
 						strcpy(s, "  Dither       : ");
 						strcat(s, config_dither_msg[(config.scanlines>>2) & 0x03]);
 						item->item = s;
@@ -706,12 +694,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					ConfigChipset(config.chipset);
 					break;
 				case 35:
-					if(minimig_v1()) {
-						if (config.chipset & CONFIG_ECS)
-							config.chipset &= ~(CONFIG_ECS|CONFIG_A1000);
-						else
-							config.chipset += CONFIG_A1000;
-					} else {
+					{
 						switch(config.chipset&0x1c) {
 							case 0:
 								config.chipset = (config.chipset&3) | CONFIG_A1000;
@@ -768,26 +751,15 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 				case 46:
 					config.filter.lores++;
 					config.filter.lores &= 0x03;
-					if(minimig_v1())
-						MM1_ConfigFilter(config.filter.lores, config.filter.hires);
-					else
-						ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
+					ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
 					break;
 				case 47:
 					config.filter.hires++;
 					config.filter.hires &= 0x03;
-					if(minimig_v1())
-						MM1_ConfigFilter(config.filter.lores, config.filter.hires);
-					else
-						ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
+					ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
 					break;
 				case 48:
-					if(minimig_v1()) {
-						config.scanlines++;
-						if (config.scanlines > 2)
-							config.scanlines = 0;
-						MM1_ConfigScanlines(config.scanlines);
-					} else {
+					{
 						config.scanlines = ((config.scanlines + 1)&0x03) | (config.scanlines&0xfc);
 						if ((config.scanlines&0x03) > 2)
 							config.scanlines = config.scanlines&0xfc;
@@ -795,7 +767,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					}
 					break;
 				case 49:
-					if (!minimig_v1()) {
+					{
 						config.scanlines = (config.scanlines + 4)&0x0f;
 						ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
 					}

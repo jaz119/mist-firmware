@@ -3,6 +3,7 @@
 
 #include "timer.h"
 #include "fat_compat.h"
+#include "debug.h"
 
 extern char minimig_ver_beta;
 extern char minimig_ver_major;
@@ -11,14 +12,16 @@ extern char minimig_ver_minion;
 
 unsigned char fpga_init(const char *name);
 FAST unsigned char ConfigureFpga(const char*);
-FAST void SendFile(FIL *file);
-FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize);
 FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size);
 FAST char BootDraw(char *data, unsigned short len, unsigned short offset);
-FAST char BootPrint(const char *text);
-FAST char PrepareBootUpload(unsigned char base, unsigned char size);
+
+static inline char BootPrint(const char *text)
+{
+    debugf("%s", text);
+    return 0;
+}
+
 FAST void BootExit(void);
-FAST void ClearMemory(unsigned long base, unsigned long size);
 unsigned char GetFPGAStatus(void);
 
 // minimig reset stuff

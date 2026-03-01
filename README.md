@@ -15,11 +15,20 @@ Branch **clean** has the following non-merged differences from the original (mas
     - speed rate of SD card has been increased slightly;
     - faster loading of FPGA cores;
 
+- Minimig:
+    - disks images and ROMs can be loaded from any directories;
+    - removed legacy V1 core support;
+
+- MiSTery:
+    - disks images and ROMs can be loaded from any directories;
+    - new ACSI driver with full ICD/SCSI-2 support;
+    - removed legacy ST core support;
+
 - Other:
     - reduced RAM consumption, LFN now limited to 80 chars;
     - firmware upgrading: flash pages full unlock is fixed;
     - SD card hot swap (*it may require hardware modification*);
-    - disks images and ROMs can be loaded from any directories for *Minimig*, *ST*, *Archie*;
+    - disks images and ROMs can be loaded from any directories for *Archie*;
     - *incomplete PL2303 driver is disabled by default*;
     - 8BIT: using indexing for ROMs files;
     - FatFs updated to 0.16 version;

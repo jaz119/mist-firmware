@@ -17,7 +17,6 @@ SRC += usb/rtc.c usb/rtc/i2c-tiny.c usb/rtc/i2c-mcp2221.c usb/rtc/pcf85263.c usb
 SRC += fpga.c boot.c config.c menu-minimig.c hdd.c fdd.c
 SRC += FatFs/ff.c FatFs/ffunicode.c
 SRC += tos.c acsi_hdc.c
-# SRC += ikbd.c # -DLEGACY_ST_IKBD
 # SRC += usb/storage.c # -DUSB_STORAGE
 # SRC += usb/pl2303.c # -DUSB_PL2303_CDC
 SRC += usb/asix.c # -DUSB_ASIX_NET

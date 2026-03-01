@@ -16,19 +16,15 @@
 #define UIO_STATUS      0x00
 #define UIO_BUT_SW      0x01
 
-// codes as used by minimig (amiga)
+// codes as used by Minimig (Amiga)
 #define UIO_JOYSTICK0   0x02  // also used by 8 bit
 #define UIO_JOYSTICK1   0x03  // -"-
 #define UIO_MOUSE       0x04  // -"-
 #define UIO_KEYBOARD    0x05  // -"-
 #define UIO_KBD_OSD     0x06  // keycodes used by OSD only
 
-// codes as used by MiST (atari)
+// codes as used by MiSTery (Atari)
 // directions (in/out) are from an io controller view
-#define UIO_IKBD_OUT    0x02
-#define UIO_IKBD_IN     0x03
-#define UIO_SERIAL_OUT  0x04  // Warning! same as UIO_MOUSE
-#define UIO_SERIAL_IN   0x05  // Warning! same as UIO_KEYBOARD
 #define UIO_PARALLEL_IN 0x06
 #define UIO_MIDI_OUT    0x07
 #define UIO_MIDI_IN     0x08
@@ -45,7 +41,7 @@
 #define UIO_JOYSTICK4   0x12  // -"-
 #define UIO_JOYSTICK5   0x13  // -"-
 
-// general codes used by 8bit, archie and mist2
+// general codes used by 8bit, archie and MiSTery
 #define UIO_GET_STRING  0x14
 #define UIO_SET_STATUS  0x15
 #define UIO_GET_SDSTAT  0x16  // read status of sd card emulation
@@ -210,10 +206,6 @@ void user_io_detect_core_type();
 void user_io_init_core();
 uint32_t user_io_core_type();
 uint32_t user_io_get_core_features();
-
-static inline bool minimig_v1() {
-  return(user_io_core_type() == CORE_TYPE_MINIMIG);
-}
 
 static inline bool minimig_v2() {
   return(user_io_core_type() == CORE_TYPE_MINIMIG_AGA);

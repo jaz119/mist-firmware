@@ -38,14 +38,6 @@
 #define tos_debugf(...)
 #endif
 
-// --------- ikbd debug output in red ---------
-#if 0
-#define IKBD_DEBUG
-#define ikbd_debugf(a, ...) iprintf("\033[1;31mIKBD: " a "\033[0m\n", ##__VA_ARGS__)
-#else
-#define ikbd_debugf(...)
-#endif
-
 // --------- 8bit debug output in blue --------
 #if 0
 #define bit8_debugf(a, ...) iprintf("\033[1;34m8BIT: " a "\033[0m\n", ##__VA_ARGS__)

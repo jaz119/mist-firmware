@@ -66,7 +66,7 @@ typedef struct scsi_data {
  */
 typedef struct ALIGNED(4) {
     int target;
-    uint8_t command[32];    /* Core DMA state buffer */
+    uint8_t command[16];    /* Core DMA state buffer */
     uint8_t opcode;
     short int status;       /* Return code from the HDC operation */
     uint8_t *buffer;        /* Response buffer */

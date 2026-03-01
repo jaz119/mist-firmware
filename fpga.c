@@ -30,7 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "fdd.h"
 #include "user_io.h"
 #include "config.h"
-#include "debug.h"
 #include "boot.h"
 #include "osd.h"
 #include "fpga.h"
@@ -56,8 +55,6 @@ char minimig_ver_beta;
 char minimig_ver_major;
 char minimig_ver_minor;
 char minimig_ver_minion;
-
-FAST char BootPrint(const char *text);
 
 #ifdef XILINX_CCLK
 
@@ -399,106 +396,6 @@ FAST unsigned char ConfigureFpga(const char *name)
 #endif
 
 
-FAST void SendFile(FIL *file)
-{
-    UINT br;
-    unsigned char  c1, c2;
-    unsigned long  n;
-    unsigned char *p;
-
-    n = (f_size(file) + 511) >> 9; // sector count (rounded up)
-    while (n--)
-    {
-        // read data sector from memory card
-        f_read(file, sector_buffer, 512, &br);
-
-        do
-        {
-            // read FPGA status
-            EnableFpga();
-            c1 = SPI(0);
-            c2 = SPI(0);
-            SPI(0);
-            SPI(0);
-            SPI(0);
-            SPI(0);
-            DisableFpga();
-        }
-        while (!(c1 & CMD_RDTRK));
-
-        // send data sector to FPGA
-        EnableFpga();
-        c1 = SPI(0);
-        c2 = SPI(0);
-        SPI(0);
-        SPI(0);
-        SPI(0);
-        SPI(0);
-        p = sector_buffer;
-
-        for (int j = 0; j < 512; j++)
-            SPI(*p++);
-
-        DisableFpga();
-    }
-}
-
-
-FAST void SendFileEncrypted(FIL *file,unsigned char *key,int keysize)
-{
-    UINT br;
-    unsigned char  c1, c2;
-    unsigned char headersize;
-    unsigned int keyidx=0;
-    unsigned long  j;
-    unsigned long  n;
-    unsigned char *p;
-
-    headersize=f_size(file)&255;	// ROM should be a round number of kilobytes; overspill will likely be the Amiga Forever header.
-
-    f_read(file, sector_buffer, headersize, &br); // Read extra bytes
-
-    n = (f_size(file) + (511-headersize)) >> 9; // sector count (rounded up)
-    while (n--)
-    {
-        f_read(file, sector_buffer, 512, &br);
-        for (j = 0; j < 512; j++)
-        {
-            sector_buffer[j]^=key[keyidx++];
-            if(keyidx>=keysize)
-            keyidx-=keysize;
-        }
-
-        do
-        {
-            // read FPGA status
-            EnableFpga();
-            c1 = SPI(0);
-            c2 = SPI(0);
-            SPI(0);
-            SPI(0);
-            SPI(0);
-            SPI(0);
-            DisableFpga();
-        }
-        while (!(c1 & CMD_RDTRK));
-
-        // send data sector to FPGA
-        EnableFpga();
-        c1 = SPI(0);
-        c2 = SPI(0);
-        SPI(0);
-        SPI(0);
-        SPI(0);
-        SPI(0);
-        p = sector_buffer;
-
-        for (j = 0; j < 512; j++)
-            SPI(*p++);
-        DisableFpga();
-    }
-}
-
 char kick1xfoundstr[] = "Kickstart v1.x found\n";
 const char applymemdetectionpatchstr[] = "Applying Kickstart 1.x memory detection patch\n";
 
@@ -667,148 +564,6 @@ FAST char BootDraw(char *data, unsigned short len, unsigned short offset)
   DEBUG_FUNC_OUT();
 }
 
-
-// print message on the boot screen
-FAST char BootPrint(const char *text)
-{
-    if(!minimig_v1()) {
-      debugf("%s", text);
-      return 0;
-    }
-
-    unsigned char c1, c2, c3, c4;
-    unsigned char cmd;
-    const char *p;
-    unsigned char n;
-
-    return 0;
-
-    p = text;
-    n = 0;
-    while (*p++ != 0)
-        n++; // calculating string length
-
-    cmd = 1;
-    while (1)
-    {
-        EnableFpga();
-        c1 = SPI(0x10); // track read command
-        c2 = SPI(0x01); // disk present
-        SPI(0);
-        SPI(0);
-        c3 = SPI(0);
-        c4 = SPI(0);
-
-        if (c1 & CMD_RDTRK)
-        {
-            if (cmd)
-            { // command phase
-                if (c3 == 0x80 && c4 == 0x06) // command packet size must be 12 bytes
-                {
-                    cmd = 0;
-                    SPI(CMD_HDRID >> 8); // command header
-                    SPI(CMD_HDRID & 0xFF);
-                    SPI(0x00); // cmd: 0x0001 = print text
-                    SPI(0x01);
-                    // data packet size in bytes
-                    SPI(0x00);
-                    SPI(0x00);
-                    SPI(0x00);
-                    SPI(n+2); // +2 because only even byte count is possible to send and we have to send termination zero byte
-                    // don't care
-                    SPI(0x00);
-                    SPI(0x00);
-                    SPI(0x00);
-                    SPI(0x00);
-                }
-                else
-                    break;
-            }
-            else
-            { // data phase
-                if (c3 == 0x80 && c4 == ((n + 2) >> 1))
-                {
-                    p = text;
-                    n = c4 << 1;
-                    while (n--)
-                    {
-                        c4 = *p;
-                        SPI(c4);
-                        if (c4) // if current character is not zero go to next one
-                            p++;
-                    }
-                    DisableFpga();
-                    return 1;
-                }
-                else
-                    break;
-            }
-        }
-        DisableFpga();
-    }
-    DisableFpga();
-    return 0;
-}
-
-FAST char PrepareBootUpload(unsigned char base, unsigned char size)
-// this function sends given file to Minimig's memory
-// base - memory base address (bits 23..16)
-// size - memory size (bits 23..16)
-{
-    unsigned char c1, c2, c3, c4;
-    unsigned char cmd = 1;
-
-    while (1)
-    {
-        EnableFpga();
-        c1 = SPI(0x10); // track read command
-        c2 = SPI(0x01); // disk present
-        SPI(0);
-        SPI(0);
-        c3 = SPI(0);
-        c4 = SPI(0);
-
-        if (c1 & CMD_RDTRK)
-        {
-            if (cmd)
-            { // command phase
-                if (c3 == 0x80 && c4 == 0x06) // command packet size 12 bytes
-                {
-                    cmd = 0;
-                    SPI(CMD_HDRID >> 8); // command header
-                    SPI(CMD_HDRID & 0xFF);
-                    SPI(0x00);
-                    SPI(0x02); // cmd: 0x0002 = upload memory
-                    // memory base address
-                    SPI(0x00);
-                    SPI(base);
-                    SPI(0x00);
-                    SPI(0x00);
-                    // memory size
-                    SPI(0x00);
-                    SPI(size);
-                    SPI(0x00);
-                    SPI(0x00);
-                }
-                else
-                    break;
-            }
-            else
-            { // data phase
-                DisableFpga();
-                debugf("Ready to upload ROM file...");
-                // send rom image to FPGA
-//                SendFile(file);
-//                iprintf("ROM file uploaded.\r");
-                return 0;
-            }
-        }
-        DisableFpga();
-    }
-    DisableFpga();
-    return -1;
-}
-
 FAST void BootExit(void)
 {
     unsigned char c1, c2, c3, c4;
@@ -840,45 +595,6 @@ FAST void BootExit(void)
                 SPI(0x00);
                 SPI(0x00);
                 SPI(0x00);
-            }
-            DisableFpga();
-            return;
-        }
-        DisableFpga();
-    }
-}
-
-FAST void ClearMemory(unsigned long base, unsigned long size)
-{
-    unsigned char c1, c2, c3, c4;
-
-    while (1)
-    {
-        EnableFpga();
-        c1 = SPI(0x10); // track read command
-        c2 = SPI(0x01); // disk present
-        SPI(0);
-        SPI(0);
-        c3 = SPI(0);
-        c4 = SPI(0);
-        if (c1 & CMD_RDTRK)
-        {
-            if (c3 == 0x80 && c4 == 0x06)// command packet size 12 bytes
-            {
-                SPI(CMD_HDRID >> 8); // command header
-                SPI(CMD_HDRID & 0xFF);
-                SPI(0x00); // cmd: 0x0004 = clear memory
-                SPI(0x04);
-                // memory base
-                SPI((unsigned char)(base >> 24));
-                SPI((unsigned char)(base >> 16));
-                SPI((unsigned char)(base >> 8));
-                SPI((unsigned char)base);
-                // memory size
-                SPI((unsigned char)(size >> 24));
-                SPI((unsigned char)(size >> 16));
-                SPI((unsigned char)(size >> 8));
-                SPI((unsigned char)size);
             }
             DisableFpga();
             return;
@@ -993,7 +709,7 @@ unsigned char fpga_init(const char *name) {
 
   } // end of minimig setup
 
-  if((user_io_core_type() == CORE_TYPE_MIST) || (user_io_core_type() == CORE_TYPE_MISTERY)) {
+  if(user_io_core_type() == CORE_TYPE_MISTERY) {
     puts("Running MiSTery setup");
     tos_upload(NULL);
   } // end of mist setup

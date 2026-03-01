@@ -434,16 +434,8 @@ void OsdDisable(void)
 
 void OsdReset(unsigned char boot)
 {
-    if(minimig_v1())
-      spi_osd_cmd(MM1_OSDCMDRST | (boot & 0x01));
-    else {
-      spi_osd_cmd8(OSD_CMD_RST, 0x01);
-      spi_osd_cmd8(OSD_CMD_RST, 0x00);
-    }
-}
-
-void MM1_ConfigFilter(unsigned char lores, unsigned char hires) {
-  spi_osd_cmd(MM1_OSDCMDCFGFLT | ((hires & 0x03) << 2) | (lores & 0x03));
+    spi_osd_cmd8(OSD_CMD_RST, 0x01);
+    spi_osd_cmd8(OSD_CMD_RST, 0x00);
 }
 
 void ConfigVideo(unsigned char hires, unsigned char lores, unsigned char scanlines) {
@@ -452,63 +444,37 @@ void ConfigVideo(unsigned char hires, unsigned char lores, unsigned char scanlin
 
 void ConfigMemory(unsigned char memory)
 {
-    if(minimig_v1()) {
-      spi_osd_cmd(MM1_OSDCMDCFGMEM | (memory & 0x03));		//chip
-      spi_osd_cmd(MM1_OSDCMDCFGMEM | 0x04 | ((memory>>2) & 0x03));	//slow
-      spi_osd_cmd(MM1_OSDCMDCFGMEM | 0x08 | ((memory>>4) & 0x03));	//fast
-    } else
-      spi_osd_cmd8(OSD_CMD_MEM, memory);
+    spi_osd_cmd8(OSD_CMD_MEM, memory);
 }
 
 void ConfigCPU(unsigned char cpu)
 {
-    if(minimig_v1())
-      spi_osd_cmd(MM1_OSDCMDCFGCPU | (cpu & 0x03));		//CPU
-    else
-      spi_osd_cmd8(OSD_CMD_CPU, cpu & 0x0f);
+    spi_osd_cmd8(OSD_CMD_CPU, cpu & 0x0f);
 }
 
 void ConfigChipset(unsigned char chipset)
 {
-    if(minimig_v1())
-      spi_osd_cmd(MM1_OSDCMDCFGCHP | (chipset & 0x0F));
-    else
-      spi_osd_cmd8(OSD_CMD_CHIP, chipset & 0x1f);
+    spi_osd_cmd8(OSD_CMD_CHIP, chipset & 0x1f);
 }
 
 void ConfigFloppy(unsigned char drives, unsigned char speed)
 {
-    if(minimig_v1())
-      spi_osd_cmd(MM1_OSDCMDCFGFLP | ((drives & 0x03) << 2) | (speed & 0x03));
-    else
-      spi_osd_cmd8(OSD_CMD_FLP, ((drives & 0x03) << 2) | (speed & 0x03));
-}
-
-void MM1_ConfigScanlines(unsigned char scanlines)
-{
-    spi_osd_cmd(MM1_OSDCMDCFGSCL | (scanlines & 0x0F));
+    spi_osd_cmd8(OSD_CMD_FLP, ((drives & 0x03) << 2) | (speed & 0x03));
 }
 
 void ConfigIDE(unsigned char gayle, unsigned char master, unsigned char slave)
 {
-    if(minimig_v1())
-      spi_osd_cmd(MM1_OSDCMDCFGIDE | (slave ? 4 : 0) | (master ? 2 : 0) | (gayle ? 1 : 0));
-    else
-      spi_osd_cmd8(OSD_CMD_HDD0 + ((gayle >> 1) << 2), (slave ? 4 : 0) | (master ? 2 : 0) | ((gayle & 0x01)));
+    spi_osd_cmd8(OSD_CMD_HDD0 + ((gayle >> 1) << 2), (slave ? 4 : 0) | (master ? 2 : 0) | ((gayle & 0x01)));
 }
 
 void ConfigAutofire(unsigned char autofire)
 {
-    if(minimig_v1())
-      spi_osd_cmd(MM1_OSDCMDAUTOFIRE | (autofire & 0x03));
-    else
-      spi_osd_cmd8(OSD_CMD_JOY, autofire & 0x0F);
+    spi_osd_cmd8(OSD_CMD_JOY, autofire & 0x0F);
 }
 
 void ConfigFeatures(unsigned char audiofiltermode, unsigned char powerledoffstate)
 {
-    if(!minimig_v1())
-      spi_osd_cmd8(OSD_CMD_FEATURES, ((powerledoffstate & 0x01) << 2) | (audiofiltermode & 0x03));
+    spi_osd_cmd8(OSD_CMD_FEATURES, ((powerledoffstate & 0x01) << 2) | (audiofiltermode & 0x03));
 }
 
 unsigned char disable_menu = 0;
@@ -521,14 +487,6 @@ unsigned char OsdGetCtrl(void)
     static unsigned long repeat;
     static unsigned long repeat2;
     unsigned char c1=0,c;
-
-    // minimig OSD is controlled by key codes from core
-    if(user_io_core_type() == CORE_TYPE_MINIMIG) {
-      // send command and get current ctrl status
-      EnableOsd();
-      c1 = SPI(MM1_OSDCMDREAD);
-      DisableOsd();
-    }
 
     // minimig OSD is controlled by key codes from core
     if(user_io_core_type() == CORE_TYPE_MINIMIG_AGA) {

@@ -264,9 +264,7 @@ void USART_Init(unsigned long baudrate) {
 
 void timer0_c_irq_handler(void) {
   //* Acknowledge interrupt status
-//unsigned int dummy = AT91C_BASE_TC0->TC_SR;
-
-//    ikbd_update_time();
+  // unsigned int dummy = AT91C_BASE_TC0->TC_SR;
 }
 
 void Timer_Init(void) {
