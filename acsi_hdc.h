@@ -6,7 +6,7 @@
 #include "attrs.h"
 
 /* ACSI device
- * Based on ACSI code of the Hatari emulator v.2.6.1
+ * Based on ACSI code of the Hatari emulator
  */
 
 /* Opcodes */
@@ -39,8 +39,8 @@
 /* Error codes for REQUEST SENSE: */
 #define HD_REQSENS_OK       0x00              /* OK return status */
 #define HD_REQSENS_NOSECTOR 0x01              /* No index or sector */
+#define HD_REQSENS_NOTREADY 0x02              /* Drive not ready */
 #define HD_REQSENS_WRITEERR 0x03              /* Write fault */
-#define HD_REQSENS_NOTREADY 0x04              /* Drive not ready */
 #define HD_REQSENS_OPCODE   0x20              /* Opcode not supported */
 #define HD_REQSENS_INVADDR  0x21              /* Invalid block address */
 #define HD_REQSENS_INVARG   0x24              /* Invalid argument */
@@ -58,7 +58,6 @@ typedef struct scsi_data {
     uint8_t nLastError;
     unsigned long hdSize;       /* Size of the hard disk in sectors */
     unsigned long blockSize;    /* Size of a sector in bytes */
-    int scsi_version;
 } SCSI_DEV;
 
 /**

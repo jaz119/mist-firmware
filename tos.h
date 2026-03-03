@@ -78,26 +78,22 @@
 #define TOS_CONTROL_REDIR1        0x08000000
 
 #define TOS_CONTROL_VIKING        0x10000000   // Viking graphics card
-
 #define TOS_CONTROL_BLEND         0x20000000   // Composite blending
 
 void assign_full_path(char *, int, const char *);
 
-unsigned long tos_system_ctrl(void);
-
+void tos_init();
 void tos_upload(const char *);
 void tos_poll();
 void tos_update_sysctrl(unsigned long);
 void tos_eject_all();
-void tos_reset(char cold);
-
-void tos_set_video_adjust(char axis, char value);
-char tos_get_video_adjust(char axis);
+void tos_reset(bool cold);
 
 char tos_get_cdc_control_redirect(void);
 void tos_set_cdc_control_redirect(char mode);
 
-void tos_config_load(char slot); // slot -1 == last config
+unsigned long tos_system_ctrl(void);
+
 void tos_setup_menu();
 
 #endif // TOS_H

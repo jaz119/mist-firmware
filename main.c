@@ -252,7 +252,7 @@ FAST int main(void)
     user_io_init();
 
     // tos config also contains cdc redirect settings used by minimig
-    tos_config_load(-1);
+    tos_init();
 
     int64_t mod = -1;
 

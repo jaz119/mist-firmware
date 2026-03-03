@@ -82,7 +82,7 @@ RAMFUNC void spi_write(const char *addr, uint16_t len) {
   *AT91C_SPI_RCR = 0;
   *AT91C_SPI_PTCR = AT91C_PDC_TXTEN; // start DMA transfer
   // wait for tranfer end
-  while (!(*AT91C_SPI_SR & AT91C_SPI_ENDTX));
+  while (!(*AT91C_SPI_SR & AT91C_SPI_TXEMPTY));
   *AT91C_SPI_PTCR = AT91C_PDC_TXTDIS; // disable transmitter
 }
 
