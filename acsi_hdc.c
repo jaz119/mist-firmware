@@ -309,6 +309,33 @@ static inline void HDC_Cmd_TestUnitReady(SCSI_CTRLR *ctr)
 }
 
 /**
+ * Request for Self Diagnostic results
+ */
+static inline void HDC_Cmd_RecvDiagnostic(SCSI_CTRLR *ctr)
+{
+    SCSI_DEV *dev = &ctr->devs[ctr->target];
+    int nRetLen = MIN(4, HDC_GetCount(ctr));
+
+    tos_debugf("ACSI: Receive Diagnostic: %s", HDC_CmdInfoStr(ctr));
+
+    uint8_t *retbuf = HDC_PrepRespBuf(ctr, nRetLen);
+    memset(retbuf, 0, nRetLen);
+
+    if (dev->dma_write && nRetLen > 0)
+    {
+        ctr->status = HD_STATUS_OK;
+        dev->nLastError = HD_REQSENS_OK;
+        dev->dma_write(retbuf, nRetLen);
+    }
+    else
+    {
+        ctr->status = HD_STATUS_ERROR;
+    }
+
+    dev->bSetLastBlockAddr = false;
+}
+
+/**
  * Request sense - return some disk information
  */
 static void HDC_Cmd_RequestSense(SCSI_CTRLR *ctr)
@@ -656,8 +683,13 @@ FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
 
     switch (ctr->opcode)
     {
+        case HD_SEND_DIAG:
         case HD_TEST_UNIT_RDY:
             HDC_Cmd_TestUnitReady(ctr);
+            break;
+
+        case HD_RECV_DIAG:
+            HDC_Cmd_RecvDiagnostic(ctr);
             break;
 
         case HD_READ_CAPACITY1:
