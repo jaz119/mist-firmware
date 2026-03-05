@@ -10,27 +10,22 @@
  */
 
 /* Opcodes */
-/* The following are multi-sector transfers with seek implied */
-#define HD_VERIFY_TRACK     0x05            /* Verify track */
-#define HD_FORMAT_TRACK     0x06            /* Format track */
-#define HD_READ_SECTOR      0x08            /* Read sector */
-#define HD_READ_SECTOR1     0x28            /* Read sector (class 1) */
-#define HD_WRITE_SECTOR     0x0A            /* Write sector */
-#define HD_WRITE_SECTOR1    0x2A            /* Write sector (class 1) */
-
-/* Other codes */
 #define HD_TEST_UNIT_RDY    0x00            /* Test unit ready */
 #define HD_REQ_SENSE        0x03            /* Request sense */
-#define HD_FORMAT_DRIVE     0x04            /* Format the whole drive */
-#define HD_SEEK             0x0B            /* Seek */
-#define HD_CORRECTION       0x0D            /* Correction */
+#define HD_FORMAT_UNIT      0x04            /* Format the whole drive */
+#define HD_READ_6           0x08            /* Read sector */
+#define HD_WRITE_6          0x0A            /* Write sector */
+#define HD_SEEK_6           0x0B            /* Seek */
 #define HD_INQUIRY          0x12            /* Inquiry */
-#define HD_MODESELECT       0x15            /* Mode select */
-#define HD_MODESENSE        0x1A            /* Mode sense */
-#define HD_SHIP             0x1B            /* Ship drive */
+#define HD_MODE_SELECT      0x15            /* Mode select */
+#define HD_MODE_SENSE       0x1A            /* Mode sense */
+#define HD_START_STOP       0x1B            /* Ship drive */
 #define HD_RECV_DIAG        0x1C            /* Receive Diagnostic Results */
 #define HD_SEND_DIAG        0x1D            /* Send Diagnostic */
-#define HD_READ_CAPACITY1   0x25            /* Read capacity (class 1) */
+#define HD_ALLOW_REMOVAL    0x1E            /* Prevent/Allow Medium Removal */
+#define HD_READ_CAPACITY_10 0x25            /* Read capacity */
+#define HD_READ_10          0x28            /* Read sector */
+#define HD_WRITE_10         0x2A            /* Write sector */
 #define HD_REPORT_LUNS      0xa0            /* Report Luns */
 
 /* Status codes */
@@ -48,6 +43,7 @@
 #define HD_REQSENS_INVARG   0x24            /* Invalid argument */
 #define HD_REQSENS_INVLUN   0x25            /* Invalid LUN */
 #define HD_REQSENS_WRPROT   0x27            /* Write Protected */
+#define HD_REQSENS_CHANGED  0x28            /* Medium may have changed */
 
 /**
  * Information about a ACSI/SCSI drive
@@ -56,7 +52,9 @@ typedef struct scsi_data {
     int (*disk_read)(int, uint32_t, size_t);
     int (*disk_write)(int, uint32_t, size_t);
     void (*dma_write)(const char *, size_t);
-    bool (*is_readonly)();
+    bool is_readonly;           /* Is it read only mode? */
+    bool is_changed;            /* Has image been changed? */
+    bool is_locked;             /* Medium change/removal is prohibited */
     uint32_t nLastBlockAddr;    /* The specified sector number */
     bool bSetLastBlockAddr;     /* Sector number is valid */
     uint8_t nLastError;

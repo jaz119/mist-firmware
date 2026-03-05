@@ -25,7 +25,7 @@ ALIGNED(4) static unsigned char inquiry_bytes[] =
     0, 0, 0,          /* Vendor specific data */
     'M','i','S','T',' ',' ',' ',' ', /* Vendor ID */
     'I','C','D',' ','D','i','s','k',' ','I','m','a','g','e',' ',' ', /* Product ID */
-    '0','1','0','0',  /* Revision */
+    '0','1','1','0',  /* Revision */
 };
 
 /**
@@ -76,7 +76,7 @@ FORCE_ARM static inline int HDC_GetCount(SCSI_CTRLR *ctr)
     {
         // 6-bytes
         int count = ctr->command[4];
-        if (count == 0 && (ctr->opcode == HD_READ_SECTOR || ctr->opcode == HD_WRITE_SECTOR))
+        if (count == 0 && (ctr->opcode == HD_READ_6 || ctr->opcode == HD_WRITE_6))
             return 256;
         return count;
     }
@@ -142,7 +142,7 @@ const char *HDC_CmdInfoStr(SCSI_CTRLR *ctr)
     SCSI_DEV *dev = &ctr->devs[ctr->target];
 
     sniprintf(buf, sizeof(buf), "opcode=0x%x, target=%i, lun=%i, count=%d, max_lba=%lu",
-        ctr->opcode, ctr->target, HDC_GetLUN(ctr), HDC_GetCount(ctr), dev->hdSize - 1);
+        ctr->opcode, ctr->target, HDC_GetLUN(ctr), HDC_GetCount(ctr), dev->hdSize > 0 ? dev->hdSize - 1 : 0);
 
     return buf;
 }
@@ -171,7 +171,9 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
     buf = HDC_PrepRespBuf(ctr, count);
 
     if (count > (int)sizeof(inquiry_bytes))
+    {
         memset(&buf[sizeof(inquiry_bytes)], 0, count - sizeof(inquiry_bytes));
+    }
 
     memcpy(buf, inquiry_bytes, sizeof(inquiry_bytes));
     count = MIN(sizeof(inquiry_bytes), count);
@@ -179,9 +181,15 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
     /* For unsupported LUNs set the Peripheral Qualifier and the
      * Peripheral Device Type according to the SCSI standard */
     buf[0] = HDC_GetLUN(ctr) == 0 ? 0 : 0x7F;
-    buf[1] = 0; /* Non-removable */
+    buf[1] = (HDC_GetLUN(ctr) == 0) ? 0x80 : 0x00; /* Removable */
     buf[2] = 2; /* SCSI-2 */
     buf[4] = sizeof(inquiry_bytes) - 5;
+
+    if (count > (int)sizeof(inquiry_bytes))
+    {
+        memcpy(&buf[36], "ATA" VDATE "  ", 11);
+        buf[4] = count - 5;
+    }
 
     if (dev->dma_write)
     {
@@ -199,11 +207,11 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
 /**
  * Format drive.
  */
-static void HDC_Cmd_FormatDrive(SCSI_CTRLR *ctr)
+static void HDC_Cmd_FormatUnit(SCSI_CTRLR *ctr)
 {
     SCSI_DEV *dev = &ctr->devs[ctr->target];
 
-    tos_debugf("ACSI: Format Drive: %s", HDC_CmdInfoStr(ctr));
+    tos_debugf("ACSI: Format Unit: %s", HDC_CmdInfoStr(ctr));
 
     /* Should erase the whole image file here... */
 
@@ -270,7 +278,12 @@ static void HDC_Cmd_ReadCapacity(SCSI_CTRLR *ctr)
     buf[6] = (dev->blockSize >> 8) & 0xFF;
     buf[7] = dev->blockSize & 0xFF;
 
-    if (dev->dma_write && dev->hdSize > 0)
+    if (dev->is_changed)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_CHANGED;
+    }
+    else if (dev->dma_write && dev->hdSize > 0)
     {
         ctr->status = HD_STATUS_OK;
         dev->nLastError = HD_REQSENS_OK;
@@ -294,15 +307,43 @@ static inline void HDC_Cmd_TestUnitReady(SCSI_CTRLR *ctr)
 
     tos_debugf("ACSI: Test Unit Ready: %s", HDC_CmdInfoStr(ctr));
 
-    if (dev->hdSize > 0)
+    if (dev->is_changed)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_CHANGED;
+    }
+    else if (dev->hdSize == 0)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_NOTREADY;
+    }
+    else
     {
         ctr->status = HD_STATUS_OK;
         dev->nLastError = HD_REQSENS_OK;
     }
-    else
+
+    dev->bSetLastBlockAddr = false;
+}
+
+/**
+ * Mode select
+ */
+static inline void HDC_Cmd_ModeSelect(SCSI_CTRLR *ctr)
+{
+    SCSI_DEV *dev = &ctr->devs[ctr->target];
+
+    tos_debugf("ACSI: Mode Select: %s", HDC_CmdInfoStr(ctr));
+
+    if (dev->is_changed)
     {
         ctr->status = HD_STATUS_ERROR;
-        dev->nLastError = HD_REQSENS_NOTREADY;
+        dev->nLastError = HD_REQSENS_CHANGED;
+    }
+    else
+    {
+        ctr->status = HD_STATUS_OK;
+        dev->nLastError = HD_REQSENS_OK;
     }
 
     dev->bSetLastBlockAddr = false;
@@ -331,6 +372,24 @@ static inline void HDC_Cmd_RecvDiagnostic(SCSI_CTRLR *ctr)
     {
         ctr->status = HD_STATUS_ERROR;
     }
+
+    dev->bSetLastBlockAddr = false;
+}
+
+/**
+ * Request for Allow/Prevent media removal
+ */
+static inline void HDC_Cmd_AllowRemoval(SCSI_CTRLR *ctr)
+{
+    SCSI_DEV *dev = &ctr->devs[ctr->target];
+
+    dev->is_locked = ctr->command[4] & 0x01;
+
+    tos_debugf("ACSI: %s Removal: %s",
+        dev->is_locked ? "Prevent" : "Allow", HDC_CmdInfoStr(ctr));
+
+    ctr->status = HD_STATUS_OK;
+    dev->nLastError = HD_REQSENS_OK;
 
     dev->bSetLastBlockAddr = false;
 }
@@ -381,6 +440,7 @@ static void HDC_Cmd_RequestSense(SCSI_CTRLR *ctr)
             case HD_REQSENS_NOTREADY:   retbuf[2] = 2; break;
             case HD_REQSENS_NOSECTOR:
             case HD_REQSENS_WRITEERR:   retbuf[2] = 3; break;
+            case HD_REQSENS_CHANGED:    retbuf[2] = 6; dev->is_changed = false; break;
             case HD_REQSENS_WRPROT:     retbuf[2] = 7; break;
             default:                    retbuf[2] = 5; break;
         }
@@ -490,12 +550,20 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
     SCSI_DEV *dev = &ctr->devs[ctr->target];
     int nRetLen = HDC_GetCount(ctr);
 
+    if (dev->is_changed)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_CHANGED;
+        return;
+    }
+
     tos_debugf("ACSI: Mode Sense: %s", HDC_CmdInfoStr(ctr));
 
     dev->bSetLastBlockAddr = false;
 
     // Subpages are not supported
-    if (ctr->command[3]) {
+    if (ctr->command[3])
+    {
         ctr->status = HD_STATUS_ERROR;
         dev->nLastError = HD_REQSENS_INVARG;
         return;
@@ -533,7 +601,7 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
             return;
     }
 
-    buf[2] |= dev->is_readonly() ? 0x80 : 0;
+    buf[2] |= dev->is_readonly ? 0x80 : 0;
 
     if (dev->dma_write)
     {
@@ -561,7 +629,12 @@ FORCE_ARM static void HDC_Cmd_Seek(SCSI_CTRLR *ctr)
     tos_debugf("ACSI: Seek: %s, LBA=%lu",
         HDC_CmdInfoStr(ctr), dev->nLastBlockAddr);
 
-    if (dev->hdSize == 0)
+    if (dev->is_changed)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_CHANGED;
+    }
+    else if (dev->hdSize == 0)
     {
         ctr->status = HD_STATUS_ERROR;
         dev->nLastError = HD_REQSENS_NOTREADY;
@@ -593,7 +666,13 @@ FORCE_ARM static void HDC_Cmd_ReadSector(SCSI_CTRLR *ctr)
     tos_debugf("ACSI: Read Sector: %s, LBA=%lu",
         HDC_CmdInfoStr(ctr), dev->nLastBlockAddr);
 
-    if (dev->hdSize == 0)
+    if (dev->is_changed)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_CHANGED;
+        dev->is_changed = false;
+    }
+    else if (dev->hdSize == 0)
     {
         ctr->status = HD_STATUS_ERROR;
         dev->nLastError = HD_REQSENS_NOTREADY;
@@ -635,12 +714,17 @@ FORCE_ARM static void HDC_Cmd_WriteSector(SCSI_CTRLR *ctr)
     tos_debugf("ACSI: Write Sector: %s, LBA=%lu",
         HDC_CmdInfoStr(ctr), dev->nLastBlockAddr);
 
-    if (dev->hdSize == 0)
+    if (dev->is_changed)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_CHANGED;
+    }
+    else if (dev->hdSize == 0)
     {
         ctr->status = HD_STATUS_ERROR;
         dev->nLastError = HD_REQSENS_NOTREADY;
     }
-    else if (dev->is_readonly())
+    else if (dev->is_readonly)
     {
         ctr->status = HD_STATUS_ERROR;
         dev->nLastError = HD_REQSENS_WRPROT;
@@ -700,17 +784,17 @@ FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
             HDC_Cmd_RecvDiagnostic(ctr);
             break;
 
-        case HD_READ_CAPACITY1:
+        case HD_READ_CAPACITY_10:
             HDC_Cmd_ReadCapacity(ctr);
             break;
 
-        case HD_READ_SECTOR:
-        case HD_READ_SECTOR1:
+        case HD_READ_6:
+        case HD_READ_10:
             HDC_Cmd_ReadSector(ctr);
             break;
 
-        case HD_WRITE_SECTOR:
-        case HD_WRITE_SECTOR1:
+        case HD_WRITE_6:
+        case HD_WRITE_10:
             HDC_Cmd_WriteSector(ctr);
             break;
 
@@ -718,12 +802,12 @@ FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
             HDC_Cmd_Inquiry(ctr);
             break;
 
-        case HD_SEEK:
+        case HD_SEEK_6:
             HDC_Cmd_Seek(ctr);
             break;
 
-        case HD_SHIP:
-            tos_debugf("ACSI: Ship: %s", HDC_CmdInfoStr(ctr));
+        case HD_START_STOP:
+            tos_debugf("ACSI: Start/Stop: %s", HDC_CmdInfoStr(ctr));
             ctr->status = HD_STATUS_OK;
             break;
 
@@ -731,29 +815,25 @@ FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
             HDC_Cmd_RequestSense(ctr);
             break;
 
-        case HD_MODESELECT:
-            tos_debugf("ACSI: Mode Select: %s", HDC_CmdInfoStr(ctr));
-            ctr->status = HD_STATUS_OK;
-            dev->nLastError = HD_REQSENS_OK;
-            dev->bSetLastBlockAddr = false;
+        case HD_MODE_SELECT:
+            HDC_Cmd_ModeSelect(ctr);
             break;
 
-        case HD_MODESENSE:
+        case HD_MODE_SENSE:
             HDC_Cmd_ModeSense(ctr);
             break;
 
-        case HD_FORMAT_DRIVE:
-            HDC_Cmd_FormatDrive(ctr);
+        case HD_FORMAT_UNIT:
+            HDC_Cmd_FormatUnit(ctr);
             break;
 
         case HD_REPORT_LUNS:
             HDC_Cmd_ReportLuns(ctr);
             break;
 
-        /* as of yet unsupported commands */
-        case HD_VERIFY_TRACK:
-        case HD_FORMAT_TRACK:
-        case HD_CORRECTION:
+        case HD_ALLOW_REMOVAL:
+            HDC_Cmd_AllowRemoval(ctr);
+            break;
 
         default:
             tos_debugf("ACSI: Unsupported command: %s", HDC_CmdInfoStr(ctr));

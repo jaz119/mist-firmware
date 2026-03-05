@@ -800,7 +800,7 @@ bool user_io_is_mounted(unsigned char index) {
 	return sd_image[sd_index(index)].valid;
 }
 
-void user_io_file_mount(const unsigned char *name, int index) {
+bool user_io_file_mount(const unsigned char *name, int index) {
 	int slot = sd_index(index);
 	IDXFile *idxfile = &sd_image[slot];
 
@@ -821,7 +821,7 @@ void user_io_file_mount(const unsigned char *name, int index) {
 			IDXIndex(idxfile, slot);
 		} else {
 			debugf("%s: file: %s, error %d", __FUNCTION__, name, res);
-			return;
+			return false;
 		}
 	} else {
 		if (!index) umounted = 1;
@@ -839,6 +839,7 @@ void user_io_file_mount(const unsigned char *name, int index) {
 
 	// notify core of possible sd image change
 	spi_uio_cmd8(UIO_SET_SDSTAT, index);
+	return idxfile->valid;
 }
 
 // 8 bit cores have a config string telling the firmware how to treat it

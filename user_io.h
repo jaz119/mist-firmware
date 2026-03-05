@@ -220,7 +220,7 @@ unsigned long long user_io_8bit_set_status(unsigned long long, unsigned long lon
 void user_io_sd_set_config(void);
 char user_io_serial_status(serial_status_t *, uint8_t);
 bool user_io_is_mounted(unsigned char index);
-void user_io_file_mount(const unsigned char *, int);
+bool user_io_file_mount(const unsigned char *, int);
 bool user_io_is_cue_mounted();
 char user_io_cue_mount(const unsigned char*, unsigned char);
 const char *user_io_get_core_name();

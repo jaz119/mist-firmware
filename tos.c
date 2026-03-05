@@ -1,21 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include "hardware.h"
 
+#include "hardware.h"
 #include "menu.h"
 #include "osd.h"
 #include "misc_cfg.h"
 #include "tos.h"
-#include "fat_compat.h"
-#include "fpga.h"
 #include "cdc_control.h"
 #include "debug.h"
 #include "user_io.h"
 #include "data_io.h"
 #include "idxfile.h"
-#include "font.h"
-#include "mmc.h"
 #include "utils.h"
 #include "FatFs/diskio.h"
 #include "acsi_hdc.h"
@@ -50,13 +46,12 @@ ALIGNED(4) static struct {
 
 unsigned long hdd_direct = 0; // LBA
 
-// 0-1 floppy, 2-3 hdd
-char disk_inserted[HARDFILES];
-
 unsigned char spi_speed;
 unsigned char spi_newspeed;
 
 static void acsi_init(bool cold);
+static void acsi_disk_init(SCSI_DEV *, unsigned long, bool);
+
 static void tos_insert_disk(int, const char *);
 static void tos_select_hdd_image(int, const char *);
 
@@ -78,10 +73,11 @@ void tos_set_cdc_control_redirect(char mode) {
     config.cdc_control_redirect = mode;
 
     // core is only informed about redirections of rs232/par/midi
-    if(mode < CDC_REDIRECT_RS232)
+    if(mode < CDC_REDIRECT_RS232) {
       mode = 0;
-    else
+    } else {
       mode -= CDC_REDIRECT_RS232 - 1;
+    }
 
     tos_update_sysctrl((tos_system_ctrl() & ~0x0c000000) |
        (((unsigned long)mode) << 26) );
@@ -176,7 +172,7 @@ static void fpga_memory_write_blocks(const char *data, int count) {
 
   EnableFpga();
   SPI(MIST_WRITE_MEMORY);
-  spi_write(data, 512*count);
+  spi_write(data, 512 * count);
   DisableFpga();
 
   spi_set_speed(spi_speed);
@@ -198,9 +194,6 @@ void fpga_memory_set(char data, unsigned long words) {
 static void tos_set_direct_hdd(bool on) {
   config.sd_direct = on;
 
-  SCSI_DEV *acsi_dev = &AcsiBus.devs[0];
-  acsi_init(false);
-
   if(on) {
     tos_debugf("ACSI: enable direct SD access");
     disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &hdd_direct);
@@ -213,22 +206,22 @@ static void tos_set_direct_hdd(bool on) {
     hdd_direct = 0;
 
     // check if image access should be enabled instead
-    if(disk_inserted[2]) {
+    if(user_io_is_mounted(2)) {
       tos_debugf("ACSI: re-enabling image on ACSI0");
       config.system_ctrl |= TOS_ACSI0_ENABLE;
     }
   }
 
-  acsi_dev->hdSize = hdd_direct;
+  SCSI_DEV *dev = &AcsiBus.devs[0];
+
+  acsi_disk_init(dev, hdd_direct, true);
+  dev->is_readonly = mmc_write_protected();
+
   fpga_set_control(config.system_ctrl);
 }
 
 static inline char tos_get_direct_hdd() {
   return config.sd_direct;
-}
-
-static inline bool tos_disk_is_inserted(int index) {
-  return disk_inserted[index & 3];
 }
 
 static void dma_ack(unsigned char status) {
@@ -244,18 +237,13 @@ static void dma_nak(void) {
   DisableFpga();
 }
 
-static bool acsi_write_protected()
-{
-  return mmc_write_protected();
-}
-
 FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
   int read = 0;
   UINT br = 0;
   DISKLED_ON;
 
 #ifndef SD_NO_DIRECT_MODE
-  if (user_io_core_type() == CORE_TYPE_MISTERY && fat_uses_mmc()) {
+  if (fat_uses_mmc()) {
     // SD-Card -> FPGA direct SPI transfer on MISTERY
     spi_speed = spi_get_speed();
     spi_set_speed(spi_newspeed);
@@ -304,9 +292,9 @@ FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
 }
 
 FAST static int acsi_disk_write(int target, uint32_t lba, size_t length) {
-  int written = 0;
   unsigned short blocklen;
   unsigned char *buf;
+  int written = 0;
   UINT bw = 0;
   DISKLED_ON;
 
@@ -340,8 +328,29 @@ FAST static int acsi_disk_write(int target, uint32_t lba, size_t length) {
   return written;
 }
 
+static void acsi_disk_init(SCSI_DEV *dev, unsigned long hdSize, bool changed) {
+  dev->disk_read = acsi_disk_read;
+  dev->disk_write = acsi_disk_write;
+  dev->dma_write = fpga_memory_write;
+
+  dev->is_locked = false;
+  dev->is_changed = changed;
+  dev->is_readonly = false;
+
+  if (!dev->is_changed) {
+    dev->nLastError = HD_REQSENS_OK;
+  }
+
+  dev->bSetLastBlockAddr = false;
+  dev->nLastBlockAddr = 0;
+
+  dev->blockSize = 512;
+  dev->hdSize = hdSize;
+}
+
 static void acsi_init(bool cold) {
   tos_debugf("ACSI: Init(%d)", cold);
+
   if (cold) {
     memset(&AcsiBus, 0, sizeof(AcsiBus));
   }
@@ -349,18 +358,11 @@ static void acsi_init(bool cold) {
   AcsiBus.buffer = sector_buffer;
   AcsiBus.buffer_size = sizeof(sector_buffer);
 
-  for (int i = 0; i < ARRAY_SIZE(AcsiBus.devs); i++) {
+  for (int i=0; i<ARRAY_SIZE(AcsiBus.devs); i++) {
     SCSI_DEV *dev = &AcsiBus.devs[i];
 
-    dev->disk_read = acsi_disk_read;
-    dev->disk_write = acsi_disk_write;
-    dev->dma_write = fpga_memory_write;
-    dev->is_readonly = acsi_write_protected;
-    dev->nLastError = HD_REQSENS_OK;
-    dev->bSetLastBlockAddr = false;
-    if (cold) dev->hdSize = 0;
-    dev->nLastBlockAddr = 0;
-    dev->blockSize = 512;
+    acsi_disk_init(dev, cold ? 0 : dev->hdSize, false);
+    dev->is_readonly = mmc_write_protected();
 
     tos_debugf("ACSI: Init: storage[%d] size: %lu", i, dev->hdSize);
   }
@@ -372,8 +374,8 @@ static void get_dma_state() {
   spi_read(AcsiBus.command, 16);
   DisableFpga();
 
-  // CORE_TYPE_MISTERY
-  if (!(AcsiBus.command[10] & 0x01)) // Busy check
+  // DMA busy check
+  if (!(AcsiBus.command[10] & 0x01))
     return;
 
   spi_newspeed = SPI_MMC_CLK_VALUE;
@@ -388,11 +390,11 @@ static void get_dma_state() {
   if (AcsiBus.target < 2)
     dev = &AcsiBus.devs[AcsiBus.target];
 
-  if (dev && dev->hdSize > 0) {
+  if (dev) {
     HDC_HandleCommandPacket(&AcsiBus);
     if (AcsiBus.status != HD_STATUS_OK) {
-      iprintf("ACSI: Error: opcode=0x%x, status=0x%x, error=0x%x\n",
-        AcsiBus.opcode, AcsiBus.status, dev->nLastError);
+      iprintf("ACSI: Error: opcode=0x%x, target=%i, status=0x%x, error=0x%x\n",
+        AcsiBus.opcode, AcsiBus.target, AcsiBus.status, dev->nLastError);
     }
     dma_ack(AcsiBus.status);
   } else {
@@ -436,7 +438,7 @@ static void tos_upload_mistery(const char *name) {
   tos_debugf("Clear first 16k");
   data_io_fill_tx(0, 16*1024, 0x03);
 
-  // upload and verify tos image
+  // upload and verify TOS image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
     iprintf("TOS: %s\n", config.tos_img);
 
@@ -464,12 +466,14 @@ static void tos_upload_mistery(const char *name) {
 
     if(config.sd_direct) {
       tos_set_direct_hdd(1);
+      AcsiBus.devs[0].is_changed = false; // boot time mount
     } else {
       // try to open harddisk image
-      for(int i=0;i<2;i++) {
+      for(int i=0; i<2; i++) {
         if (*config.acsi_img[i]) {
           tos_debugf("trying to open %s image #%d", config.acsi_img[i], i);
           tos_select_hdd_image(i, config.acsi_img[i]);
+          AcsiBus.devs[i].is_changed = false; // boot time mount
         }
       }
     }
@@ -487,7 +491,6 @@ void tos_upload(const char *name) {
 
   assign_full_path(
     config.tos_img, sizeof(config.tos_img) - 1, name);
-
   tos_upload_mistery(name);
 
   // let cpu run (release reset)
@@ -522,7 +525,6 @@ void tos_poll() {
     // released while still running (< 1 sec)
     if(!(timer & 3))
       tos_reset(0);
-
     timer = 1;
   }
 }
@@ -531,8 +533,7 @@ void tos_update_sysctrl(unsigned long n) {
   // some of the usb drivers also call this without knowing which
   // core is running. So make sure this only happens if the Atari ST (MIST)
   // core is running
-  if((user_io_core_type() == CORE_TYPE_MIST) ||
-     (user_io_core_type() == CORE_TYPE_MISTERY))
+  if(user_io_core_type() == CORE_TYPE_MISTERY)
   {
     config.system_ctrl = n;
     fpga_set_control(config.system_ctrl);
@@ -540,15 +541,16 @@ void tos_update_sysctrl(unsigned long n) {
 }
 
 static const char *tos_get_disk_name(char index) {
-  if(!disk_inserted[index]) {
+  if(!user_io_is_mounted(index)) {
     return "* no disk *";
   }
 
-  if (index <= 1) {
+  // 0-1 floppy, 2-3 hdd
+  if (index < 2) {
     return get_short_name(fdd_image[index].name);
-  } else {
-    return get_short_name(config.acsi_img[index-2]);
   }
+
+  return get_short_name(config.acsi_img[index-2]);
 }
 
 static inline const char *tos_get_image_name() {
@@ -558,8 +560,9 @@ static inline const char *tos_get_image_name() {
 static const char *tos_get_cartridge_name() {
   if(!config.cart_img[0]) {  // no cart name set
     return "* no cartridge *";
-  } else
-    return get_short_name(config.cart_img);
+  }
+
+  return get_short_name(config.cart_img);
 }
 
 static void tos_select_hdd_image(int i, const char *name) {
@@ -570,29 +573,27 @@ static void tos_select_hdd_image(int i, const char *name) {
   // try to re/open harddisk image
   if (idxfile->valid) {
     IDXClose(idxfile);
-    disk_inserted[slot] = 0;
   }
 
   config.system_ctrl &= ~(TOS_ACSI0_ENABLE<<i);
 
   if (i < 2) {
     acsi_dev = &AcsiBus.devs[i];
-    acsi_dev->blockSize = 512;
-    acsi_dev->nLastError = HD_REQSENS_OK;
-    acsi_dev->hdSize = 0;
+    acsi_disk_init(acsi_dev, 0, true);
   }
 
   if(name && name[0]) {
     FRESULT res = IDXOpen(idxfile, name, FA_READ | FA_WRITE);
+    if (res != FR_OK) res = IDXOpen(idxfile, name, FA_READ);
     if (res == FR_OK) {
       assign_full_path(config.acsi_img[i], sizeof(config.acsi_img[i]) - 1, name);
       iprintf("ACSI%d: %s\n", i, config.acsi_img[i]);
       IDXIndex(idxfile, slot);
-      disk_inserted[slot] = 1;
       config.system_ctrl |= (TOS_ACSI0_ENABLE<<i);
       if (acsi_dev) {
         acsi_dev->hdSize = f_size(&(idxfile->file)) / acsi_dev->blockSize;
         tos_debugf("ACSI: new image[%d] size: %lu", slot, acsi_dev->hdSize);
+        acsi_dev->is_readonly = !(idxfile->file.flag & FA_WRITE);
       }
     } else {
       iprintf("Cannot open %s file, error %d\n", name, res);
@@ -623,41 +624,32 @@ static void tos_insert_disk(int i, const char *name) {
   // first "eject" disk
   fdd_image[i].sides = 1;
   fdd_image[i].spt = 0;
-  disk_inserted[i] = 0;
+  user_io_file_mount(NULL, i);
 
-  if (user_io_core_type() == CORE_TYPE_MISTERY) {
-    user_io_file_mount(NULL, i);
-    if (name && name[0]) {
-        user_io_file_mount(name, i);
-        if (user_io_is_mounted(i)) {
-          assign_full_path(fdd_image[i].name, sizeof(fdd_image[i].name) - 1, name);
-          iprintf("%c: %s\n", i+'A', fdd_image[i].name);
-          disk_inserted[i] = 1;
-        }
-        tos_update_sysctrl(config.system_ctrl);
+  if(name && name[0]) {
+    if(user_io_file_mount(name, i)) {
+      assign_full_path(fdd_image[i].name, sizeof(fdd_image[i].name) - 1, name);
+      iprintf("%c: %s\n", i+'A', fdd_image[i].name);
     }
+    tos_update_sysctrl(config.system_ctrl);
   }
 }
 
 // force ejection of all disks (SD card has been removed)
 void tos_eject_all() {
+  // ejecting floppies
   for(int i=0; i<2; i++) {
-    tos_insert_disk(i, NULL);
-    disk_inserted[i] = 0;
+    user_io_file_mount(NULL, i);
   }
 
-  // ejecting an SD card while a hdd image is mounted may be a bad idea
-  for(int i=0; i<2; i++) {
-    if(hdd_direct)
-      hdd_direct = 0;
-
-    if(disk_inserted[i+2]) {
-      InfoMessage("Card removed:\nDisabling Harddisk!");
-      disk_inserted[i+2] = 0;
-    }
+  // unmounting ACSI (removable) mediums
+  for (int i=0; i<ARRAY_SIZE(AcsiBus.devs); i++) {
+    SCSI_DEV *dev = &AcsiBus.devs[i];
+    acsi_disk_init(dev, 0, true);
+    tos_debugf("ACSI: Init: storage[%d] size: %lu", i, dev->hdSize);
   }
 
-  acsi_init(true);
+  hdd_direct = 0;
 }
 
 void tos_reset(bool cold) {
@@ -753,6 +745,7 @@ static bool tos_config_exists(char slot) {
 
 void tos_init()
 {
+  acsi_init(true);
   tos_config_load(-1);
 }
 
@@ -803,13 +796,14 @@ static char tos_getmenupage(uint8_t idx, char action, menu_page_t *page) {
 		page->flags = OSD_ARROW_RIGHT;
 	else
 		page->flags = 0;
-	page->timer = 0;
+	page->timer = 500;
 	page->stdexit = MENU_STD_EXIT;
 	return 0;
 }
 
 static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 	char page_idx = item->page; // save current page number
+	bool is_medium_present = fat_medium_present();
 	char enable;
 
 	item->stipple = 0;
@@ -841,11 +835,15 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					strcpy(s, " A: ");
 					strcat(s, tos_get_disk_name(0));
 					if(tos_system_ctrl() & TOS_CONTROL_FDC_WR_PROT_A) strcat(s, " \x17");
+					item->active = is_medium_present;
+					item->stipple = !item->active;
 					item->item = s;
 					break;
 				//case 1 same as page 3/screen
 				case 2:
 					item->item = " Storage";
+					item->active = is_medium_present;
+					item->stipple = !item->active;
 					item->newpage = 1;
 					break;
 				case 3:
@@ -858,10 +856,14 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 5:
 					item->item = " Load config";
+					item->active = is_medium_present;
+					item->stipple = !item->active;
 					item->newpage = 4;
 					break;
 				case 6:
 					item->item = " Save config";
+					item->active = is_medium_present;
+					item->stipple = !item->active;
 					item->newpage = 5;
 					break;
 
@@ -883,19 +885,29 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 11:
 					strcpy(s, " ACSI0 direct SD: ");
-					strcat(s, tos_get_direct_hdd() ? "on" : "off");
+					strcat(s, tos_get_direct_hdd() ? "On" : "Off");
+					item->active = !AcsiBus.devs[0].is_locked;
+					item->stipple = !item->active;
 					item->item = s;
 					break;
 				case 12:
 				case 13:
+				{
+					SCSI_DEV *acsi_dev = &AcsiBus.devs[idx-12];
 					strcpy(s, " ACSI0: ");
 					s[5] = '0'+idx-12;
-					strcat(s, tos_get_disk_name(2+idx-12));
-					item->item = s;
-					item->active = ((idx == 13) || !tos_get_direct_hdd());
+					if (acsi_dev->is_locked) {
+						strcat(s, "Locked by TOS");
+						item->active = false;
+					} else {
+						strcat(s, tos_get_disk_name(2+idx-12));
+						item->active = ((idx == 13) || !tos_get_direct_hdd());
+					}
+					if(acsi_dev->is_readonly) strcat(s, " \x17");
 					item->stipple = !item->active;
+					item->item = s;
 					break;
-
+				}
 				// Page 2 - System
 				case 14:
 					strcpy(s, " Memory:    ");
@@ -953,7 +965,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 				case 23: // Viking card can only be enabled with max 8MB RAM
 					enable = (tos_system_ctrl()&0xe) <= TOS_MEMCONFIG_8M;
 					strcpy(s, " Viking/SM194:  ");
-					strcat(s, ((tos_system_ctrl() & TOS_CONTROL_VIKING) && enable)?"on":"off");
+					strcat(s, ((tos_system_ctrl() & TOS_CONTROL_VIKING) && enable) ? "On" : "Off");
 					item->item = s;
 					item->active = enable;
 					item->stipple = !enable;
@@ -962,7 +974,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					// Blitter is always present in >= STE
 					enable = (tos_system_ctrl() & (TOS_CONTROL_STE | TOS_CONTROL_MSTE))?1:0;
 					strcpy(s, " Blitter:       ");
-					strcat(s, ((tos_system_ctrl() & TOS_CONTROL_BLITTER) || enable)?"on":"off");
+					strcat(s, ((tos_system_ctrl() & TOS_CONTROL_BLITTER) || enable) ? "On" : "Off");
 					item->item = s;
 					item->active = !enable;
 					item->stipple = enable;
@@ -1049,7 +1061,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 				case 0:
 				case 7:
 				case 8:
-					if(tos_disk_is_inserted(idx>=7 ? idx-7 : idx))
+					if(user_io_is_mounted(idx>=7 ? idx-7 : idx))
 						tos_insert_disk(idx>=7 ? idx-7 : idx, NULL);
 					else
 						SelectFileNG("ST ", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
@@ -1068,13 +1080,13 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					     | (((((tos_system_ctrl() >> 6)&3) + 1)&3)<<6) );
 					break;
 				case 11:
-					iprintf("toggle direct hdd\n");
+					iprintf("Toggle direct hdd\n");
 					tos_set_direct_hdd(!tos_get_direct_hdd());
 					break;
 				case 12:
 				case 13:
 					iprintf("Select image for disk %d\n", idx-10);
-					if(tos_disk_is_inserted(idx-10))
+					if(user_io_is_mounted(idx-10))
 						tos_insert_disk(idx-10, NULL);
 					else
 						SelectFileNG("IMGVHDHD ", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);

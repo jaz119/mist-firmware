@@ -17,12 +17,14 @@ Branch **clean** has the following non-merged differences from the original (mas
 
 - Minimig:
     - disks images and ROMs can be loaded from any directories;
-    - removed legacy V1 core support;
+    - *removed legacy V1 core support*;
 
 - MiSTery:
     - disks images and ROMs can be loaded from any directories;
     - new ACSI driver with full ICD/SCSI-2 support;
-    - removed legacy ST core support;
+        - supports medium removal/change;
+        - supports read-only mode;
+    - *removed legacy ST core support*;
 
 - Other:
     - reduced RAM consumption, LFN now limited to 80 chars;
