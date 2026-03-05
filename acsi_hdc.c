@@ -23,8 +23,8 @@ ALIGNED(4) static unsigned char inquiry_bytes[] =
     2,                /* Response data format */
     31,               /* length of the following data */
     0, 0, 0,          /* Vendor specific data */
-    'M','I','S','T',' ',' ',' ',' ',  /* Vendor ID */
-    'A','C','S','I',' ','D','i','s','k',' ',' ',' ',' ',' ',' ',' ', /* Product ID */
+    'M','i','S','T',' ',' ',' ',' ', /* Vendor ID */
+    'I','C','D',' ','D','i','s','k',' ','I','m','a','g','e',' ',' ', /* Product ID */
     '0','1','0','0',  /* Revision */
 };
 
@@ -179,7 +179,7 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
     /* For unsupported LUNs set the Peripheral Qualifier and the
      * Peripheral Device Type according to the SCSI standard */
     buf[0] = HDC_GetLUN(ctr) == 0 ? 0 : 0x7F;
-
+    buf[1] = 0; /* Non-removable */
     buf[2] = 2; /* SCSI-2 */
     buf[4] = sizeof(inquiry_bytes) - 5;
 
@@ -381,6 +381,7 @@ static void HDC_Cmd_RequestSense(SCSI_CTRLR *ctr)
             case HD_REQSENS_NOTREADY:   retbuf[2] = 2; break;
             case HD_REQSENS_NOSECTOR:
             case HD_REQSENS_WRITEERR:   retbuf[2] = 3; break;
+            case HD_REQSENS_WRPROT:     retbuf[2] = 7; break;
             default:                    retbuf[2] = 5; break;
         }
 
@@ -500,7 +501,7 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
         return;
     }
 
-    switch (ctr->command[2])
+    switch (ctr->command[2] & 0x3F)
     {
         case 0x00:
             buf = HDC_PrepRespBuf(ctr, 16);
@@ -516,7 +517,7 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
             buf[3] = 0;
             break;
 
-        case 0x3f:
+        case 0x3F:
             buf = HDC_PrepRespBuf(ctr, 44);
             HDC_CmdModeSense0x04(dev, ctr, buf + 4);
             HDC_CmdModeSense0x00(dev, ctr, buf + 28);
@@ -531,6 +532,8 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
             dev->nLastError = HD_REQSENS_INVARG;
             return;
     }
+
+    buf[2] |= dev->is_readonly() ? 0x80 : 0;
 
     if (dev->dma_write)
     {
@@ -636,6 +639,11 @@ FORCE_ARM static void HDC_Cmd_WriteSector(SCSI_CTRLR *ctr)
     {
         ctr->status = HD_STATUS_ERROR;
         dev->nLastError = HD_REQSENS_NOTREADY;
+    }
+    else if (dev->is_readonly())
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_WRPROT;
     }
     else if (dev->disk_write && (dev->nLastBlockAddr + count) <= dev->hdSize)
     {

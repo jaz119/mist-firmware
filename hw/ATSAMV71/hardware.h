@@ -150,15 +150,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 void __init_hardware();
 
 // MAX3421E INT pin polling
-static inline uint8_t usb_irq_active() {
+static inline bool usb_irq_active() {
   return !(PIOD->PIO_PDSR & USB_INT);
 }
 
-static inline char mmc_inserted() {
+static inline bool mmc_inserted() {
     return !(PIOD->PIO_PDSR & SD_CD);
 }
 
-static inline char mmc_write_protected() {
+static inline bool mmc_write_protected() {
     return !!(PIOD->PIO_PDSR & SD_WP);
 }
 

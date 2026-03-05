@@ -47,6 +47,7 @@
 #define HD_REQSENS_INVADDR  0x21            /* Invalid block address */
 #define HD_REQSENS_INVARG   0x24            /* Invalid argument */
 #define HD_REQSENS_INVLUN   0x25            /* Invalid LUN */
+#define HD_REQSENS_WRPROT   0x27            /* Write Protected */
 
 /**
  * Information about a ACSI/SCSI drive
@@ -55,6 +56,7 @@ typedef struct scsi_data {
     int (*disk_read)(int, uint32_t, size_t);
     int (*disk_write)(int, uint32_t, size_t);
     void (*dma_write)(const char *, size_t);
+    bool (*is_readonly)();
     uint32_t nLastBlockAddr;    /* The specified sector number */
     bool bSetLastBlockAddr;     /* Sector number is valid */
     uint8_t nLastError;

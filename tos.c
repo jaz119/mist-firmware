@@ -138,14 +138,14 @@ static void fpga_memory_read(char *data, unsigned long words) {
   DisableFpga();
 }
 
-static void fpga_memory_write(const char *data, size_t bytes) {
+static void fpga_memory_write(const char *data, size_t lenght) {
   spi_speed = spi_get_speed();
   spi_set_speed(spi_newspeed);
 
   EnableFpga();
   SPI(MIST_WRITE_MEMORY);
   // length must be a multiple of 16-bit words
-  spi_write(data, (bytes + 1) & ~1);
+  spi_write(data, (lenght + 1) & ~1);
   DisableFpga();
 
   spi_set_speed(spi_speed);
@@ -242,6 +242,11 @@ static void dma_nak(void) {
   EnableFpga();
   SPI(MIST_NAK_DMA);
   DisableFpga();
+}
+
+static bool acsi_write_protected()
+{
+  return mmc_write_protected();
 }
 
 FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
@@ -350,6 +355,7 @@ static void acsi_init(bool cold) {
     dev->disk_read = acsi_disk_read;
     dev->disk_write = acsi_disk_write;
     dev->dma_write = fpga_memory_write;
+    dev->is_readonly = acsi_write_protected;
     dev->nLastError = HD_REQSENS_OK;
     dev->bSetLastBlockAddr = false;
     if (cold) dev->hdSize = 0;
