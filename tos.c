@@ -2,19 +2,17 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "hardware.h"
 #include "menu.h"
 #include "osd.h"
 #include "misc_cfg.h"
 #include "tos.h"
 #include "cdc_control.h"
-#include "debug.h"
 #include "user_io.h"
 #include "data_io.h"
+#include "acsi_hdc.h"
 #include "idxfile.h"
 #include "utils.h"
-#include "FatFs/diskio.h"
-#include "acsi_hdc.h"
+#include "debug.h"
 
 extern bool eth_present;
 extern char s[OSD_BUF_SIZE];
@@ -45,7 +43,7 @@ ALIGNED(4) static struct {
 } fdd_image[2];
 
 unsigned char spi_speed;
-unsigned char spi_newspeed;
+unsigned char spi_mmc_speed;
 
 static void acsi_init(bool cold);
 static void acsi_disk_init(SCSI_DEV *, unsigned long, bool);
@@ -96,19 +94,6 @@ static inline char tos_get_video_adjust(char axis) {
   return config.video_adjust[axis];
 }
 
-static void fpga_memory_set_address(unsigned long a, unsigned char s, bool rw) {
-  a |= rw ? 0x1000000 : 0;
-  a >>= 1;
-
-  EnableFpga();
-  SPI(MIST_SET_ADDRESS);
-  SPI(s);
-  SPI((a >> 16) & 0xff);
-  SPI((a >>  8) & 0xff);
-  SPI((a >>  0) & 0xff);
-  DisableFpga();
-}
-
 static void fpga_set_control(unsigned long ctrl) {
   EnableFpga();
   SPI(MIST_SET_CONTROL);
@@ -119,22 +104,9 @@ static void fpga_set_control(unsigned long ctrl) {
   DisableFpga();
 }
 
-static void fpga_memory_read(char *data, unsigned long words) {
-  EnableFpga();
-  SPI(MIST_READ_MEMORY);
-
-  // transmitted bytes must be multiple of 2 (-> words)
-  while (words--) {
-    *data++ = SPI(0);
-    *data++ = SPI(0);
-  }
-
-  DisableFpga();
-}
-
 static void fpga_memory_write(const char *data, size_t lenght) {
   spi_speed = spi_get_speed();
-  spi_set_speed(spi_newspeed);
+  spi_set_speed(spi_mmc_speed);
 
   EnableFpga();
   SPI(MIST_WRITE_MEMORY);
@@ -147,7 +119,7 @@ static void fpga_memory_write(const char *data, size_t lenght) {
 
 static void fpga_memory_read_block(char *data) {
   spi_speed = spi_get_speed();
-  spi_set_speed(spi_newspeed);
+  spi_set_speed(spi_mmc_speed);
 
   EnableFpga();
   SPI(MIST_READ_MEMORY);
@@ -157,16 +129,9 @@ static void fpga_memory_read_block(char *data) {
   spi_set_speed(spi_speed);
 }
 
-static void fpga_memory_write_block(const char *data) {
-  EnableFpga();
-  SPI(MIST_WRITE_MEMORY);
-  spi_block_write(data);
-  DisableFpga();
-}
-
 static void fpga_memory_write_blocks(const char *data, int count) {
   spi_speed = spi_get_speed();
-  spi_set_speed(spi_newspeed);
+  spi_set_speed(spi_mmc_speed);
 
   EnableFpga();
   SPI(MIST_WRITE_MEMORY);
@@ -174,18 +139,6 @@ static void fpga_memory_write_blocks(const char *data, int count) {
   DisableFpga();
 
   spi_set_speed(spi_speed);
-}
-
-void fpga_memory_set(char data, unsigned long words) {
-  EnableFpga();
-  SPI(MIST_WRITE_MEMORY);
-
-  while(words--) {
-    SPI(data);
-    SPI(data);
-  }
-
-  DisableFpga();
 }
 
 static void dma_ack(unsigned char status) {
@@ -208,9 +161,9 @@ FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
 
 #ifndef SD_NO_DIRECT_MODE
   if (fat_uses_mmc()) {
-    // SD-Card -> FPGA direct SPI transfer on MISTERY
+    // SD-Card -> FPGA direct SPI transfer
     spi_speed = spi_get_speed();
-    spi_set_speed(spi_newspeed);
+    spi_set_speed(spi_mmc_speed);
     if (IDXSeek(&sd_image[target + 2], lba) == FR_OK
         && f_read(&sd_image[target + 2].file, 0, 512 * length, &br) == FR_OK
         && br == (512 * length))
@@ -319,7 +272,7 @@ static void get_dma_state() {
   if (!(AcsiBus.command[10] & 0x01))
     return;
 
-  spi_newspeed = SPI_MMC_CLK_VALUE;
+  spi_mmc_speed = SPI_MMC_CLK_VALUE;
 
   SCSI_DEV *dev = NULL;
   AcsiBus.opcode = AcsiBus.command[0];
@@ -465,14 +418,8 @@ void tos_poll() {
 }
 
 void tos_update_sysctrl(unsigned long n) {
-  // some of the usb drivers also call this without knowing which
-  // core is running. So make sure this only happens if the Atari ST (MIST)
-  // core is running
-  if(user_io_core_type() == CORE_TYPE_MISTERY)
-  {
-    config.system_ctrl = n;
-    fpga_set_control(config.system_ctrl);
-  }
+  config.system_ctrl = n;
+  fpga_set_control(config.system_ctrl);
 }
 
 static const char *tos_get_disk_name(char index) {
@@ -590,13 +537,7 @@ void tos_reset(bool cold) {
   acsi_init(cold);
 
   if(cold) {
-#if 0 // clearing mem should be sifficient. But currently we upload TOS as it may be damaged
-    // clear first 16k
-    fpga_memory_set_address(8);
-    fpga_memory_set(0x00, 8192-4);
-#else
     tos_upload(NULL);
-#endif
   }
 
   tos_update_sysctrl(config.system_ctrl & ~TOS_CONTROL_CPU_RESET);  // release reset
@@ -639,13 +580,15 @@ static void tos_config_load(char slot) {
   // try to load config
   const char *cfname = get_config_fname(new_slot);
 
-  if (f_open(&file, cfname, FA_READ) == FR_OK) {
-    if(f_size(&file) == sizeof(tos_config_t)) {
-      f_read(&file, (unsigned char*) &config, sizeof(tos_config_t), &br);
-      iprintf("Config file '%s' loaded\n", cfname);
-    }
-    f_close(&file);
+  if (f_open(&file, cfname, FA_READ) != FR_OK)
+    return;
+
+  if(f_size(&file) == sizeof(tos_config_t)) {
+    f_read(&file, (unsigned char*) &config, sizeof(tos_config_t), &br);
+    iprintf("Config file '%s' loaded\n", cfname);
   }
+
+  f_close(&file);
 }
 
 // save configuration
@@ -662,21 +605,20 @@ static bool tos_config_save(char slot) {
   // finally write the config
   f_write(&file, (unsigned char *) &config, sizeof(tos_config_t), &bw);
   f_close(&file);
+
   return (bw == sizeof(tos_config_t));
 }
 
 // configuration file check
 static bool tos_config_exists(char slot) {
   FIL file;
-  if (f_open(&file, get_config_fname(slot), FA_READ) == FR_OK) {
-    f_close(&file);
-    return true;
-  }
-  return false;
+  if (f_open(&file, get_config_fname(slot), FA_READ) != FR_OK)
+    return false;
+  f_close(&file);
+  return true;
 }
 
-void tos_init()
-{
+void tos_init() {
   acsi_init(true);
   tos_config_load(-1);
 }
@@ -687,7 +629,7 @@ void tos_init()
 
 static const char* scanlines[]={"Off","25%","50%","75%"};
 static const char* stereo[]={"Mono","Stereo"};
-static const char* blend[]={"Off","On"};
+static const char* offon[]={"Off","On"};
 static const char* atari_chipset[]={"ST","STE","MegaSTE","STEroids"};
 static const char *config_tos_mem[] =  {"512 kB", "1 MB", "2 MB", "4 MB", "8 MB", "14 MB", "--", "--" };
 static const char *config_tos_wrprot[] =  {"none", "A:", "B:", "A: and B:"};
@@ -722,7 +664,7 @@ static char tos_getmenupage(uint8_t idx, char action, menu_page_t *page) {
 	if (user_io_core_type() == CORE_TYPE_MISTERY)
 		page->title = "MiSTery";
 	else
-		page->title = "MiST";
+		page->title = "Unknown";
 	if (!idx)
 		page->flags = OSD_ARROW_RIGHT;
 	else
@@ -810,7 +752,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					item->item = s;
 					break;
 				case 9:
-					strcpy(s, " Write protect: ");
+					strcpy(s, " Write Protect: ");
 					strcat(s, config_tos_wrprot[(tos_system_ctrl() >> 6)&3]);
 					item->item = s;
 					break;
@@ -875,7 +817,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					item->item = " Reset";
 					break;
 				case 21:
-					item->item = " Cold boot";
+					item->item = " Cold Boot";
 					break;
 
 				// Page 3 - A/V
@@ -890,7 +832,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 				case 23: // Viking card can only be enabled with max 8MB RAM
 					enable = (tos_system_ctrl()&0xe) <= TOS_MEMCONFIG_8M;
 					strcpy(s, " Viking/SM194:  ");
-					strcat(s, ((tos_system_ctrl() & TOS_CONTROL_VIKING) && enable) ? "On" : "Off");
+					strcat(s, offon[!!((tos_system_ctrl() & TOS_CONTROL_VIKING) && enable)]);
 					item->item = s;
 					item->active = enable;
 					item->stipple = !enable;
@@ -899,7 +841,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					// Blitter is always present in >= STE
 					enable = (tos_system_ctrl() & (TOS_CONTROL_STE | TOS_CONTROL_MSTE))?1:0;
 					strcpy(s, " Blitter:       ");
-					strcat(s, ((tos_system_ctrl() & TOS_CONTROL_BLITTER) || enable) ? "On" : "Off");
+					strcat(s, offon[!!((tos_system_ctrl() & TOS_CONTROL_BLITTER) || enable)]);
 					item->item = s;
 					item->active = !enable;
 					item->stipple = enable;
@@ -925,7 +867,7 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 				case 28:
 					{
 						strcpy(s, " Comp. blend:   ");
-						strcat(s, blend[(tos_system_ctrl() & TOS_CONTROL_BLEND)?1:0]);
+						strcat(s, offon[!!(tos_system_ctrl() & TOS_CONTROL_BLEND)]);
 						item->item = s;
 					}
 					break;
