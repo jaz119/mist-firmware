@@ -94,6 +94,4 @@ void spi_max_end();
 #define SPI_MMC_CLK_VALUE MCLK/16000000  // 16 Mhz
 #define SPI_SLOW_CLK_VALUE MCLK/600000   // 600kHz
 
-#define SPI_MINIMIGV1_HACK
-
 #endif // SPI_H

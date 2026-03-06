@@ -1215,7 +1215,6 @@ FORCE_ARM void user_io_poll() {
 	EnableIO();
 	ct = SPI(0xff);
 	DisableIO();
-	SPI_MINIMIGV1_HACK
 
 	if((ct&0xef) == core_type)
 		ct_cnt = 0;        // same core type, everything is fine
@@ -1228,7 +1227,6 @@ FORCE_ARM void user_io_poll() {
 				EnableIO();
 				ct = SPI(0xff);
 				DisableIO();
-				SPI_MINIMIGV1_HACK
 			}
 
 			// reset io controller to cope with new core
@@ -1237,18 +1235,15 @@ FORCE_ARM void user_io_poll() {
 		}
 	}
 
-	if((core_type != CORE_TYPE_MINIMIG) &&
-	   (core_type != CORE_TYPE_MINIMIG_AGA) &&
+	if((core_type != CORE_TYPE_MINIMIG_AGA) &&
 	   (core_type != CORE_TYPE_PACE) &&
-	   (core_type != CORE_TYPE_MIST) &&
 	   (core_type != CORE_TYPE_MISTERY) &&
 	   (core_type != CORE_TYPE_ARCHIE) &&
 	   (core_type != CORE_TYPE_8BIT)) {
 		return;  // no user io for the installed core
 	}
 
-	if((core_type == CORE_TYPE_MIST) ||
-	   (core_type == CORE_TYPE_MISTERY)) {
+	if(core_type == CORE_TYPE_MISTERY) {
 		uint32_t redirect = tos_get_cdc_control_redirect();
 
 		// check for input data on usart
@@ -1358,8 +1353,7 @@ FORCE_ARM void user_io_poll() {
 		}
 	}
 
-	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
+	if((core_type == CORE_TYPE_MINIMIG_AGA)) {
 		kbd_fifo_poll();
 
 		// frequently check mouse for events
@@ -1429,8 +1423,7 @@ FORCE_ARM void user_io_poll() {
 		}
 	}
 
-	if((core_type == CORE_TYPE_MIST) ||
-	   (core_type == CORE_TYPE_MISTERY)) {
+	if(core_type == CORE_TYPE_MISTERY) {
 		// do some tos specific monitoring here
 		tos_poll();
 	}
@@ -1836,8 +1829,7 @@ FORCE_ARM void user_io_poll() {
 }
 
 static void send_keycode(unsigned short code) {
-	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
+	if((core_type == CORE_TYPE_MINIMIG_AGA)) {
 		// amiga has "break" marker in msb
 		if(code & BREAK) code = (code & 0xff) | 0x80;
 
@@ -1901,8 +1893,7 @@ static void send_keycode(unsigned short code) {
 FORCE_ARM void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) {
 
 	// send mouse data as minimig expects it
-	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
+	if(core_type == CORE_TYPE_MINIMIG_AGA) {
 		mouse_pos[idx][X] += x;
 		mouse_pos[idx][Y] += y;
 		mouse_pos[idx][Z] += z;
@@ -1962,9 +1953,8 @@ FAST static unsigned char is_emu_key(unsigned int c, unsigned int alt) {
 #define EMU_BTN4  (3+(keyrah*4))  // left gui (usually windows key)
 
 static unsigned short keycode(unsigned short in) {
-	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG_AGA))
-	return usb2amiga(in);
+	if(core_type == CORE_TYPE_MINIMIG_AGA)
+	    return usb2amiga(in);
 
 	if(core_type == CORE_TYPE_ARCHIE)
 		return usb2archie[in];
@@ -1997,7 +1987,6 @@ static void check_reset(unsigned short modifiers, char useKeys)
 
 		switch(core_type)
 		{
-			case CORE_TYPE_MINIMIG:
 			case CORE_TYPE_MINIMIG_AGA:
 				OsdReset(RESET_NORMAL);
 				break;
@@ -2019,8 +2008,7 @@ static unsigned short modifier_keycode(unsigned char index) {
 	      LCTRL LSHIFT LALT LGUI RCTRL RSHIFT RALT RGUI
 	*/
 
-	if((core_type == CORE_TYPE_MINIMIG) ||
-	   (core_type == CORE_TYPE_MINIMIG_AGA)) {
+	if(core_type == CORE_TYPE_MINIMIG_AGA) {
 		ALIGNED(4) static const unsigned short amiga_modifier[] =
 			{ 0x63, 0x60, 0x64, 0x66, 0x63, 0x61, 0x65, 0x67 };
 		return amiga_modifier[index];
@@ -2059,8 +2047,7 @@ static char key_used_by_osd(unsigned short s) {
 	// in atari mode eat all keys if the OSD is online,
 	// else none as it's up to the core to forward keys
 	// to the OSD
-	return((core_type == CORE_TYPE_MIST) ||
-	       (core_type == CORE_TYPE_MISTERY) ||
+	return((core_type == CORE_TYPE_MISTERY) ||
 	       (core_type == CORE_TYPE_ARCHIE) ||
 	       (core_type == CORE_TYPE_8BIT));
 }
@@ -2154,8 +2141,7 @@ FORCE_ARM static void keyrah_trans(unsigned char *m, unsigned char *k)
 	{
 		if(keyrah_fn_state == 1)
 		{
-			if((core_type == CORE_TYPE_MINIMIG) ||
-				(core_type == CORE_TYPE_MINIMIG_AGA))
+			if(core_type == CORE_TYPE_MINIMIG_AGA)
 			{
 				send_keycode(KEY_MENU);
 				send_keycode(BREAK | KEY_MENU);
@@ -2258,9 +2244,7 @@ FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, 
 	for(int i=0; i<6; i++) if(k[i] == 0x4c) reset_m |= 0x100;
 	check_reset(reset_m, KEYRAH_ID ? 1 : mist_cfg.reset_combo);
 
-	if( (core_type == CORE_TYPE_MINIMIG) ||
-		(core_type == CORE_TYPE_MINIMIG_AGA) ||
-		(core_type == CORE_TYPE_MIST) ||
+	if( (core_type == CORE_TYPE_MINIMIG_AGA) ||
 		(core_type == CORE_TYPE_MISTERY) ||
 		(core_type == CORE_TYPE_ARCHIE) ||
 		(core_type == CORE_TYPE_8BIT))

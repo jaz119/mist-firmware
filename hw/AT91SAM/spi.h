@@ -171,7 +171,4 @@ static inline void spi_max_end() {
 #define SPI_MMC_CLK_VALUE 3     // 16 MHz
 #define SPI_SLOW_CLK_VALUE 120  // 400kHz
 
-// for old minimig core
-#define SPI_MINIMIGV1_HACK SPI(0xff);
-
 #endif // SPI_H

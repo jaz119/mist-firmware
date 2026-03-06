@@ -12,19 +12,8 @@ Branch **clean** has the following non-merged differences from the original (mas
     - added timeouts for reties/NAKs;
 
 - Smaller size, but speed optimized:
-    - speed rate of SD card has been increased slightly;
+    - speed rate of SD card has been increased (slightly);
     - faster loading of FPGA cores;
-
-- Minimig:
-    - disks images and ROMs can be loaded from any directories;
-    - *removed legacy V1 core support*;
-
-- MiSTery:
-    - disks images and ROMs can be loaded from any directories;
-    - new ACSI driver with full ICD/SCSI-2 support;
-        - supports medium removal/change;
-        - supports read-only mode;
-    - *removed legacy ST core support*;
 
 - Other:
     - reduced RAM consumption, LFN now limited to 80 chars;
@@ -34,5 +23,17 @@ Branch **clean** has the following non-merged differences from the original (mas
     - *incomplete PL2303 driver is disabled by default*;
     - 8BIT: using indexing for ROMs files;
     - FatFs updated to 0.16 version;
+
+- *Minimig core*:
+    - disks images and ROMs can be loaded from any directories;
+    - *removed legacy V1 core support*;
+
+- *MiSTery core*:
+    - disks images and ROMs can be loaded from any directories;
+    - **new ACSI driver with full ICD/SCSI-2 support**;
+        - supports disk images hot swap;
+        - supports read-only mode;
+    - *removed direct SD card mode*;
+    - *removed legacy ST core support*;
 
 Binaries can be found in the [Latest Build](https://github.com/jaz119/mist-firmware/releases/tag/latest-clean).

@@ -329,7 +329,7 @@ static char FirmwareUpdateDialog(uint8_t idx) {
 static char ResetDialog(uint8_t idx) {
 	char m = 0;
 
-	if (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
+	if (user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
 		m = 1;
 
 	if (idx == 0) { //yes
@@ -510,9 +510,9 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 	else return 0;
 	if (item->page != page_idx) return 1; // shortcut
 
-	char is_m  = (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG_AGA);
+	char is_m  = (user_io_core_type()==CORE_TYPE_MINIMIG_AGA);
 	char is_a  = (user_io_core_type()==CORE_TYPE_ARCHIE);
-	char is_st = (user_io_core_type()==CORE_TYPE_MIST || user_io_core_type()==CORE_TYPE_MISTERY);
+	char is_st = (user_io_core_type()==CORE_TYPE_MISTERY);
 
 	switch (action) {
 		case MENU_ACT_GET:
@@ -900,7 +900,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 3: {
 					char m = 0;
-					if (user_io_core_type()==CORE_TYPE_MINIMIG || user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
+					if (user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
 						m = 1;
 					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?", MENU_DIALOG_YESNO, ResetDialog);
 					break;
@@ -955,12 +955,10 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 			if (page_idx == 0 && action == MENU_ACT_LEFT) {
 				// go back to core requesting this menu
 				switch(user_io_core_type()) {
-					case CORE_TYPE_MINIMIG:
 					case CORE_TYPE_MINIMIG_AGA:
 						SetupMinimigMenu2();
 						menusub = 0;
 						break;
-					case CORE_TYPE_MIST:
 					case CORE_TYPE_MISTERY:
 						tos_setup_menu();
 						menusub = 0;
@@ -1259,11 +1257,9 @@ void HandleUI(uint8_t key)
 		case MENU_NONE2 :
 			if (menu)
 			{
-				if((user_io_core_type() == CORE_TYPE_MINIMIG) ||
-				   (user_io_core_type() == CORE_TYPE_MINIMIG_AGA))
+				if(user_io_core_type() == CORE_TYPE_MINIMIG_AGA)
 					SetupMinimigMenu();
-				else if((user_io_core_type() == CORE_TYPE_MIST) ||
-				        (user_io_core_type() == CORE_TYPE_MISTERY))
+				else if(user_io_core_type() == CORE_TYPE_MISTERY)
 					tos_setup_menu();
 				else if(user_io_core_type() == CORE_TYPE_ARCHIE)
 					archie_setup_menu();

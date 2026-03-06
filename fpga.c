@@ -646,7 +646,6 @@ unsigned char fpga_init(const char *name) {
     EnableIO();
     ct = SPI(0xff);
     DisableIO();
-    SPI_MINIMIGV1_HACK
   } while( ((ct == 0) || (ct == 0xff)) && !CheckTimer(time));
 
   iprintf("Core id: 0x%X\n", ct);
@@ -657,9 +656,7 @@ unsigned char fpga_init(const char *name) {
   user_io_send_buttons(true);
   InitDB9();
 
-  if((user_io_core_type() == CORE_TYPE_MINIMIG)||
-     (user_io_core_type() == CORE_TYPE_MINIMIG_AGA)) {
-
+  if(user_io_core_type() == CORE_TYPE_MINIMIG_AGA) {
     puts("Running Minimig setup");
 
     if(minimig_v2()) {

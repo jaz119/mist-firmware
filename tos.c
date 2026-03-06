@@ -26,7 +26,7 @@ typedef struct {
   char acsi_img[2][64];
   char video_adjust[2];
   char cdc_control_redirect;
-  bool sd_direct;
+  bool sd_direct;             // not supported
 } tos_config_t;
 
 static tos_config_t config;
@@ -43,8 +43,6 @@ ALIGNED(4) static struct {
   unsigned int sides;
   unsigned int spt;
 } fdd_image[2];
-
-unsigned long hdd_direct = 0; // LBA
 
 unsigned char spi_speed;
 unsigned char spi_newspeed;
@@ -190,40 +188,6 @@ void fpga_memory_set(char data, unsigned long words) {
   DisableFpga();
 }
 
-// enable direct sd card access on acsi0
-static void tos_set_direct_hdd(bool on) {
-  config.sd_direct = on;
-
-  if(on) {
-    tos_debugf("ACSI: enable direct SD access");
-    disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &hdd_direct);
-
-    tos_debugf("ACSI: Direct capacity = %ld (%ld Bytes)", hdd_direct, hdd_direct*512);
-    config.system_ctrl |= TOS_ACSI0_ENABLE;
-  } else {
-    tos_debugf("ACSI: disable direct SD access");
-    config.system_ctrl &= ~TOS_ACSI0_ENABLE;
-    hdd_direct = 0;
-
-    // check if image access should be enabled instead
-    if(user_io_is_mounted(2)) {
-      tos_debugf("ACSI: re-enabling image on ACSI0");
-      config.system_ctrl |= TOS_ACSI0_ENABLE;
-    }
-  }
-
-  SCSI_DEV *dev = &AcsiBus.devs[0];
-
-  acsi_disk_init(dev, hdd_direct, true);
-  dev->is_readonly = mmc_write_protected();
-
-  fpga_set_control(config.system_ctrl);
-}
-
-static inline char tos_get_direct_hdd() {
-  return config.sd_direct;
-}
-
 static void dma_ack(unsigned char status) {
   EnableFpga();
   SPI(MIST_ACK_DMA);
@@ -247,38 +211,22 @@ FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
     // SD-Card -> FPGA direct SPI transfer on MISTERY
     spi_speed = spi_get_speed();
     spi_set_speed(spi_newspeed);
-    if (hdd_direct && target == 0) {
-      if (is_dip_switch1_on())
-        tos_debugf("ACSI: direct read, LBA: %lu", lba);
-      if (disk_read(fs.pdrv, 0, lba, length) == RES_OK)
-        read = length;
-    } else {
-      if (IDXSeek(&sd_image[target + 2], lba) == FR_OK
-          && f_read(&sd_image[target + 2].file, 0, 512 * length, &br) == FR_OK
-          && br == (512 * length))
-        read = length;
-      else
-        tos_debugf("ACSI: read error, br=%d", br);
-    }
+    if (IDXSeek(&sd_image[target + 2], lba) == FR_OK
+        && f_read(&sd_image[target + 2].file, 0, 512 * length, &br) == FR_OK
+        && br == (512 * length))
+      read = length;
     spi_set_speed(spi_speed);
   } else {
 #endif
     while (length) {
       int blocksize = MIN(length, SECTOR_BUFFER_SIZE / 512);
-      if (hdd_direct && target == 0) {
-        if (is_dip_switch1_on())
-          tos_debugf("ACSI: direct read, LBA=%lu", lba);
-        if (disk_read(fs.pdrv, sector_buffer, lba, blocksize) == RES_OK)
-          read += blocksize;
-      } else {
-        if (IDXSeek(&sd_image[target + 2], lba) != FR_OK)
-          break;
-        if (f_read(&sd_image[target + 2].file, sector_buffer, 512 * blocksize, &br) != FR_OK)
-          break;
-        if (br != (512 * blocksize))
-          break;
-        read += blocksize;
-      }
+      if (IDXSeek(&sd_image[target + 2], lba) != FR_OK)
+        break;
+      if (f_read(&sd_image[target + 2].file, sector_buffer, 512 * blocksize, &br) != FR_OK)
+        break;
+      if (br != (512 * blocksize))
+        break;
+      read += blocksize;
       fpga_memory_write_blocks(sector_buffer, blocksize);
       length -= blocksize;
       lba += blocksize;
@@ -306,20 +254,13 @@ FAST static int acsi_disk_write(int target, uint32_t lba, size_t length) {
       fpga_memory_read_block(buf);
       buf += 512;
     }
-    if (hdd_direct && target == 0) {
-      if (is_dip_switch1_on())
-        tos_debugf("ACSI: direct write, LBA=%lu", lba);
-      if (disk_write(fs.pdrv, sector_buffer, lba, blocklen) == RES_OK)
-        written += blocklen;
-    } else {
-      if (IDXSeek(&sd_image[target + 2], lba) != FR_OK)
-        break;
-      if (f_write(&sd_image[target + 2].file, sector_buffer, blocklen * 512, &bw) != FR_OK)
-        break;
-      if (bw != (blocklen * 512))
-        break;
-      written += blocklen;
-    }
+    if (IDXSeek(&sd_image[target + 2], lba) != FR_OK)
+      break;
+    if (f_write(&sd_image[target + 2].file, sector_buffer, blocklen * 512, &bw) != FR_OK)
+      break;
+    if (bw != (blocklen * 512))
+      break;
+    written += blocklen;
     lba += blocklen;
     length -= blocklen;
   }
@@ -386,7 +327,6 @@ static void get_dma_state() {
 
   // only a harddisk on ACSI 0/1 is supported
   // ACSI 0/1 is only supported if a image is loaded
-  // ACSI 0 is only supported for direct IO
   if (AcsiBus.target < 2)
     dev = &AcsiBus.devs[AcsiBus.target];
 
@@ -464,17 +404,12 @@ static void tos_upload_mistery(const char *name) {
     tos_insert_disk(0, "DISK_A.ST");
     tos_insert_disk(1, "DISK_B.ST");
 
-    if(config.sd_direct) {
-      tos_set_direct_hdd(1);
-      AcsiBus.devs[0].is_changed = false; // boot time mount
-    } else {
-      // try to open harddisk image
-      for(int i=0; i<2; i++) {
-        if (*config.acsi_img[i]) {
-          tos_debugf("trying to open %s image #%d", config.acsi_img[i], i);
-          tos_select_hdd_image(i, config.acsi_img[i]);
-          AcsiBus.devs[i].is_changed = false; // boot time mount
-        }
+    // try to open harddisk image
+    for(int i=0; i<2; i++) {
+      if (*config.acsi_img[i]) {
+        tos_debugf("trying to open %s image #%d", config.acsi_img[i], i);
+        tos_select_hdd_image(i, config.acsi_img[i]);
+        AcsiBus.devs[i].is_changed = false; // boot time mount
       }
     }
   }
@@ -566,7 +501,9 @@ static const char *tos_get_cartridge_name() {
 }
 
 static void tos_select_hdd_image(int i, const char *name) {
-  int slot = (i + 2) & 3;
+  if(i < 0 || i > 1) return;
+
+  int slot = i + 2;
   IDXFile *idxfile = &sd_image[slot];
   SCSI_DEV *acsi_dev = NULL;
 
@@ -593,7 +530,7 @@ static void tos_select_hdd_image(int i, const char *name) {
       if (acsi_dev) {
         acsi_dev->hdSize = f_size(&(idxfile->file)) / acsi_dev->blockSize;
         tos_debugf("ACSI: new image[%d] size: %lu", slot, acsi_dev->hdSize);
-        acsi_dev->is_readonly = !(idxfile->file.flag & FA_WRITE);
+        acsi_dev->is_readonly |= !(idxfile->file.flag & FA_WRITE);
       }
     } else {
       iprintf("Cannot open %s file, error %d\n", name, res);
@@ -607,10 +544,7 @@ static void tos_select_hdd_image(int i, const char *name) {
 }
 
 static void tos_insert_disk(int i, const char *name) {
-  if(i > 1) {
-    tos_select_hdd_image(i-2, name);
-    return;
-  }
+  if(i < 0 || i > 1) return;
 
   fdd_image[i].name[0] = 0;
   tos_debugf("%c: eject", i+'A');
@@ -648,8 +582,6 @@ void tos_eject_all() {
     acsi_disk_init(dev, 0, true);
     tos_debugf("ACSI: Init: storage[%d] size: %lu", i, dev->hdSize);
   }
-
-  hdd_direct = 0;
 }
 
 void tos_reset(bool cold) {
@@ -763,7 +695,6 @@ static const char *config_tos_usb[] =  {"none", "control", "debug", "serial", "p
 static const char *config_tos_cart[] = {"File", "Ethernec", "Cubase"};
 
 static char tos_file_selected(uint8_t idx, const char *SelectedName) {
-
 	switch(idx) {
 		case 0:
 		case 7:
@@ -771,10 +702,10 @@ static char tos_file_selected(uint8_t idx, const char *SelectedName) {
 			menu_debugf("Insert image %s for disk %d", SelectedName, (idx>=7) ? idx-7 : idx);
 			tos_insert_disk((idx>=7) ? idx-7 : idx, SelectedName);
 			break;
-		case 12:
-		case 13: // ACSI
-			menu_debugf("Insert image %s for ACSI disk %d", SelectedName, idx-10);
-			tos_insert_disk(idx-10, SelectedName);
+		case 11:
+		case 12: // ACSI
+			menu_debugf("Insert image %s for ACSI disk %d", SelectedName, idx-11);
+			tos_select_hdd_image(idx-11, SelectedName);
 			break;
 		case 16:  // TOS
 			tos_upload(SelectedName);
@@ -884,30 +815,24 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					item->item = s;
 					break;
 				case 11:
-					strcpy(s, " ACSI0 direct SD: ");
-					strcat(s, tos_get_direct_hdd() ? "On" : "Off");
-					item->active = !AcsiBus.devs[0].is_locked;
-					item->stipple = !item->active;
-					item->item = s;
-					break;
 				case 12:
-				case 13:
 				{
-					SCSI_DEV *acsi_dev = &AcsiBus.devs[idx-12];
+					SCSI_DEV *acsi_dev = &AcsiBus.devs[idx-11];
 					strcpy(s, " ACSI0: ");
-					s[5] = '0'+idx-12;
+					s[5] = '0'+idx-11;
 					if (acsi_dev->is_locked) {
 						strcat(s, "Locked by TOS");
 						item->active = false;
 					} else {
-						strcat(s, tos_get_disk_name(2+idx-12));
-						item->active = ((idx == 13) || !tos_get_direct_hdd());
+						strcat(s, tos_get_disk_name(2+idx-11));
+						item->active = is_medium_present;
 					}
 					if(acsi_dev->is_readonly) strcat(s, " \x17");
 					item->stipple = !item->active;
 					item->item = s;
 					break;
 				}
+
 				// Page 2 - System
 				case 14:
 					strcpy(s, " Memory:    ");
@@ -1080,14 +1005,10 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 					     | (((((tos_system_ctrl() >> 6)&3) + 1)&3)<<6) );
 					break;
 				case 11:
-					iprintf("Toggle direct hdd\n");
-					tos_set_direct_hdd(!tos_get_direct_hdd());
-					break;
 				case 12:
-				case 13:
-					iprintf("Select image for disk %d\n", idx-10);
-					if(user_io_is_mounted(idx-10))
-						tos_insert_disk(idx-10, NULL);
+					iprintf("Select image for disk %d\n", 2+idx-11);
+					if(user_io_is_mounted(2+idx-11))
+						tos_select_hdd_image(idx-11, NULL);
 					else
 						SelectFileNG("IMGVHDHD ", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
 					break;
@@ -1191,8 +1112,8 @@ static char tos_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 				case 37:
 				case 38:
 				case 39:
-					tos_insert_disk(2, NULL);
-					tos_insert_disk(3, NULL);
+					tos_select_hdd_image(0, NULL);
+					tos_select_hdd_image(1, NULL);
 					tos_config_load(idx-35);
 					tos_upload(NULL);
 					CloseMenu();
