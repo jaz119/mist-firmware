@@ -15,9 +15,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef C64_FILES_H
-#define C64_FILES_H
+#ifndef IDX_FILES_H
+#define IDX_FILES_H
 
-void c64files_init();
+// Initialize the IDX file processor (registers with data_io)
+void idx_files_init(void);
 
-#endif // C64_FILES_H
+#endif // IDX_FILES_H
