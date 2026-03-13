@@ -29,7 +29,7 @@
 typedef struct
 {
   FIL file;
-  volatile bool valid;
+  bool valid;
   DWORD clmt[SZ_TBL];
 } IDXFile;
 

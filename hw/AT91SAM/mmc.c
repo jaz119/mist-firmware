@@ -84,7 +84,7 @@ unsigned char MMC_Init(void)
       return(CARDTYPE_NONE);
     }
 
-    WaitTimer(50);  // 20ms delay
+    WaitTimer(50);  // 50ms delay
     spi_slow();     // set slow clock
 
     volatile unsigned int dummy;

@@ -18,7 +18,6 @@
 #include "debug.h"
 #include "keycodes.h"
 #include "idxfile.h"
-#include "spi.h"
 #include "mist_cfg.h"
 #include "mmc.h"
 #include "tos.h"

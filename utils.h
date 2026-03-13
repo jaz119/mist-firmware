@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "attrs.h"
 
+#define BIT(nr)         (1ul << (nr))
 #define MIN(a, b)       (((a) < (b)) ? (a) : (b))
 
 // for tiny version of newlib
@@ -12,7 +13,7 @@
 #define PRIu64_LOW(x)   (uint32_t)((x) >> 32)
 #define PRIu64_HIGH(x)  (uint32_t)((x) & 0xFFFFFFFFu)
 
-#ifndef CONFIG_CHIP_SAMV71
+#ifndef ARRAY_SIZE
     #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
 #endif
 

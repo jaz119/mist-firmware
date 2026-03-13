@@ -18,11 +18,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "osd.h"
 #include "idx_files.h"
 #include "fat_compat.h"
 #include "data_io.h"
 #include "menu.h"
-#include "osd.h"
 
 // From menu.c — needed to reset cursor position when opening the IDX menu
 extern unsigned int menusub;

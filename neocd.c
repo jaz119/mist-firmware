@@ -1,9 +1,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "user_io.h"
 #include "neocd.h"
 #include "cue_parser.h"
-#include "user_io.h"
 #include "utils.h"
 #include "debug.h"
 

@@ -25,10 +25,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+
 #include "errors.h"
+#include "user_io.h"
 #include "hardware.h"
 #include "fdd.h"
-#include "user_io.h"
 #include "config.h"
 #include "boot.h"
 #include "osd.h"

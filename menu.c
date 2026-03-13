@@ -28,15 +28,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "user_io.h"
+#include "hardware.h"
 #include "errors.h"
-#include "fat_compat.h"
 #include "osd.h"
 #include "state.h"
 #include "fpga.h"
 #include "firmware.h"
 #include "config.h"
 #include "menu.h"
-#include "user_io.h"
 #include "data_io.h"
 #include "tos.h"
 #include "debug.h"

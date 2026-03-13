@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "swab.h"
 #include "errors.h"
 #include "hardware.h"
+#include "spi.h"
 #include "fat_compat.h"
 #include "FatFs/diskio.h"
 #include "hdd.h"
@@ -1658,7 +1659,7 @@ static void GetHardfileGeometry(hdfTYPE *pHDF, bool amiga)
     case HDF_CARDPART1:
     case HDF_CARDPART2:
     case HDF_CARDPART3:
-      total = partitions[pHDF->partition].size;
+      total = partitions[pHDF->partition].sectors;
       break;
     default:
       break;

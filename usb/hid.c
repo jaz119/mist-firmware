@@ -299,7 +299,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 	return 0;
 }
 
-FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
+static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
 	hid_debugf("%s(%u)", __FUNCTION__, dev->bAddress);
 
 	uint8_t rcode;
@@ -464,7 +464,7 @@ FAST static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev
 	return 0;
 }
 
-FAST static uint8_t usb_hid_release(usb_device_t *dev) {
+static uint8_t usb_hid_release(usb_device_t *dev) {
 	usb_hid_info_t *info = &(dev->hid_info);
 
 	hid_debugf("%s()", __FUNCTION__);
@@ -894,7 +894,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	return 0;
 }
 
-FORCE_ARM void hid_set_kbd_led(unsigned char led, bool on) {
+void hid_set_kbd_led(unsigned char led, bool on) {
 	// check if led state has changed
 	if( (on && !(kbd_led_state&led)) || (!on && (kbd_led_state&led))) {
 		if(on) kbd_led_state |=  led;

@@ -15,19 +15,17 @@ void spi_fast_mmc();
 unsigned char spi_get_speed();
 void spi_set_speed(unsigned char speed);
 
-static inline void spi_wait4xfer_end() {
-  while (!(*AT91C_SPI_SR & AT91C_SPI_TXEMPTY));
-
-  /* Clear any data left in the receiver */
-  (void)*AT91C_SPI_RDR;
-  (void)*AT91C_SPI_RDR;
-}
-
 /* chip select functions */
 #define EnableFpgaMinimig EnableFpga
 
 void EnableOsd(void);
 void DisableOsd(void);
+
+static inline void spi_wait4xfer_end() {
+  while (!(*AT91C_SPI_SR & AT91C_SPI_TXEMPTY));
+  /* Clear any data left in the receiver */
+  (void)*AT91C_SPI_RDR;
+}
 
 static inline void EnableCard() {
     *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1

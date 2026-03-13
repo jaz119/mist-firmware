@@ -93,14 +93,14 @@ bool FindDrive(void) {
 
 	if (mbr->signature == 0xaa55) {
 		// get start of first partition
-		for (partitioncount=4; (partitions[partitioncount-1].size==0) && (partitioncount>1); --partitioncount);
+		for (partitioncount=4; (partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount);
 
 		iprintf("partitions count: %d\n", partitioncount);
 
 		for (int i=0; i<partitioncount; ++i) {
 			iprintf("partition %d:\n", i);
 			iprintf("  start: %lu\n", partitions[i].start_lba);
-			iprintf("  size:  %lu MiB\n", partitions[i].size >> 11);
+			iprintf("  size:  %lu MiB\n", partitions[i].sectors >> 11);
 		}
 	}
 

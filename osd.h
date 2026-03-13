@@ -1,6 +1,7 @@
 #ifndef OSD_H_INCLUDED
 #define OSD_H_INCLUDED
 
+#include "spi.h"
 #include "attrs.h"
 
 /*constants*/

@@ -112,8 +112,6 @@
 #define USB_BOOT_VALUE       0x8007F007
 #define USB_BOOT_VAR         (*(int*)0x0020FF18)
 
-#define SECTOR_BUFFER_SIZE   4096
-
 // MAX3421E INT pin polling
 static inline uint8_t usb_irq_active() {
   return !(AT91C_BASE_PIOA->PIO_PDSR & USB_INT);
@@ -133,23 +131,9 @@ unsigned char USART_Read(void);
 void USART_Poll(void);
 
 void Timer_Init(void);
-
-// 12 bits accuracy at 1ms = 4096 ms
-static inline unsigned long GetTimer(unsigned long offset)
-{
-    unsigned long systimer = (*AT91C_PITC_PIIR & AT91C_PITC_PICNT);
-    systimer += offset << 20;
-    return (systimer); // valid bits [31:20]
-}
-
-static inline unsigned long CheckTimer(unsigned long time)
-{
-    unsigned long systimer = (*AT91C_PITC_PIIR & AT91C_PITC_PICNT);
-    time -= systimer;
-    return(time > (1UL << 31));
-}
-
-RAMFUNC void WaitTimer(unsigned long time);
+RAMFUNC unsigned long GetTimer(unsigned long offset);
+RAMFUNC unsigned long CheckTimer(unsigned long time);
+void WaitTimer(unsigned long time);
 
 static inline void MCUReset() {
   *AT91C_RSTC_RCR = 0xA5 << 24 | AT91C_RSTC_PERRST | AT91C_RSTC_PROCRST | AT91C_RSTC_EXTRST;
@@ -166,7 +150,7 @@ int GetSPICLK();
 extern volatile unsigned char adc_state;
 
 void InitADC(void);
-RAMFUNC void PollADC();
+void PollADC();
 
 // user, menu, DIP2, DIP1
 static inline unsigned char UserButton() {

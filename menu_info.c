@@ -18,10 +18,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "osd.h"
 #include "menu_info.h"
 #include "fat_compat.h"
 #include "menu.h"
-#include "osd.h"
 #include "debug.h"
 
 #define CHAR_IS_EOL(c)      (((c) == '\n'))
@@ -112,7 +112,7 @@ static char getmenuitem(uint8_t idx, char action, menu_item_t *item)
 	}
 }
 
-static char getmenupage(uint8_t idx, char action, menu_page_t *page) 
+static char getmenupage(uint8_t idx, char action, menu_page_t *page)
 {
 	if (action == MENU_PAGE_EXIT) {
 		f_close(&infofile);

@@ -36,12 +36,11 @@ This is the Minimig OSD (on-screen-display) handler.
 #include <string.h>
 #include <stdio.h>
 
-#include "spi.h"
+#include "osd.h"
 #include "logo.h"
 #include "state.h"
 #include "user_io.h"
 #include "font.h"
-#include "osd.h"
 
 // conversion table of Amiga keyboard scan codes to ASCII codes
 ALIGNED(4) static const char keycode_table[128] =

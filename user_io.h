@@ -9,9 +9,9 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#include "hdd.h"
-#include "fat_compat.h"
+#include "spi.h"
 #include "attrs.h"
+#include "hdd.h"
 
 #define UIO_STATUS      0x00
 #define UIO_BUT_SW      0x01

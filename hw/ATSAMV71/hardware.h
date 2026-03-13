@@ -145,8 +145,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define VIDEO_SD_DISABLE_VAR (*(uint8_t*)0x2045F011)
 #define VIDEO_YPBPR_VAR      (*(uint8_t*)0x2045F012)
 
-#define SECTOR_BUFFER_SIZE   8192
-
 void __init_hardware();
 
 // MAX3421E INT pin polling

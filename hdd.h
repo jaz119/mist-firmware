@@ -73,8 +73,8 @@
 // types
 typedef struct
 {
-  volatile int enabled; // 0: Disabled, 1: Hard file, 2: MMC (entire card), 3-6: Partition 1-4 of MMC card, 10-CDROM
-  volatile bool present;
+  unsigned int enabled; // 0: Disabled, 1: Hard file, 2: MMC (entire card), 3-6: Partition 1-4 of MMC card, 10-CDROM
+  bool present;
   char name[FF_LFN_BUF + 1];
 } hardfileTYPE;
 

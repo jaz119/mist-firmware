@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "spi.h"
 #include "fat_compat.h"
 #include "sxmlc/sxmlc.h"
 #include "menu.h"

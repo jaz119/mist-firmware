@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "idxfile.h"
 #include "hardware.h"
+#include "idxfile.h"
 
 ALIGNED(4) IDXFile sd_image[SD_IMAGES];
 

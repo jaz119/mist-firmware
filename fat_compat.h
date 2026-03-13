@@ -1,7 +1,7 @@
 #ifndef _FAT16_H_INCLUDED
 #define _FAT16_H_INCLUDED
 
-#include "spi.h"
+#include <stdbool.h>
 #include "FatFs/ff.h"
 
 struct PartitionEntry
@@ -11,7 +11,7 @@ struct PartitionEntry
 	uint8_t  partition_type;
 	uint8_t  end_chs[3];
 	uint32_t start_lba;
-	uint32_t size;
+	uint32_t sectors;
 } __attribute__ ((packed));
 
 struct MasterBootRecord

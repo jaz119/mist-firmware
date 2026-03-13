@@ -2,15 +2,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
-
+#include "user_io.h"
 #include "menu.h"
-#include "config.h"
 #include "osd.h"
 #include "fpga.h"
 #include "boot.h"
 #include "fdd.h"
 #include "hdd.h"
-#include "user_io.h"
+#include "config.h"
 #include "misc_cfg.h"
 #include "cue_parser.h"
 #include "debug.h"

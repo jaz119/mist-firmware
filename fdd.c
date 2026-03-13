@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "errors.h"
 #include "hardware.h"
+#include "spi.h"
 #include "fat_compat.h"
 #include "fdd.h"
 #include "config.h"

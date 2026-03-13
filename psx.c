@@ -2,9 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "user_io.h"
 #include "psx.h"
 #include "cue_parser.h"
-#include "user_io.h"
 #include "data_io.h"
 #include "utils.h"
 #include "debug.h"

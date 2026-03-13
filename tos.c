@@ -2,11 +2,12 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "hardware.h"
 #include "user_io.h"
+#include "tos.h"
 #include "menu.h"
 #include "osd.h"
 #include "misc_cfg.h"
-#include "tos.h"
 #include "cdc_control.h"
 #include "data_io.h"
 #include "acsi_hdc.h"
