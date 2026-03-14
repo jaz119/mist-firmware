@@ -19,7 +19,7 @@ SRC += FatFs/ff.c FatFs/ffunicode.c
 SRC += tos.c acsi_hdc.c
 # SRC += usb/storage.c # -DUSB_STORAGE
 # SRC += usb/pl2303.c # -DUSB_PL2303_CDC
-SRC += usb/asix.c # -DUSB_ASIX_NET
+# SRC += usb/asix.c # -DUSB_ASIX_NET
 
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
@@ -30,7 +30,7 @@ LIBDIR   =
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
 DFLAGS  = -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV4TE -DVDATE=\"$(TODAY)\"
-DFLAGS += -DMIST -DUSB_ASIX_NET -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80 -DSECTOR_BUFFER_SIZE=4096
+DFLAGS += -DMIST -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80 -DSECTOR_BUFFER_SIZE=4096
 CFLAGS  = $(DFLAGS) -I. -Iusb -Iarch/ -Ihw/AT91SAM -mcpu=arm7tdmi -mthumb-interwork -mthumb
 CFLAGS += -Os --std=gnu99 -Wdouble-promotion -Wformat=2 -fsigned-char -fno-common
 AFLAGS  = -ahls -mapcs-32
