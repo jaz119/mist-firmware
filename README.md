@@ -1,9 +1,9 @@
-[![Build firmware](https://github.com/mist-devel/mist-firmware/actions/workflows/test-build.yaml/badge.svg)](https://github.com/mist-devel/mist-firmware/actions/workflows/test-build.yaml)
+[![Build firmware](https://github.com/jaz119/mist-firmware/actions/workflows/test-build.yaml/badge.svg)](https://github.com/jaz119/mist-firmware/actions/workflows/test-build.yaml)
 
-MIST Firmware source code
+**MiST** and **SiDi128** firmware source code fork
 =========================
 
-This is the source code of the MIST firmware.
+This is the source code of the firmware for both devices.
 
 Branch **clean** has the following non-merged differences from the original (master) branch:
 
@@ -16,7 +16,12 @@ Branch **clean** has the following non-merged differences from the original (mas
     - faster loading of FPGA cores;
 
 - Other:
-    - reduced RAM consumption, LFN now limited to 80 chars;
+    - MiST: reduced RAM consumption, LFN now limited to 80 chars:
+
+        | text   | data | bss   | dec    | hex   | filename     |
+        | :--    | :--  | :--   | :--    | :--   | :--          |
+        | 168168 | 0    | 44624 | 212792 | 33f38 | firmware.elf |
+
     - firmware upgrading: flash pages full unlock is fixed;
     - SD card hot swap (*it may require hardware modification*);
     - disks images and ROMs can be loaded from any directories for *Archie*;

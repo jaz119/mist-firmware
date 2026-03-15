@@ -115,7 +115,7 @@ unsigned char MMC_Init(void)
                 ocr[n] = SPI(0xFF); // get the rest of R7 response
             if (ocr[2] == 0x01 && ocr[3] == 0xAA)
             { // the card can work at 2.7-3.6V
-                iprintf("SDHC card detected\r");
+                // iprintf("SDHC card detected\r");
                 while (!CheckTimer(timeout))
                 { // now we must wait until CMD41 returns 0 (or timeout elapses)
                     if (MMC_Command(CMD55, 0) == 0x01)
@@ -157,7 +157,7 @@ unsigned char MMC_Init(void)
         { // CMD55 accepted so it's an SD card (or Kingston 128 MB MMC)
             if (MMC_Command(CMD41, 0) <= 0x01)
             { // SD card detected - wait for the end of initialization
-                iprintf("SD card detected\r");
+                // iprintf("SD card detected\r");
                 while (!CheckTimer(timeout))
                 { // now we must wait until CMD41 returns 0 (or timeout elapses)
                     if (MMC_Command(CMD55, 0) == 0x01)
@@ -191,7 +191,7 @@ unsigned char MMC_Init(void)
         }
 
         // it's not an SD card
-        iprintf("MMC card detected\r");
+        // iprintf("MMC card detected\r");
         while (!CheckTimer(timeout))
         { // now we must wait until CMD1 returns 0 (or timeout elapses)
             if (MMC_Command(CMD1, 0) == 0x00)
@@ -603,6 +603,7 @@ RAMFUNC static void MMC_CRC(unsigned char c)
     }
 }
 
-unsigned char MMC_IsSDHC(void) {
-  return (CardType == CARDTYPE_SDHC);
+unsigned char MMC_GetCardType()
+{
+    return CardType;
 }

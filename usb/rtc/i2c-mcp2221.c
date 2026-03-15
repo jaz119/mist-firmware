@@ -14,7 +14,7 @@
 #include "timer.h"
 #include "debug.h"
 
-#define TIMEOUT_MS      10
+#define TIMEOUT_MS      4
 #define REPORT_SIZE     64
 
 #define MCP2221_VID     0x04d8
@@ -160,10 +160,7 @@ static bool mcp_i2c_wait_for(
         if (resp->i2c_cur_state & I2C_MASK_ADDR_NACK)
             break;
 
-        if ((--rounds % 4) == 0)
-            usb_poll();
-
-    } while (rounds > 0);
+    } while (--rounds > 0);
 
     usbrtc_debugf("%s: error 0x%X:0x%X:0x%X",
         __FUNCTION__, resp->cmd_status, resp->i2c_engine_state,

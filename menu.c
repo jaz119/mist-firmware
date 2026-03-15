@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "user_io.h"
 #include "hardware.h"
+#include "mmc.h"
 #include "errors.h"
 #include "osd.h"
 #include "state.h"
@@ -775,14 +776,18 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 
 				// page 10 - System status
 				case 47:
-					siprintf(s, " Boot device:    %11s", fat_uses_mmc() ? "    SD card" : "USB storage");
+					siprintf(s, " Boot device:    %11s", fat_uses_mmc()
+						? (MMC_GetCardType() == CARDTYPE_MMC  ? "   MMC card" :
+						   MMC_GetCardType() == CARDTYPE_SD   ? "    SD card" :
+						   MMC_GetCardType() == CARDTYPE_SDHC ? "  SDHC card" : "None")
+						: "USB storage");
 					item->active = fat_medium_present();
 					item->stipple = !item->active;
 					item->item = s;
 					break;
 				case 48:
 					if (storage_size > 1024) {
-						siprintf(s, " Medium:      %6s / %3luGB", fs_type_to_string(), storage_size >> 10);
+						siprintf(s, " Medium:      %6s / %3luGB", fs_type_to_string(), storage_size / 1024);
 					} else {
 						siprintf(s, " Medium:      %6s / %3luMB", fs_type_to_string(), storage_size);
 					}

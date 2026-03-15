@@ -537,6 +537,7 @@ RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg, u
     return !(status & MCI_ERRORS_MASK);
 }
 
-unsigned char MMC_IsSDHC(void) {
-  return(CardType == CARDTYPE_SDHC);
+unsigned char MMC_GetCardType()
+{
+    return CardType;
 }

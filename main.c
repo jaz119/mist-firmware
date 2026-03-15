@@ -84,7 +84,7 @@ unsigned char Error;
 ALIGNED(4) char s[OSD_BUF_SIZE];
 ALIGNED(4) DWORD clmt[99]; // fast seek cache
 
-unsigned long storage_size = 0;
+unsigned long storage_size = 0; // MiB
 
 void FatalError(unsigned long error)
 {
@@ -239,7 +239,7 @@ FAST int main(void)
 #endif
 
     disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &storage_size);
-    storage_size >>= 11;
+    storage_size /= (2 * 1024);
 
     ChangeDirectoryName("/");
 
@@ -319,7 +319,7 @@ FAST int main(void)
                 && disk_ioctl(fs.pdrv, GET_SECTOR_COUNT, &storage_size) == 0
                 && FindDrive())
             {
-                storage_size >>= 11;
+                storage_size /= (2 * 1024);
                 mmc_ok = fat_medium_present();
 
                 if (storage_size && mmc_ok)
