@@ -3,10 +3,9 @@
 **MiST** and **SiDi128** firmware source code fork
 =========================
 
-This is the source code of the firmware for both devices.
+The purpose of this fork is to get rid of outdated code and further improve it.
 
-Branch **clean** has the following non-merged differences from the original (master) branch:
-
+*Changelog*:
 - Improved USB support:
     - INT pin of MAX3421e is used to wait for interrupts, instead of SPI polling;
     - added timeouts for reties/NAKs;
@@ -31,15 +30,16 @@ Branch **clean** has the following non-merged differences from the original (mas
     - FatFs updated to 0.16 version;
 
 - *Minimig core*:
-    - disks images and ROMs can be loaded from any directories;
+    - disk images and ROMs can be loaded from any directories;
     - *removed legacy V1 core support*;
 
 - *MiSTery core*:
-    - disks images and ROMs can be loaded from any directories;
-    - **new ACSI driver with full ICD/SCSI-2 support**;
+    - updated in Minimig-style menu structure;
+    - disk images and ROMs can be loaded from any directories;
+    - *new ACSI driver with full ICD/SCSI-2 support*;
         - supports disk images hot swap;
         - supports read-only mode;
     - *removed direct SD card mode*;
     - *removed legacy ST core support*;
 
-Binaries can be found in the [Latest Build](https://github.com/jaz119/mist-firmware/releases/tag/latest-clean).
+Binaries can be found in [Latest Build](https://github.com/jaz119/mist-firmware/releases/tag/latest-clean).
