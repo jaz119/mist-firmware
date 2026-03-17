@@ -9,11 +9,11 @@
 #define MIST_READ_MEMORY    0x03
 #define MIST_SET_CONTROL    0x04
 #define MIST_GET_DMASTATE   0x05 // reads state of ACSI
-#define MIST_ACK_DMA        0x06 // acknowledge a dma command
+#define MIST_ACK_DMA        0x06 // acknowledge a DMA command
 #define MIST_BUS_REQ        0x07 // request bus
 #define MIST_BUS_REL        0x08 // release bus
 #define MIST_SET_VADJ       0x09 // not implemented
-#define MIST_NAK_DMA        0x0a // reject a dma command
+#define MIST_NAK_DMA        0x0a // reject a DMA command
 
 // System control bits
 // 0     - RESET
@@ -24,10 +24,10 @@
 // 10-17 - ACSI device enable
 // 19    - Blitter toggle
 // 20-21 - Scanlines mode
-// 22    - PSG Stereo toggle
+// 22    - PSG stereo toggle
 // 23-24 - Chipset type
 // 25    - Ethernec present
-// 26-27 - USB redirection (0=Nothing 1=RS232 2=Printer 3=MIDI)
+// 26-27 - USB redirection (0=Nothing, 1=RS232, 2=Printer, 3=MIDI)
 // 28    - Viking enable
 // 29    - Blend toggle
 // 30    - Cubase enable
@@ -42,8 +42,8 @@
 
 // CPU configurations
 #define TOS_CPUCONFIG_68000       (0<<4)
-#define TOS_CPUCONFIG_68010       (1<<4)
-#define TOS_CPUCONFIG_RESERVED    (2<<4)
+#define TOS_CPUCONFIG_68010       (1<<4)    // not used
+#define TOS_CPUCONFIG_RESERVED    (2<<4)    // not used
 #define TOS_CPUCONFIG_68020       (3<<4)
 
 // Control bits (all control bits have unknown state after core startup)
@@ -52,7 +52,7 @@
 #define TOS_CONTROL_FDC_WR_PROT_B BIT(7)
 #define TOS_CONTROL_VIDEO_COLOR   BIT(8)    // input to MFP
 
-// Up to eight acsi devices can be enabled
+// Up to eight ACSI devices can be enabled
 #define TOS_ACSI0_ENABLE          BIT(10)
 #define TOS_ACSI1_ENABLE          BIT(11)
 #define TOS_ACSI2_ENABLE          BIT(12)
@@ -75,7 +75,7 @@
 #define TOS_CONTROL_CUBASE        BIT(30)
 
 // USB redirection modes
-// (NONE=0, RS232=1, PARALLEL=2, MIDI=3)
+// NONE=0, RS232=1, PARALLEL=2, MIDI=3
 #define TOS_CONTROL_REDIR0        BIT(26)
 #define TOS_CONTROL_REDIR1        BIT(27)
 
@@ -83,16 +83,16 @@
 #define TOS_CONTROL_BLEND         BIT(29)   // Composite blending
 
 void tos_init();
-void tos_upload(const char *);
-void tos_poll();
-void tos_update_sysctrl(unsigned long);
 void tos_eject_all();
 void tos_reset(bool cold);
+void tos_upload(const char *);
+void tos_poll();
 
 char tos_get_cdc_control_redirect(void);
 void tos_set_cdc_control_redirect(char mode);
 
 unsigned long tos_system_ctrl(void);
+void tos_update_sysctrl(unsigned long);
 
 void assign_full_path(char *, int, const char *);
 void tos_setup_menu();

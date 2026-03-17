@@ -53,10 +53,14 @@ static void acsi_disk_init(SCSI_DEV *, unsigned long, bool);
 static void tos_insert_disk(int, const char *);
 static void tos_select_hdd_image(int, const char *);
 
+static void fpga_set_control(unsigned long);
+
 void assign_full_path(char *buf, int buf_size, const char *fname) {
   if (!buf || !buf_size || !fname || buf == fname) return;
   if (*fname == '/') {
     sniprintf(buf, buf_size, "%s", fname);
+  } else if (*fname == 0) {
+    buf[0] = 0;
   } else {
     sniprintf(buf, buf_size, "%s/%s", cwd, fname);
   }
@@ -74,16 +78,14 @@ void tos_set_cdc_control_redirect(char mode) {
     if(mode < CDC_REDIRECT_RS232) {
       mode = 0;
     } else {
-      mode -= CDC_REDIRECT_RS232 - 1;
+      mode -= (CDC_REDIRECT_RS232 - 1);
     }
 
-    tos_update_sysctrl((tos_system_ctrl() & ~0x0c000000) |
-       (((unsigned long)mode) << 26) );
-  }
-}
+    config.system_ctrl &= ~0x0c000000;
+    config.system_ctrl |= (((uint32_t) mode) << 26);
 
-static inline char tos_get_video_adjust(char axis) {
-  return config.video_adjust[axis];
+    fpga_set_control(config.system_ctrl);
+  }
 }
 
 static void fpga_set_control(unsigned long ctrl) {
@@ -289,8 +291,11 @@ static void get_dma_state() {
   }
 }
 
-static void tos_load_cartridge_mistery() {
+static void tos_load_cartridge(const char *name) {
   FIL file;
+
+  assign_full_path(
+    config.cart_img, sizeof(config.cart_img) - 1, name);
 
   // erase that ram area to remove any previously uploaded image
   tos_debugf("Erasing cart memory");
@@ -310,13 +315,6 @@ static void tos_load_cartridge_mistery() {
   iprintf("Cartridge %s uploaded\n", config.cart_img);
 
   f_close(&file);
-}
-
-static void tos_load_cartridge(const char *name) {
-  assign_full_path(
-    config.cart_img, sizeof(config.cart_img) - 1, name);
-
-  tos_load_cartridge_mistery();
 }
 
 static inline bool tos_cartridge_is_inserted() {
@@ -349,8 +347,8 @@ static void tos_upload_mistery(const char *name) {
   // This is the initial boot if no name was given.
   // Otherwise the user reloaded a new os
   if(!name) {
-    // load
-    tos_load_cartridge(NULL);
+    // load cartridge
+    tos_load_cartridge(config.cart_img);
 
     // try to open both floppies
     tos_insert_disk(0, "DISK_A.ST");
@@ -378,6 +376,7 @@ void tos_upload(const char *name) {
 
   assign_full_path(
     config.tos_img, sizeof(config.tos_img) - 1, name);
+
   tos_upload_mistery(name);
 
   // let cpu run (release reset)
@@ -458,7 +457,7 @@ static void tos_select_hdd_image(int i, const char *name) {
     IDXClose(idxfile);
   }
 
-  config.system_ctrl &= ~(TOS_ACSI0_ENABLE<<i);
+  config.system_ctrl &= ~(TOS_ACSI0_ENABLE << i);
 
   if (i < 2) {
     acsi_dev = &AcsiBus.devs[i];
@@ -472,7 +471,7 @@ static void tos_select_hdd_image(int i, const char *name) {
       assign_full_path(config.acsi_img[i], sizeof(config.acsi_img[i]) - 1, name);
       iprintf("ACSI%d: %s\n", i, config.acsi_img[i]);
       IDXIndex(idxfile, slot);
-      config.system_ctrl |= (TOS_ACSI0_ENABLE<<i);
+      config.system_ctrl |= (TOS_ACSI0_ENABLE << i);
       if (acsi_dev) {
         acsi_dev->hdSize = f_size(&(idxfile->file)) / acsi_dev->blockSize;
         tos_debugf("ACSI: new image[%d] size: %lu", slot, acsi_dev->hdSize);
@@ -511,7 +510,7 @@ static void tos_insert_disk(int i, const char *name) {
       assign_full_path(fdd_image[i].name, sizeof(fdd_image[i].name) - 1, name);
       iprintf("%c: %s\n", i+'A', fdd_image[i].name);
     }
-    tos_update_sysctrl(config.system_ctrl);
+    fpga_set_control(config.system_ctrl);
   }
 }
 
@@ -531,7 +530,7 @@ void tos_eject_all() {
 }
 
 void tos_reset(bool cold_boot) {
-  tos_update_sysctrl(config.system_ctrl |  TOS_CONTROL_CPU_RESET);  // set reset
+  fpga_set_control(config.system_ctrl | TOS_CONTROL_CPU_RESET);  // set reset
 
   timer_delay_msec(10);
   acsi_init(cold_boot);
@@ -540,7 +539,7 @@ void tos_reset(bool cold_boot) {
     tos_upload(NULL);
   }
 
-  tos_update_sysctrl(config.system_ctrl & ~TOS_CONTROL_CPU_RESET);  // release reset
+  fpga_set_control(config.system_ctrl & ~TOS_CONTROL_CPU_RESET);  // release reset
 }
 
 unsigned long tos_system_ctrl(void) {
@@ -612,8 +611,10 @@ static bool tos_config_save(char slot) {
 // configuration file check
 static bool tos_config_exists(char slot) {
   FIL file;
+
   if (f_open(&file, get_config_fname(slot), FA_READ) != FR_OK)
     return false;
+
   f_close(&file);
   return true;
 }
@@ -633,7 +634,7 @@ static const char* scanlines[] = {"Off", "25%", "50%", "75%"};
 static const char *config_tos_wrprot[] = {"None", "A:", "B:", "A: and B:"};
 static const char* atari_chipset[] = {"ST", "STE", "MegaSTE", "STEroids"};
 static const char *config_tos_mem[] = {"512 Kb", "1 Mb", "2 Mb", "4 Mb", "8 Mb", "14 Mb", "--", "--"};
-static const char *config_tos_usb[] = {"None", "Control", "Debug", "Serial", "Parallel", "MIDI"};
+static const char *config_tos_usb[] = {"None", "RS232", "Parallel", "MIDI"};
 static const char *config_tos_cart[] = {"File", "Ethernec", "Cubase"};
 
 static char tos_file_selected(uint8_t idx, const char *SelectedName) {
@@ -649,10 +650,12 @@ static char tos_file_selected(uint8_t idx, const char *SelectedName) {
       tos_select_hdd_image(idx-7, SelectedName);
       break;
     case 28: // TOS
-      tos_upload(SelectedName);
+      assign_full_path(
+        config.tos_img, sizeof(config.tos_img) - 1, SelectedName);
       break;
     case 36: // Cartridge
-      tos_load_cartridge(SelectedName);
+      assign_full_path(
+        config.cart_img, sizeof(config.cart_img) - 1, SelectedName);
       break;
   }
 
@@ -738,7 +741,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           strcpy(s, " A: ");
           strcat(s, tos_get_disk_name(idx));
           s[1] = 'A'+idx;
-          if(tos_system_ctrl() & (TOS_CONTROL_FDC_WR_PROT_A << idx))
+          if(config.system_ctrl & (TOS_CONTROL_FDC_WR_PROT_A << idx))
             strcat(s, " \x17");
           item->active = is_medium_present;
           item->stipple = !item->active;
@@ -746,7 +749,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           break;
         case 2:
           strcpy(s, " Write Protect: ");
-          strcat(s, config_tos_wrprot[(tos_system_ctrl() >> 6) & 3]);
+          strcat(s, config_tos_wrprot[(config.system_ctrl >> 6) & 3]);
           item->item = s;
           break;
         case 4:
@@ -754,9 +757,6 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           item->newpage = 1;
           break;
         case 5:
-          item->item = " Cold Boot";
-          break;
-        case 6:
           item->item = " Reset";
           break;
 
@@ -835,17 +835,17 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         // Page 5 - System
         case 25:
           strcpy(s, " Memory:    ");
-          strcat(s, config_tos_mem[(tos_system_ctrl() >> 1) & 7]);
+          strcat(s, config_tos_mem[(config.system_ctrl >> 1) & 7]);
           item->item = s;
           break;
         case 26:
           strcpy(s, " CPU:       ");
-          strcat(s, config_cpu_msg[(tos_system_ctrl() >> 4) & 3]);
+          strcat(s, config_cpu_msg[(config.system_ctrl >> 4) & 3]);
           item->item = s;
           break;
         case 27:
           strcpy(s, " Chipset:   ");
-          strcat(s, atari_chipset[(tos_system_ctrl() >> 23) & 3]);
+          strcat(s, atari_chipset[(config.system_ctrl >> 23) & 3]);
           item->item = s;
           break;
         case 28:
@@ -857,47 +857,47 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         // Page 6 - Video
         case 29:
           strcpy(s, " Screen:        ");
-          if(tos_system_ctrl() & TOS_CONTROL_VIDEO_COLOR) strcat(s, "Color");
-          else                                            strcat(s, "Mono");
+          strcat(s, (config.system_ctrl & TOS_CONTROL_VIDEO_COLOR)
+            ? "Color" : "Mono");
           item->item = s;
           break;
         case 30: // Viking card can only be enabled with max 8MB RAM
-          enable = (tos_system_ctrl() & 0xe) <= TOS_MEMCONFIG_8M;
+          enable = (config.system_ctrl & 0xe) <= TOS_MEMCONFIG_8M;
           strcpy(s, " Viking/SM194:  ");
-          strcat(s, offon[!!((tos_system_ctrl() & TOS_CONTROL_VIKING) && enable)]);
+          strcat(s, offon[!!((config.system_ctrl & TOS_CONTROL_VIKING) && enable)]);
           item->item = s;
           item->active = enable;
           item->stipple = !enable;
           break;
         case 31:
           strcpy(s, " Scanlines:     ");
-          strcat(s,scanlines[(tos_system_ctrl() >> 20) & 3]);
+          strcat(s, scanlines[(config.system_ctrl >> 20) & 3]);
           item->item = s;
           break;
         case 32:
           strcpy(s, " Comp. blend:   ");
-          strcat(s, offon[!!(tos_system_ctrl() & TOS_CONTROL_BLEND)]);
+          strcat(s, offon[!!(config.system_ctrl & TOS_CONTROL_BLEND)]);
           item->item = s;
           break;
 
         // Page 7 - Features
         case 33:
           strcpy(s, " YM-Audio:  ");
-          strcat(s, stereo[!!(tos_system_ctrl() & TOS_CONTROL_STEREO)]);
+          strcat(s, stereo[!!(config.system_ctrl & TOS_CONTROL_STEREO)]);
           item->item = s;
           break;
         case 34:
           // Blitter is always present in >= STE
-          enable = !!(tos_system_ctrl() & (TOS_CONTROL_STE | TOS_CONTROL_MSTE));
+          enable = !!(config.system_ctrl & (TOS_CONTROL_STE | TOS_CONTROL_MSTE));
           strcpy(s, " Blitter:   ");
-          strcat(s, offon[!!((tos_system_ctrl() & TOS_CONTROL_BLITTER) || enable)]);
+          strcat(s, offon[!!((config.system_ctrl & TOS_CONTROL_BLITTER) || enable)]);
           item->item = s;
           item->active = !enable;
           item->stipple = enable;
           break;
         case 35: {
-          uint8_t cartport = ((tos_system_ctrl() & TOS_CONTROL_ETHERNET) ? 1 : 0) |
-                              ((tos_system_ctrl() & TOS_CONTROL_CUBASE) ? 2 : 0);
+          uint8_t cartport = ((config.system_ctrl & TOS_CONTROL_ETHERNET) ? 1 : 0)
+                             | ((config.system_ctrl & TOS_CONTROL_CUBASE) ? 2 : 0);
           strcpy(s, " Cart.port: ");
           strcat(s, config_tos_cart[cartport]);
           item->item = s;
@@ -907,14 +907,14 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           strcpy(s, " Cartridge: ");
           strcat(s, tos_get_cartridge_name());
           item->item = s;
-          if (tos_system_ctrl() & (TOS_CONTROL_ETHERNET | TOS_CONTROL_CUBASE)) {
+          if (config.system_ctrl & (TOS_CONTROL_ETHERNET | TOS_CONTROL_CUBASE)) {
             item->stipple = 1;
             item->active = 0;
           }
           break;
         case 37:
           strcpy(s, " USB I/O:   ");
-          strcat(s, config_tos_usb[tos_get_cdc_control_redirect()]);
+          strcat(s, config_tos_usb[(config.system_ctrl >> 26) & 3]);
           item->item = s;
           break;
 
@@ -933,20 +933,18 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
             SelectFileNG("ST ", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
           break;
         case 2: // Write protect
-          tos_update_sysctrl(
-            (tos_system_ctrl() & ~(TOS_CONTROL_FDC_WR_PROT_A | TOS_CONTROL_FDC_WR_PROT_B))
-            | (((((tos_system_ctrl() >> 6) & 3) + 1) & 3 ) << 6)
-          );
+          {
+            uint32_t wr_prot = (config.system_ctrl >> 6) & 3;
+            config.system_ctrl &= ~(TOS_CONTROL_FDC_WR_PROT_A | TOS_CONTROL_FDC_WR_PROT_B);
+            config.system_ctrl |= (((wr_prot + 1) & 3) << 6);
+            fpga_set_control(config.system_ctrl);
+          }
           break;
         case 4:
           item->newpage = 1;
           break;
-        case 5: // Cold Boot
+        case 5: // Reset (Cold Boot)
           tos_reset(1);
-          CloseMenu();
-          break;
-        case 6: // Reset
-          tos_reset(0);
           CloseMenu();
           break;
 
@@ -1003,29 +1001,27 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         // Page 5 - System
         case 25: // Memory
           {
-            uint32_t mem = (tos_system_ctrl() >> 1) & 7; // current memory config
+            uint32_t mem = (config.system_ctrl >> 1) & 7; // current RAM config
             mem++;
             if(mem > 5) mem = 0;
-            tos_update_sysctrl((tos_system_ctrl() & ~0x0e) | (mem << 1));
-            tos_reset(1);
+            config.system_ctrl &= ~0x0e;
+            config.system_ctrl |= (mem << 1);
           }
           break;
         case 26: // CPU
           {
-            uint32_t cpu = (tos_system_ctrl() >> 4) & 3; // current CPU config
+            uint32_t cpu = (config.system_ctrl >> 4) & 3; // current CPU config
             cpu = (cpu + 1) & 3;
             if(cpu == 2 || cpu == 1) cpu = 3; // skip unused config
-            tos_update_sysctrl((tos_system_ctrl() & ~0x30) | (cpu << 4));
-            tos_reset(0);
+            config.system_ctrl &= ~0x30;
+            config.system_ctrl |= (cpu << 4);
           }
           break;
         case 27: // Chipset
           {
-            uint32_t chipset = ((tos_system_ctrl() >> 23) + 1) & 3;
-            tos_update_sysctrl(
-              (tos_system_ctrl() & ~(TOS_CONTROL_STE | TOS_CONTROL_MSTE))
-              | (chipset << 23)
-            );
+            uint32_t chipset = ((config.system_ctrl >> 23) + 1) & 3;
+            config.system_ctrl &= ~(TOS_CONTROL_STE | TOS_CONTROL_MSTE);
+            config.system_ctrl |= (chipset << 23);
           }
           break;
         case 28: // TOS
@@ -1034,53 +1030,68 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
 
         // Page 6 - Video
         case 29: // Screen
-          tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_VIDEO_COLOR);
+          config.system_ctrl ^= TOS_CONTROL_VIDEO_COLOR;
           break;
         case 30: // Viking
-          tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_VIKING);
+          config.system_ctrl ^= TOS_CONTROL_VIKING;
+          fpga_set_control(config.system_ctrl);
           break;
         case 31: // Scanlines
           {
-            int scan = ((tos_system_ctrl() >> 20) + 1) & 3;
-            tos_update_sysctrl((tos_system_ctrl() & ~TOS_CONTROL_SCANLINES) | (scan << 20));
+            uint32_t scan = ((config.system_ctrl >> 20) + 1) & 3;
+            config.system_ctrl &= ~TOS_CONTROL_SCANLINES;
+            config.system_ctrl |= (scan << 20);
+            fpga_set_control(config.system_ctrl);
           }
           break;
         case 32: // Comp.blend
-          tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_BLEND);
+          config.system_ctrl ^= TOS_CONTROL_BLEND;
+          fpga_set_control(config.system_ctrl);
           break;
 
         // Page 7 - Features
         case 33: // YM-Audio
-          tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_STEREO);
+          config.system_ctrl ^= TOS_CONTROL_STEREO;
+          fpga_set_control(config.system_ctrl);
           break;
         case 34: // Blitter
-          if(!(tos_system_ctrl() & TOS_CONTROL_STE))
-            tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_BLITTER);
+          config.system_ctrl ^= TOS_CONTROL_BLITTER;
+          fpga_set_control(config.system_ctrl);
           break;
         case 35: // Cart.port
           {
-            unsigned long system_ctrl = tos_system_ctrl();
-            uint8_t cartport = ((system_ctrl & TOS_CONTROL_ETHERNET) ? 1 : 0) |
-                                ((system_ctrl & TOS_CONTROL_CUBASE) ? 2 : 0);
-            cartport += 1;
-            if (cartport>2) cartport = 0;
-            system_ctrl &= ~(TOS_CONTROL_ETHERNET | TOS_CONTROL_CUBASE);
-            if (cartport & 1) system_ctrl |= TOS_CONTROL_ETHERNET;
-            if (cartport & 2) system_ctrl |= TOS_CONTROL_CUBASE;
-            tos_update_sysctrl(system_ctrl);
+            uint8_t cartport = ((config.system_ctrl & TOS_CONTROL_ETHERNET) ? 1 : 0)
+                               | ((config.system_ctrl & TOS_CONTROL_CUBASE) ? 2 : 0);
+            cartport++;
+            if (cartport > 2) cartport = 0;
+            config.system_ctrl &= ~(TOS_CONTROL_ETHERNET | TOS_CONTROL_CUBASE);
+            if (cartport & 1) config.system_ctrl |= TOS_CONTROL_ETHERNET;
+            if (cartport & 2) config.system_ctrl |= TOS_CONTROL_CUBASE;
+            fpga_set_control(config.system_ctrl);
           }
           break;
         case 36: // Cartridge
           if(tos_cartridge_is_inserted())
-            tos_load_cartridge("");
+            assign_full_path(config.cart_img, sizeof(config.cart_img) - 1, "");
           else
-            SelectFileNG("IMG", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
+            SelectFileNG("ROMIMG", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
           break;
         case 37: // USB I/O
-          if(tos_get_cdc_control_redirect() == CDC_REDIRECT_MIDI)
-            tos_set_cdc_control_redirect(CDC_REDIRECT_NONE);
-          else
-            tos_set_cdc_control_redirect(tos_get_cdc_control_redirect() + 1);
+          switch (((config.system_ctrl >> 26) + 1) & 3)
+          {
+            case 0:
+              tos_set_cdc_control_redirect(CDC_REDIRECT_NONE);
+              break;
+            case 1:
+              tos_set_cdc_control_redirect(CDC_REDIRECT_RS232);
+              break;
+            case 2:
+              tos_set_cdc_control_redirect(CDC_REDIRECT_PARALLEL);
+              break;
+            case 3:
+              tos_set_cdc_control_redirect(CDC_REDIRECT_MIDI);
+              break;
+          }
           break;
 
         default:
