@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #include "hardware.h"
+#include "usb/timer.h"
 #include "user_io.h"
 #include "tos.h"
 #include "menu.h"
@@ -23,7 +24,7 @@ typedef struct {
   char tos_img[64];
   char cart_img[64];
   char acsi_img[2][64];
-  char video_adjust[2];
+  char video_adjust[2];       // not supported
   char cdc_control_redirect;
   bool sd_direct;             // not supported
 } tos_config_t;
@@ -46,7 +47,7 @@ ALIGNED(4) static struct {
 unsigned char spi_speed;
 unsigned char spi_mmc_speed;
 
-static void acsi_init(bool cold);
+static void acsi_init(bool cold_boot);
 static void acsi_disk_init(SCSI_DEV *, unsigned long, bool);
 
 static void tos_insert_disk(int, const char *);
@@ -79,16 +80,6 @@ void tos_set_cdc_control_redirect(char mode) {
     tos_update_sysctrl((tos_system_ctrl() & ~0x0c000000) |
        (((unsigned long)mode) << 26) );
   }
-}
-
-static void tos_set_video_adjust(char axis, char value) {
-  config.video_adjust[axis] += value;
-
-  EnableFpga();
-  SPI(MIST_SET_VADJ);
-  SPI(config.video_adjust[0]);
-  SPI(config.video_adjust[1]);
-  DisableFpga();
 }
 
 static inline char tos_get_video_adjust(char axis) {
@@ -243,10 +234,10 @@ static void acsi_disk_init(SCSI_DEV *dev, unsigned long hdSize, bool changed) {
   dev->hdSize = hdSize;
 }
 
-static void acsi_init(bool cold) {
+static void acsi_init(bool cold_boot) {
   tos_debugf("ACSI: Init(%d)", cold);
 
-  if (cold) {
+  if (cold_boot) {
     memset(&AcsiBus, 0, sizeof(AcsiBus));
   }
 
@@ -256,7 +247,7 @@ static void acsi_init(bool cold) {
   for (int i=0; i<ARRAY_SIZE(AcsiBus.devs); i++) {
     SCSI_DEV *dev = &AcsiBus.devs[i];
 
-    acsi_disk_init(dev, cold ? 0 : dev->hdSize, false);
+    acsi_disk_init(dev, cold_boot ? 0 : dev->hdSize, false);
     dev->is_readonly = mmc_write_protected();
 
     tos_debugf("ACSI: Init: storage[%d] size: %lu", i, dev->hdSize);
@@ -301,17 +292,24 @@ static void get_dma_state() {
 static void tos_load_cartridge_mistery() {
   FIL file;
 
-  // upload cartridge
-  if(config.cart_img[0] && (f_open(&file, config.cart_img, FA_READ) == FR_OK)) {
-    data_io_file_tx(&file, 0x02, 0);
-    iprintf("Cartridge %s uploaded\n", config.cart_img);
+  // erase that ram area to remove any previously uploaded image
+  tos_debugf("Erasing cart memory");
+  data_io_fill_tx(0xff, 128*1024, 0x02);
+
+  if (!config.cart_img[0] || f_open(&file, config.cart_img, FA_READ) != FR_OK)
+    return;
+
+  if (f_size(&file) > 128*1024) {
+    tos_debugf("Cartridge file too big: %ld", f_size(&file));
     f_close(&file);
     return;
   }
 
-  // erase that ram area to remove any previously uploaded image
-  tos_debugf("Erasing cart memory");
-  data_io_fill_tx(0xff, 128 * 1024, 0x02);
+  // upload cartridge
+  data_io_file_tx(&file, 0x02, 0);
+  iprintf("Cartridge %s uploaded\n", config.cart_img);
+
+  f_close(&file);
 }
 
 static void tos_load_cartridge(const char *name) {
@@ -532,12 +530,13 @@ void tos_eject_all() {
   }
 }
 
-void tos_reset(bool cold) {
+void tos_reset(bool cold_boot) {
   tos_update_sysctrl(config.system_ctrl |  TOS_CONTROL_CPU_RESET);  // set reset
 
-  acsi_init(cold);
+  timer_delay_msec(10);
+  acsi_init(cold_boot);
 
-  if(cold) {
+  if(cold_boot) {
     tos_upload(NULL);
   }
 
@@ -568,7 +567,7 @@ static void tos_config_load(char slot) {
   tos_eject_all();
 
   // set default values
-  config.system_ctrl = TOS_MEMCONFIG_4M | TOS_CONTROL_BLITTER;
+  config.system_ctrl = TOS_CONTROL_STE | TOS_MEMCONFIG_4M | TOS_CONTROL_BLITTER;
   strcpy(config.tos_img, "TOS.IMG");
   memset(config.cart_img, 0, sizeof(config.cart_img));
   strcpy(config.acsi_img[0], "/HARDDISK.HD");
@@ -649,10 +648,10 @@ static char tos_file_selected(uint8_t idx, const char *SelectedName) {
       menu_debugf("Insert image %s for ACSI disk %d", SelectedName, idx-7);
       tos_select_hdd_image(idx-7, SelectedName);
       break;
-    case 27: // TOS
+    case 28: // TOS
       tos_upload(SelectedName);
       break;
-    case 38: // Cartridge
+    case 36: // Cartridge
       tos_load_cartridge(SelectedName);
       break;
   }
@@ -723,11 +722,12 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
   else if(idx<=19) item->page = 3;
   else if(idx<=24) item->page = 4;
   else if(idx<=28) item->page = 5;
-  else if(idx<=35) item->page = 6;
-  else if(idx<=40) item->page = 7;
+  else if(idx<=32) item->page = 6;
+  else if(idx<=37) item->page = 7;
   else return 0;
 
-  if (item->page != page_idx) return 1; // shortcut
+  if (item->page != page_idx)
+    return 1; // shortcut
 
   switch (action) {
     case MENU_ACT_GET:
@@ -861,13 +861,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           else                                            strcat(s, "Mono");
           item->item = s;
           break;
-        case 30:
-          strcpy(s, " PAL mode:      ");
-          if(tos_system_ctrl() & TOS_CONTROL_PAL50HZ) strcat(s, "50 Hz");
-          else                                        strcat(s, "56 Hz");
-          item->item = s;
-          break;
-        case 31: // Viking card can only be enabled with max 8MB RAM
+        case 30: // Viking card can only be enabled with max 8MB RAM
           enable = (tos_system_ctrl() & 0xe) <= TOS_MEMCONFIG_8M;
           strcpy(s, " Viking/SM194:  ");
           strcat(s, offon[!!((tos_system_ctrl() & TOS_CONTROL_VIKING) && enable)]);
@@ -875,32 +869,24 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           item->active = enable;
           item->stipple = !enable;
           break;
-        case 32:
+        case 31:
           strcpy(s, " Scanlines:     ");
           strcat(s,scanlines[(tos_system_ctrl() >> 20) & 3]);
           item->item = s;
           break;
-        case 33:
+        case 32:
           strcpy(s, " Comp. blend:   ");
           strcat(s, offon[!!(tos_system_ctrl() & TOS_CONTROL_BLEND)]);
           item->item = s;
           break;
-        case 34:
-          siprintf(s, " Horizontal:    %d", tos_get_video_adjust(0));
-          item->item = s;
-          break;
-        case 35:
-          siprintf(s, " Vertical:      %d", tos_get_video_adjust(1));
-          item->item = s;
-          break;
 
         // Page 7 - Features
-        case 36:
+        case 33:
           strcpy(s, " YM-Audio:  ");
           strcat(s, stereo[!!(tos_system_ctrl() & TOS_CONTROL_STEREO)]);
           item->item = s;
           break;
-        case 37:
+        case 34:
           // Blitter is always present in >= STE
           enable = !!(tos_system_ctrl() & (TOS_CONTROL_STE | TOS_CONTROL_MSTE));
           strcpy(s, " Blitter:   ");
@@ -909,7 +895,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           item->active = !enable;
           item->stipple = enable;
           break;
-        case 38: {
+        case 35: {
           uint8_t cartport = ((tos_system_ctrl() & TOS_CONTROL_ETHERNET) ? 1 : 0) |
                               ((tos_system_ctrl() & TOS_CONTROL_CUBASE) ? 2 : 0);
           strcpy(s, " Cart.port: ");
@@ -917,7 +903,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           item->item = s;
           }
           break;
-        case 39:
+        case 36:
           strcpy(s, " Cartridge: ");
           strcat(s, tos_get_cartridge_name());
           item->item = s;
@@ -926,7 +912,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
             item->active = 0;
           }
           break;
-        case 40:
+        case 37:
           strcpy(s, " USB I/O:   ");
           strcat(s, config_tos_usb[tos_get_cdc_control_redirect()]);
           item->item = s;
@@ -1017,7 +1003,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         // Page 5 - System
         case 25: // Memory
           {
-            int mem = (tos_system_ctrl() >> 1) & 7; // current memory config
+            uint32_t mem = (tos_system_ctrl() >> 1) & 7; // current memory config
             mem++;
             if(mem > 5) mem = 0;
             tos_update_sysctrl((tos_system_ctrl() & ~0x0e) | (mem << 1));
@@ -1026,17 +1012,16 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           break;
         case 26: // CPU
           {
-            int cpu = (tos_system_ctrl() >> 4) & 3; // current cpu config
-            cpu = (cpu+1) & 3;
-            if(cpu == 2 || (user_io_core_type() == CORE_TYPE_MISTERY && cpu == 1)) cpu = 3; // skip unused config
+            uint32_t cpu = (tos_system_ctrl() >> 4) & 3; // current CPU config
+            cpu = (cpu + 1) & 3;
+            if(cpu == 2 || cpu == 1) cpu = 3; // skip unused config
             tos_update_sysctrl((tos_system_ctrl() & ~0x30) | (cpu << 4));
             tos_reset(0);
           }
           break;
         case 27: // Chipset
           {
-            unsigned long chipset = (tos_system_ctrl() >> 23) + 1;
-            if(chipset == 4) chipset = 0;
+            uint32_t chipset = ((tos_system_ctrl() >> 23) + 1) & 3;
             tos_update_sysctrl(
               (tos_system_ctrl() & ~(TOS_CONTROL_STE | TOS_CONTROL_MSTE))
               | (chipset << 23)
@@ -1051,31 +1036,28 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         case 29: // Screen
           tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_VIDEO_COLOR);
           break;
-        case 30: // PAL mode
-          tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_PAL50HZ);
-          break;
-        case 31: // Viking
+        case 30: // Viking
           tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_VIKING);
           break;
-        case 32: // Scanlines
+        case 31: // Scanlines
           {
             int scan = ((tos_system_ctrl() >> 20) + 1) & 3;
             tos_update_sysctrl((tos_system_ctrl() & ~TOS_CONTROL_SCANLINES) | (scan << 20));
           }
           break;
-        case 33: // Comp.blend
+        case 32: // Comp.blend
           tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_BLEND);
           break;
 
         // Page 7 - Features
-        case 36: // YM-Audio
+        case 33: // YM-Audio
           tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_STEREO);
           break;
-        case 37: // Blitter
+        case 34: // Blitter
           if(!(tos_system_ctrl() & TOS_CONTROL_STE))
             tos_update_sysctrl(tos_system_ctrl() ^ TOS_CONTROL_BLITTER);
           break;
-        case 38: // Cart.port
+        case 35: // Cart.port
           {
             unsigned long system_ctrl = tos_system_ctrl();
             uint8_t cartport = ((system_ctrl & TOS_CONTROL_ETHERNET) ? 1 : 0) |
@@ -1088,34 +1070,17 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
             tos_update_sysctrl(system_ctrl);
           }
           break;
-        case 39: // Cartridge
+        case 36: // Cartridge
           if(tos_cartridge_is_inserted())
             tos_load_cartridge("");
           else
             SelectFileNG("IMG", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
           break;
-        case 40: // USB I/O
+        case 37: // USB I/O
           if(tos_get_cdc_control_redirect() == CDC_REDIRECT_MIDI)
             tos_set_cdc_control_redirect(CDC_REDIRECT_NONE);
           else
             tos_set_cdc_control_redirect(tos_get_cdc_control_redirect() + 1);
-          break;
-
-        default:
-          return 0;
-      }
-      break;
-
-    case MENU_ACT_PLUS:
-    case MENU_ACT_MINUS:
-      switch(idx) {
-        case 34: // Horizontal
-        case 35: // Vertical
-          if(action == MENU_ACT_MINUS && (tos_get_video_adjust(idx-34) > -100))
-            tos_set_video_adjust(idx-34, -1);
-
-          if(action == MENU_ACT_PLUS && (tos_get_video_adjust(idx-34) < 100))
-            tos_set_video_adjust(idx-34, +1);
           break;
 
         default:

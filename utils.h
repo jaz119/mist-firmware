@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "attrs.h"
 
-#define BIT(nr)         (1ul << (nr))
+#define BIT(nr)         (1UL << (nr))
 #define MIN(a, b)       (((a) < (b)) ? (a) : (b))
 
 // for tiny version of newlib
@@ -19,8 +19,10 @@
 
 unsigned char decval(unsigned char in, unsigned char min, unsigned char max);
 unsigned char incval(unsigned char in, unsigned char min, unsigned char max);
+
 FAST unsigned int bin2bcd(unsigned int in);
 FAST unsigned char bcd2bin(unsigned char in);
+
 FAST int _strnicmp(const char *s1, const char *s2, size_t n);
 void hexdump(void *data, int size, int offset);
 
