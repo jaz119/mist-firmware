@@ -34,19 +34,14 @@ ALIGNED(4) static unsigned char inquiry_bytes[] =
  */
 static inline unsigned char HDC_GetLUN(SCSI_CTRLR *ctr)
 {
-    if ((ctr->opcode >> 5) == 0)
-    {
-        return (ctr->command[1] & 0xE0) >> 5;
-    }
-
-    return 0;
+    return (ctr->command[1] & 0xE0) >> 5;
 }
 
 /**
  * Return the start sector (logical block address)
  * specified in the current ACSI/SCSI command block.
  */
-FORCE_ARM static inline unsigned long HDC_GetLBA(SCSI_CTRLR *ctr)
+static inline unsigned long HDC_GetLBA(SCSI_CTRLR *ctr)
 {
     uint8_t group = (ctr->opcode >> 5);
 
@@ -54,11 +49,6 @@ FORCE_ARM static inline unsigned long HDC_GetLBA(SCSI_CTRLR *ctr)
     {
         // 10/12-bytes: LBA 32-bit
         return (unsigned long) HDC_ReadInt32(ctr->command, 2);
-    }
-    else if (group == 4)
-    {
-        // 16-bytes (0x80-0x9F)
-        return (unsigned long) HDC_ReadInt32(ctr->command, 6);
     }
 
     // 6-bytes: LBA 21-bit
@@ -68,7 +58,7 @@ FORCE_ARM static inline unsigned long HDC_GetLBA(SCSI_CTRLR *ctr)
 /**
  * Return the count specified in the current ACSI command block.
  */
-FORCE_ARM static inline int HDC_GetCount(SCSI_CTRLR *ctr)
+static inline int HDC_GetCount(SCSI_CTRLR *ctr)
 {
     uint8_t group = (ctr->opcode >> 5);
 
@@ -90,11 +80,6 @@ FORCE_ARM static inline int HDC_GetCount(SCSI_CTRLR *ctr)
         // 12-bytes
         return (int) HDC_ReadInt32(ctr->command, 6);
     }
-    else if (group == 4)
-    {
-        // 16-bytes
-        return (int) HDC_ReadInt32(ctr->command, 10);
-    }
 
     return ctr->command[4];
 }
@@ -113,7 +98,7 @@ static inline uint8_t *HDC_PrepRespBuf(SCSI_CTRLR *ctr, int size)
 /**
  * Return number of bytes for a command block.
  */
-FORCE_ARM static int HDC_GetCommandByteCount(SCSI_CTRLR *ctr)
+static int HDC_GetCommandByteCount(SCSI_CTRLR *ctr)
 {
     switch (ctr->opcode >> 5)
     {
@@ -273,6 +258,7 @@ static void HDC_Cmd_ReadCapacity(SCSI_CTRLR *ctr)
     buf[1] = (nSectors >> 16) & 0xFF;
     buf[2] = (nSectors >> 8) & 0xFF;
     buf[3] = nSectors & 0xFF;
+
     buf[4] = (dev->blockSize >> 24) & 0xFF;
     buf[5] = (dev->blockSize >> 16) & 0xFF;
     buf[6] = (dev->blockSize >> 8) & 0xFF;
@@ -383,7 +369,7 @@ static inline void HDC_Cmd_AllowRemoval(SCSI_CTRLR *ctr)
 {
     SCSI_DEV *dev = &ctr->devs[ctr->target];
 
-    dev->is_locked = ctr->command[4] & 0x01;
+    dev->is_locked = !!(ctr->command[4] & 3);
 
     tos_debugf("ACSI: %s Removal: %s",
         dev->is_locked ? "Prevent" : "Allow", HDC_CmdInfoStr(ctr));
@@ -571,12 +557,12 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
 
     switch (ctr->command[2] & 0x3F)
     {
-        case 0x00:
+        case 0x00: // Vendor specific page
             buf = HDC_PrepRespBuf(ctr, 16);
             HDC_CmdModeSense0x00(dev, ctr, buf);
             break;
 
-        case 0x04:
+        case 0x04: // RDG page
             buf = HDC_PrepRespBuf(ctr, 28);
             HDC_CmdModeSense0x04(dev, ctr, buf + 4);
             buf[0] = 27;
@@ -585,7 +571,7 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
             buf[3] = 0;
             break;
 
-        case 0x3F:
+        case 0x3F: // All pages
             buf = HDC_PrepRespBuf(ctr, 44);
             HDC_CmdModeSense0x04(dev, ctr, buf + 4);
             HDC_CmdModeSense0x00(dev, ctr, buf + 28);
@@ -617,9 +603,74 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
 }
 
 /**
+ * Mode sense (10) - Get parameters from disk.
+ */
+static void HDC_Cmd_ModeSense10(SCSI_CTRLR *ctr)
+{
+    uint8_t *buf;
+    SCSI_DEV *dev = &ctr->devs[ctr->target];
+    int nRetLen = HDC_GetCount(ctr);
+
+    if (dev->is_changed)
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_CHANGED;
+        return;
+    }
+
+    tos_debugf("ACSI: Mode Sense (10): %s", HDC_CmdInfoStr(ctr));
+
+    dev->bSetLastBlockAddr = false;
+
+    // Subpages are not supported
+    if (ctr->command[3])
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_INVARG;
+        return;
+    }
+
+    switch (ctr->command[2] & 0x3F)
+    {
+        case 0x04: // RDG page
+        case 0x3F: // All pages
+            buf = HDC_PrepRespBuf(ctr, 32);
+            HDC_CmdModeSense0x04(dev, ctr, buf + 8);
+            buf[0] = 0;
+            buf[1] = 30;
+            buf[2] = 0;
+            buf[3] = 0;
+            buf[4] = 0;
+            buf[5] = 0;
+            buf[6] = 0;
+            buf[7] = 0;
+            break;
+
+        default:
+            ctr->status = HD_STATUS_ERROR;
+            dev->nLastError = HD_REQSENS_INVARG;
+            return;
+    }
+
+    buf[3] |= dev->is_readonly ? 0x80 : 0;
+
+    if (dev->dma_write)
+    {
+        ctr->status = HD_STATUS_OK;
+        dev->nLastError = HD_REQSENS_OK;
+        dev->dma_write(buf, MIN(nRetLen, ctr->data_len));
+    }
+    else
+    {
+        ctr->status = HD_STATUS_ERROR;
+        dev->nLastError = HD_REQSENS_NOTREADY;
+    }
+}
+
+/**
  * Seek - move to a sector
  */
-FORCE_ARM static void HDC_Cmd_Seek(SCSI_CTRLR *ctr)
+static void HDC_Cmd_Seek(SCSI_CTRLR *ctr)
 {
     SCSI_DEV *dev = &ctr->devs[ctr->target];
 
@@ -655,7 +706,7 @@ FORCE_ARM static void HDC_Cmd_Seek(SCSI_CTRLR *ctr)
 /**
  * Read a sector off our disk - (implied seek)
  */
-FORCE_ARM static void HDC_Cmd_ReadSector(SCSI_CTRLR *ctr)
+static void HDC_Cmd_ReadSector(SCSI_CTRLR *ctr)
 {
     SCSI_DEV *dev = &ctr->devs[ctr->target];
     int count = HDC_GetCount(ctr);
@@ -703,7 +754,7 @@ FORCE_ARM static void HDC_Cmd_ReadSector(SCSI_CTRLR *ctr)
 /**
  * Write a sector off our disk - (seek implied)
  */
-FORCE_ARM static void HDC_Cmd_WriteSector(SCSI_CTRLR *ctr)
+static void HDC_Cmd_WriteSector(SCSI_CTRLR *ctr)
 {
     SCSI_DEV *dev = &ctr->devs[ctr->target];
     int count = HDC_GetCount(ctr);
@@ -755,7 +806,7 @@ FORCE_ARM static void HDC_Cmd_WriteSector(SCSI_CTRLR *ctr)
 /**
  * Handling routine for HDC command packets.
  */
-FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
+FAST void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
 {
     SCSI_DEV *dev = &ctr->devs[ctr->target];
 
@@ -790,11 +841,13 @@ FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
 
         case HD_READ_6:
         case HD_READ_10:
+        case HD_READ_12:
             HDC_Cmd_ReadSector(ctr);
             break;
 
         case HD_WRITE_6:
         case HD_WRITE_10:
+        case HD_WRITE_12:
             HDC_Cmd_WriteSector(ctr);
             break;
 
@@ -803,6 +856,7 @@ FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
             break;
 
         case HD_SEEK_6:
+        case HD_SEEK_10:
             HDC_Cmd_Seek(ctr);
             break;
 
@@ -821,6 +875,10 @@ FORCE_ARM void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
 
         case HD_MODE_SENSE:
             HDC_Cmd_ModeSense(ctr);
+            break;
+
+        case HD_MODE_SENSE_10:
+            HDC_Cmd_ModeSense10(ctr);
             break;
 
         case HD_FORMAT_UNIT:

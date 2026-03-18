@@ -19,14 +19,18 @@
 #define HD_INQUIRY          0x12            /* Inquiry */
 #define HD_MODE_SELECT      0x15            /* Mode select */
 #define HD_MODE_SENSE       0x1A            /* Mode sense */
-#define HD_START_STOP       0x1B            /* Ship drive */
+#define HD_MODE_SENSE_10    0x5A            /* Mode sense */
+#define HD_START_STOP       0x1B            /* Eject drive */
 #define HD_RECV_DIAG        0x1C            /* Receive Diagnostic Results */
 #define HD_SEND_DIAG        0x1D            /* Send Diagnostic */
 #define HD_ALLOW_REMOVAL    0x1E            /* Prevent/Allow Medium Removal */
 #define HD_READ_CAPACITY_10 0x25            /* Read capacity */
 #define HD_READ_10          0x28            /* Read sector */
 #define HD_WRITE_10         0x2A            /* Write sector */
-#define HD_REPORT_LUNS      0xa0            /* Report Luns */
+#define HD_SEEK_10          0x2B            /* Seek */
+#define HD_REPORT_LUNS      0xA0            /* Report Luns */
+#define HD_READ_12          0xA8            /* Read sector */
+#define HD_WRITE_12         0xAA            /* Write sector */
 
 /* Status codes */
 #define HD_STATUS_OK        0x00
