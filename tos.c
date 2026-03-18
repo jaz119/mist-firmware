@@ -203,9 +203,9 @@ FAST static int acsi_disk_write(int target, uint32_t lba, size_t length) {
     }
     if (IDXSeek(&sd_image[target + 2], lba) != FR_OK)
       break;
-    if (f_write(&sd_image[target + 2].file, sector_buffer, blocklen * 512, &bw) != FR_OK)
+    if (f_write(&sd_image[target + 2].file, sector_buffer, 512 * blocklen, &bw) != FR_OK)
       break;
-    if (bw != (blocklen * 512))
+    if (bw != (512 * blocklen))
       break;
     written += blocklen;
     lba += blocklen;
@@ -237,7 +237,7 @@ static void acsi_disk_init(SCSI_DEV *dev, unsigned long hdSize, bool changed) {
 }
 
 static void acsi_init(bool cold_boot) {
-  tos_debugf("ACSI: Init(%d)", cold);
+  tos_debugf("ACSI: Init(%d)", cold_boot);
 
   if (cold_boot) {
     memset(&AcsiBus, 0, sizeof(AcsiBus));
@@ -294,24 +294,21 @@ static void get_dma_state() {
 static void tos_load_cartridge(const char *name) {
   FIL file;
 
-  assign_full_path(
-    config.cart_img, sizeof(config.cart_img) - 1, name);
-
   // erase that ram area to remove any previously uploaded image
   tos_debugf("Erasing cart memory");
   data_io_fill_tx(0xff, 128*1024, 0x02);
 
-  if (!config.cart_img[0] || f_open(&file, config.cart_img, FA_READ) != FR_OK)
+  if(!config.cart_img[0] || f_open(&file, name, FA_READ) != FR_OK)
     return;
 
-  if (f_size(&file) > 128*1024) {
+  if(f_size(&file) > 128*1024) {
     tos_debugf("Cartridge file too big: %ld", f_size(&file));
     f_close(&file);
     return;
   }
 
   // upload cartridge
-  data_io_file_tx(&file, 0x02, 0);
+  data_io_file_tx(&file, 2, 0);
   iprintf("Cartridge %s uploaded\n", config.cart_img);
 
   f_close(&file);
@@ -321,8 +318,9 @@ static inline bool tos_cartridge_is_inserted() {
   return config.cart_img[0];
 }
 
-static void tos_upload_mistery(const char *name) {
+static bool tos_upload_mistery(const char *name) {
   FIL file;
+  bool res = true;
 
   // clear first 16k
   tos_debugf("Clear first 16k");
@@ -331,17 +329,18 @@ static void tos_upload_mistery(const char *name) {
   // upload and verify TOS image
   if(f_open(&file, config.tos_img, FA_READ) == FR_OK) {
     iprintf("TOS: %s\n", config.tos_img);
-
-    if(f_size(&file) >= 256*1024)
-      data_io_file_tx(&file, 0x00, 0);
-    else if(f_size(&file) == 192*1024)
-      data_io_file_tx(&file, 0x01, 0);
-    else
+    if(f_size(&file) == 192*1024)
+      data_io_file_tx(&file, 1, 0);
+    else if(f_size(&file) == 256*1024 || f_size(&file) == 512*1024)
+      data_io_file_tx(&file, 0, 0);
+    else {
       tos_debugf("WARNING: Unexpected TOS size!");
+      res = false;
+    }
     f_close(&file);
   } else {
     tos_debugf("Unable to find %s", config.tos_img);
-    return;
+    return false;
   }
 
   // This is the initial boot if no name was given.
@@ -363,6 +362,8 @@ static void tos_upload_mistery(const char *name) {
       }
     }
   }
+
+  return res;
 }
 
 void tos_upload(const char *name) {
@@ -566,7 +567,7 @@ static void tos_config_load(char slot) {
   tos_eject_all();
 
   // set default values
-  config.system_ctrl = TOS_CONTROL_STE | TOS_MEMCONFIG_4M | TOS_CONTROL_BLITTER;
+  config.system_ctrl = TOS_MEMCONFIG_1M | TOS_CONTROL_VIDEO_COLOR;
   strcpy(config.tos_img, "TOS.IMG");
   memset(config.cart_img, 0, sizeof(config.cart_img));
   strcpy(config.acsi_img[0], "/HARDDISK.HD");
@@ -1074,10 +1075,10 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           if(tos_cartridge_is_inserted())
             assign_full_path(config.cart_img, sizeof(config.cart_img) - 1, "");
           else
-            SelectFileNG("ROMIMG", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
+            SelectFileNG("IMGROM", SCAN_DIR | SCAN_LFN, tos_file_selected, 0);
           break;
         case 37: // USB I/O
-          switch (((config.system_ctrl >> 26) + 1) & 3)
+          switch(((config.system_ctrl >> 26) + 1) & 3)
           {
             case 0:
               tos_set_cdc_control_redirect(CDC_REDIRECT_NONE);
