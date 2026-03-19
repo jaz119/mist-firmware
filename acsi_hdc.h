@@ -70,7 +70,7 @@ typedef struct scsi_data {
  * Status of the ACSI/SCSI bus/controller including the current command block.
  */
 typedef struct ALIGNED(4) {
-    int target;
+    uint8_t target;
     uint8_t command[16];    /* Core DMA state buffer */
     uint8_t opcode;
     short int status;       /* Return code from the HDC operation */

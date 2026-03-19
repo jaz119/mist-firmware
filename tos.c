@@ -280,7 +280,7 @@ static void get_dma_state() {
   if (dev) {
     HDC_HandleCommandPacket(&AcsiBus);
     if (AcsiBus.status != HD_STATUS_OK) {
-      iprintf("ACSI: Error: opcode=0x%x, target=%i, status=0x%x, error=0x%x\n",
+      iprintf("ACSI: opcode=0x%x, target=%i, status=0x%x, error=0x%x\n",
         AcsiBus.opcode, AcsiBus.target, AcsiBus.status, dev->nLastError);
     }
     dma_ack(AcsiBus.status);
@@ -295,7 +295,7 @@ static void tos_load_cartridge(const char *name) {
   FIL file;
 
   // erase that ram area to remove any previously uploaded image
-  tos_debugf("Erasing cart memory");
+  tos_debugf("Erasing cartridge memory");
   data_io_fill_tx(0xff, 128*1024, 0x02);
 
   if(!config.cart_img[0] || f_open(&file, name, FA_READ) != FR_OK)
@@ -323,7 +323,7 @@ static bool tos_upload_mistery(const char *name) {
   bool res = true;
 
   // clear first 16k
-  tos_debugf("Clear first 16k");
+  tos_debugf("Clear first 16Kb");
   data_io_fill_tx(0, 16*1024, 0x03);
 
   // upload and verify TOS image
@@ -350,8 +350,8 @@ static bool tos_upload_mistery(const char *name) {
     tos_load_cartridge(config.cart_img);
 
     // try to open both floppies
-    tos_insert_disk(0, "DISK_A.ST");
-    tos_insert_disk(1, "DISK_B.ST");
+    tos_insert_disk(0, fdd_image[0].name);
+    tos_insert_disk(1, fdd_image[1].name);
 
     // try to open harddisk image
     for(int i=0; i<2; i++) {
@@ -492,7 +492,6 @@ static void tos_select_hdd_image(int i, const char *name) {
 static void tos_insert_disk(int i, const char *name) {
   if(i < 0 || i > 1) return;
 
-  fdd_image[i].name[0] = 0;
   tos_debugf("%c: eject", i+'A');
 
   // toggle write protect bit to help tos detect a media change
@@ -550,9 +549,9 @@ unsigned long tos_system_ctrl(void) {
 static const char *get_config_fname(int slot) {
   static char fname[16];
   if(slot) {
-    siprintf(fname,"/MIST%d.CFG", slot);
+    siprintf(fname,"/ATARIST%d.CFG", slot);
   } else {
-    strcpy(fname,"/MIST.CFG");
+    strcpy(fname,"/ATARIST.CFG");
   }
   return fname;
 }
@@ -574,7 +573,6 @@ static void tos_config_load(char slot) {
   memset(config.acsi_img[1], 0, sizeof(config.acsi_img[1]));
   strcpy(fdd_image[0].name, "DISK_A.ST");
   memset(fdd_image[1].name, 0, sizeof(fdd_image[1].name));
-  config.video_adjust[0] = config.video_adjust[1] = 0;
   config.cdc_control_redirect = CDC_REDIRECT_NONE;
 
   // try to load config

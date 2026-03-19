@@ -167,7 +167,6 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
      * Peripheral Device Type according to the SCSI standard */
     buf[0] = HDC_GetLUN(ctr) == 0 ? 0 : 0x7F;
     buf[1] = (HDC_GetLUN(ctr) == 0) ? 0x80 : 0x00; /* Removable */
-    buf[2] = 2; /* SCSI-2 */
     buf[4] = sizeof(inquiry_bytes) - 5;
 
     if (count > (int)sizeof(inquiry_bytes))
