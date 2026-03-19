@@ -212,7 +212,7 @@ static inline bool minimig_v2() {
 }
 
 char user_io_is_8bit_with_config_string();
-FORCE_ARM void user_io_poll();
+FAST void user_io_poll();
 void user_io_osd_key_enable(bool);
 void user_io_serial_tx(char *, uint16_t);
 FAST char *user_io_8bit_get_string(unsigned char);
@@ -235,8 +235,8 @@ void user_io_eth_send_rx_frame(uint8_t *, uint16_t);
 void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
 
 // hooks from the usb layer
-FORCE_ARM void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z);
-FORCE_ARM void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid);
+FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z);
+FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid);
 
 #define CONFIG_ROOT 1   // create config filename in the root directory
 #define CONFIG_VHD  2   // create config filename according to VHD= in arc file
@@ -250,7 +250,7 @@ static inline bool user_io_osd_is_visible() {
   return osd_is_visible;
 }
 
-FORCE_ARM void user_io_send_buttons(char);
+FAST void user_io_send_buttons(char);
 
 #ifdef HAVE_HDMI
 char user_io_i2c_write(unsigned char addr, unsigned char subaddr, unsigned char data);

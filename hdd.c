@@ -1228,7 +1228,7 @@ static void ATA_DeviceReset(unsigned char *tfr, unsigned char unit)
 }
 
 // ATA_ReadSectors()
-FORCE_ARM static void ATA_ReadSectors(
+FAST static void ATA_ReadSectors(
   unsigned char* tfr, unsigned short sector, unsigned short cylinder, unsigned char head,
   unsigned char unit, unsigned short sector_count, bool multiple, bool lbamode, bool verify)
 {
@@ -1410,7 +1410,7 @@ FORCE_ARM static void ATA_ReadSectors(
 }
 
 // ATA_WriteSectors()
-FORCE_ARM static void ATA_WriteSectors(unsigned char* tfr,
+FAST static void ATA_WriteSectors(unsigned char* tfr,
   unsigned short sector, unsigned short cylinder, unsigned char head,
   unsigned char unit, unsigned short sector_count, bool multiple, char lbamode)
 {
@@ -1511,7 +1511,7 @@ FORCE_ARM static void ATA_WriteSectors(unsigned char* tfr,
 }
 
 // HandleHDD()
-FORCE_ARM void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
+FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
 {
   unsigned char  tfr[8];
   unsigned short sector;

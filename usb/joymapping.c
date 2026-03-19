@@ -281,7 +281,7 @@ const char* get_joystick_name( uint16_t vid, uint16_t pid ) {
 /* Translates USB input into internal virtual joystick,
    with some default handling for common/known gampads */
 
-FORCE_ARM uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_t joy_input ) {
+FAST uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_t joy_input ) {
 
 	// defines translations between physical buttons and virtual joysticks
 	uint16_t mapping[16];
@@ -521,7 +521,7 @@ char joystick_key_map(char *s, char action, int tag) {
 
 /*****************************************************************************/
 
-FORCE_ARM bool virtual_joystick_keyboard( uint16_t vjoy ) {
+FAST bool virtual_joystick_keyboard( uint16_t vjoy ) {
 	// ignore if globally switched off
 	if(mist_cfg.joystick_disable_shortcuts)
 		return false;

@@ -85,7 +85,7 @@ void StateKeyboardPressedPS2(uint16_t *keycodes) {
 	}
 }
 
-FORCE_ARM void StateKeyboardSet(
+FAST void StateKeyboardSet(
 	uint8_t modifier, uint8_t* keycodes, uint16_t* keycodes_ps2) {
 	unsigned int i=0,j=0;
 	key_modifier = modifier;

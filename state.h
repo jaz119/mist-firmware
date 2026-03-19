@@ -127,7 +127,7 @@ uint8_t StateJoyGetMenuAny();
 extern uint8_t key_modifier;
 
 // get usb and ps2 codes
-FORCE_ARM void StateKeyboardSet(
+FAST void StateKeyboardSet(
 	uint8_t modifier, uint8_t* pressed, uint16_t* pressed_ps2);
 
 static inline uint8_t StateKeyboardModifiers() {
