@@ -246,7 +246,7 @@ static char GetMenuPage_Minimig(uint8_t idx, char action, menu_page_t *page) {
 		switch (idx) {
 			case 0:
 				// set helptext with core display on top of basic info
-				page->title = "Minimig";
+				page->title = "Amiga";
 				strcpy(helptext_custom, HELPTEXT_SPACER);
 				strcat(helptext_custom, OsdCoreName());
 				siprintf(s, "%s v%d.%d.%d", minimig_ver_beta ? " BETA" : "", minimig_ver_major, minimig_ver_minor, minimig_ver_minion);
@@ -255,7 +255,7 @@ static char GetMenuPage_Minimig(uint8_t idx, char action, menu_page_t *page) {
 				helptext=helptext_custom;
 				break;
 			case 1:
-				page->title = "Harddisks";
+				page->title = "HardDisks";
 				page->flags = 0;
 				helptext=helptexts[HELPTEXT_HARDFILE];
 				break;
@@ -416,27 +416,27 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 
 				// Page 2 - Settings
 				case 13:
-					item->item = "    load configuration";
+					item->item = "    Load config";
 					item->newpage = 3;
 					break;
 				case 14:
-					item->item = "    save configuration";
+					item->item = "    Save config";
 					item->newpage = 4;
 					break;
 				case 16:
-					item->item = "    chipset settings";
+					item->item = "    Chipset settings";
 					item->newpage = 5;
 					break;
 				case 17:
-					item->item = "     memory settings";
+					item->item = "    Memory settings";
 					item->newpage = 6;
 					break;
 				case 18:
-					item->item = "      video settings";
+					item->item = "    Video settings";
 					item->newpage = 7;
 					break;
 				case 19:
-					item->item = "   features settings";
+					item->item = "    Features";
 					item->newpage = 8;
 					break;
 
@@ -526,12 +526,12 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 
 				// Page 7 - Video
 				case 46:
-					strcpy(s, "  Lores Filter : ");
+					strcpy(s, "  LoRes Filter : ");
 					strcat(s, config_filter_msg[config.filter.lores & 0x03]);
 					item->item = s;
 					break;
 				case 47:
-					strcpy(s, "  Hires Filter : ");
+					strcpy(s, "  HiRes Filter : ");
 					strcat(s, config_filter_msg[config.filter.hires & 0x03]);
 					item->item = s;
 					break;
@@ -694,7 +694,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 35:
 					{
-						switch(config.chipset&0x1c) {
+						switch(config.chipset & 0x1c) {
 							case 0:
 								config.chipset = (config.chipset&3) | CONFIG_A1000;
 								break;
@@ -704,7 +704,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 							case CONFIG_ECS:
 								config.chipset = (config.chipset&3) | CONFIG_AGA | CONFIG_ECS;
 								break;
-							case (CONFIG_AGA|CONFIG_ECS):
+							case (CONFIG_AGA | CONFIG_ECS):
 								config.chipset = (config.chipset&3) | 0;
 								break;
 						}
@@ -759,9 +759,9 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 48:
 					{
-						config.scanlines = ((config.scanlines + 1)&0x03) | (config.scanlines&0xfc);
-						if ((config.scanlines&0x03) > 2)
-							config.scanlines = config.scanlines&0xfc;
+						config.scanlines = ((config.scanlines + 1) & 0x03) | (config.scanlines&0xfc);
+						if ((config.scanlines & 0x03) > 2)
+							config.scanlines = config.scanlines & 0xfc;
 						ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
 					}
 					break;
@@ -794,7 +794,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 				if(action == MENU_ACT_PLUS && (config.floppy.drives<3)) {
 					config.floppy.drives++;
 					ConfigFloppy(config.floppy.drives,config.floppy.speed);
-				} else if(action == MENU_ACT_MINUS && (config.floppy.drives>0)) {
+				} else if(action == MENU_ACT_MINUS && (config.floppy.drives > 0)) {
 					config.floppy.drives--;
 					ConfigFloppy(config.floppy.drives,config.floppy.speed);
 				}

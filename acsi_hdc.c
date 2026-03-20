@@ -41,7 +41,7 @@ static inline unsigned char HDC_GetLUN(SCSI_CTRLR *ctr)
  * Return the start sector (logical block address)
  * specified in the current ACSI/SCSI command block.
  */
-static inline unsigned long HDC_GetLBA(SCSI_CTRLR *ctr)
+static unsigned long HDC_GetLBA(SCSI_CTRLR *ctr)
 {
     uint8_t group = (ctr->opcode >> 5);
 
@@ -58,7 +58,7 @@ static inline unsigned long HDC_GetLBA(SCSI_CTRLR *ctr)
 /**
  * Return the count specified in the current ACSI command block.
  */
-static inline int HDC_GetCount(SCSI_CTRLR *ctr)
+static int HDC_GetCount(SCSI_CTRLR *ctr)
 {
     uint8_t group = (ctr->opcode >> 5);
 

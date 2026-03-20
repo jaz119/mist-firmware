@@ -328,7 +328,7 @@ static char FirmwareUpdateDialog(uint8_t idx) {
 	return 0;
 }
 
-static char ResetDialog(uint8_t idx) {
+static char OnReset(uint8_t idx) {
 	char m = 0;
 
 	if (user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
@@ -908,7 +908,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					char m = 0;
 					if (user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
 						m = 1;
-					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?", MENU_DIALOG_YESNO, ResetDialog);
+					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?", MENU_DIALOG_YESNO, OnReset);
 					break;
 				}
 				case 4:

@@ -323,7 +323,7 @@ static bool tos_upload_mistery(const char *name) {
   bool res = true;
 
   // clear first 16k
-  tos_debugf("Clear first 16Kb");
+  tos_debugf("Clear first 16K");
   data_io_fill_tx(0, 16*1024, 0x03);
 
   // upload and verify TOS image
@@ -334,12 +334,13 @@ static bool tos_upload_mistery(const char *name) {
     else if(f_size(&file) == 256*1024 || f_size(&file) == 512*1024)
       data_io_file_tx(&file, 0, 0);
     else {
-      tos_debugf("WARNING: Unexpected TOS size!");
+      tos_debugf("WARNING: Unexpected TOS size");
       res = false;
     }
     f_close(&file);
   } else {
     tos_debugf("Unable to find %s", config.tos_img);
+    strcpy(config.tos_img, "TOS.IMG"); // fall back to defaults
     return false;
   }
 
@@ -671,7 +672,7 @@ static char tos_get_menu_page(uint8_t idx, char action, menu_page_t *page) {
 
   switch (idx) {
     case 0:
-      page->title = "MiSTery";
+      page->title = "\x0e\x0f Atari ST";
       page->flags = OSD_ARROW_LEFT;
       break;
     case 1:
