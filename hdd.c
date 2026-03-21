@@ -209,7 +209,8 @@ static void IdentifyDevice(unsigned short *pBuffer, unsigned char unit)
       } else {
         memcpy(p, "YAQUBE                                  ", 40); // model name - byte swapped
         p += 8;
-        for (int i = 0; (x = hardfile[unit]->name[i]) && i < 16; i++) // copy file name as model name
+        const char *fname = get_short_name(hardfile[unit]->path);
+        for (int i = 0; (x = fname[i]) && i < 16; i++) // copy file name as model name
           p[i] = x;
       }
       SwapBytes((char*)&pBuffer[27], 40);
@@ -1725,7 +1726,7 @@ unsigned char OpenHardfile(unsigned char unit, bool amiga)
     case HDF_FILE | HDF_SYNTHRDB:
     case HDF_FILE:
       hdf[unit].type=hardfile[unit]->enabled;
-        if (IDXOpen(hdf[unit].idxfile, hardfile[unit]->name, FA_READ | FA_WRITE) == FR_OK) {
+        if (IDXOpen(hdf[unit].idxfile, hardfile[unit]->path, FA_READ | FA_WRITE) == FR_OK) {
           IDXIndex(hdf[unit].idxfile, unit);
           GetHardfileGeometry(&hdf[unit], amiga);
           hdd_debugf("HARDFILE %d:", unit);

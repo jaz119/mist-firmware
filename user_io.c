@@ -418,8 +418,7 @@ void user_io_init_core() {
 						if ((core_features & (FEAT_IDE0 << (2*i))) == (FEAT_IDE0_ATA << (2*i))) {
 							iprintf("IDE %d: ATA Hard Disk\n", i);
 							hardfiles[i].enabled = HDF_FILE;
-							strncpy(hardfiles[i].name, s, sizeof(hardfiles[0].name));
-							hardfiles[i].name[sizeof(hardfiles[0].name)-1] = 0;
+							sniprintf(hardfiles[i].path, sizeof(hardfiles[0].path), "%s", s);
 							OpenHardfile(i, false);
 						} else {
 							user_io_file_mount(s, i);

@@ -175,8 +175,7 @@ static char ImageFileSelected(uint8_t idx, const char *SelectedName) {
 	if ((user_io_get_core_features() & (FEAT_IDE0 << (2*selected_drive_slot))) == (FEAT_IDE0_ATA << (2*selected_drive_slot))) {
 		iprintf("IDE %d: ATA Hard Disk\n", selected_drive_slot);
 		hardfiles[selected_drive_slot].enabled = HDF_FILE;
-		strncpy(hardfiles[selected_drive_slot].name, SelectedName, sizeof(hardfiles[0].name));
-		hardfiles[selected_drive_slot].name[sizeof(hardfiles[0].name)-1] = 0;
+		sniprintf(hardfiles[selected_drive_slot].path, sizeof(hardfiles[0].path), "%s", SelectedName);
 		OpenHardfile(selected_drive_slot, false);
 		SendHDFCfg();
 	} else {

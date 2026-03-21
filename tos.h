@@ -4,7 +4,6 @@
 #include "utils.h"
 
 // FPGA spi commands
-#define MIST_SET_ADDRESS    0x01 // set DMA address, not used
 #define MIST_WRITE_MEMORY   0x02
 #define MIST_READ_MEMORY    0x03
 #define MIST_SET_CONTROL    0x04

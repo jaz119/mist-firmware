@@ -198,9 +198,9 @@ void archie_init(void) {
   strcpy(config.cmos_img, "CMOS.RAM");
 
   config.hardfile[0].enabled = HDF_FILE;
-  strcpy(config.hardfile[0].name, "/ARCHIE1.HDF");
+  strcpy(config.hardfile[0].path, "/ARCHIE1.HDF");
   config.hardfile[1].enabled = HDF_FILE;
-  strcpy(config.hardfile[1].name, "/ARCHIE2.HDF");
+  strcpy(config.hardfile[1].path, "/ARCHIE2.HDF");
 
   // try to load config from card
   if(f_open(&file, CONFIG_FILENAME, FA_READ) == FR_OK) {

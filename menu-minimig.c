@@ -121,7 +121,7 @@ static char HardFileChanged(uint8_t idx) {
 	if (idx == 0) {// yes
 		for (int i = 0; i < ARRAY_SIZE(config.hardfile); i++) {
 			if ((config.hardfile[i].enabled != t_hardfile[i].enabled)
-			    || (strncmp(config.hardfile[i].name, t_hardfile[i].name, sizeof(t_hardfile[0].name)) != 0))
+			    || (strncmp(config.hardfile[i].path, t_hardfile[i].path, sizeof(t_hardfile[0].path)) != 0))
 			{
 				memcpy(&config.hardfile[i], &t_hardfile[i], sizeof(config.hardfile[0]));
 				OpenHardfile(i, true);
@@ -149,7 +149,7 @@ static char HardFileSelected(uint8_t idx, const char *SelectedName) {
 		return 0;
 
 	// Read RDB from selected drive and determine type...
-	sniprintf(t_hardfile[hdf_idx].name, sizeof(t_hardfile[hdf_idx].name) - 1, "%s/%s",
+	sniprintf(t_hardfile[hdf_idx].path, sizeof(t_hardfile[hdf_idx].path), "%s/%s",
 		cwd, SelectedName);
 	switch(GetHDFFileType(SelectedName)) {
 		case HDF_FILETYPE_RDB:
@@ -192,7 +192,7 @@ static char CueISOFileSelected(uint8_t idx, const char *SelectedName) {
 static char KickstartReload(uint8_t idx) {
 	if (idx == 0) {// yes
 		CloseMenu();
-		sniprintf(config.kickstart, sizeof(config.kickstart) - 1, "%s/%s",
+		sniprintf(config.kickstart, sizeof(config.kickstart), "%s/%s",
 			cwd, KickstartSelectedName);
 		{
 			// reset bootscreen cursor position
@@ -404,7 +404,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 						if(enabled == HDF_CDROM)
 							strcpy(&s[14], toc.valid ? "* Inserted *" : "* Empty *");
 						else
-							strncpy(&s[14], get_short_name(t_hardfile[(t_ide_idx << 1)+slave].name), sizeof(t_hardfile[0].name));
+							strncpy(&s[14], get_short_name(t_hardfile[(t_ide_idx << 1)+slave].path), sizeof(t_hardfile[0].path));
 					} else
 						strcpy(s, "       ** file not found **");
 					item->item = s;

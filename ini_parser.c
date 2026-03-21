@@ -341,7 +341,7 @@ bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
 }
 
 //// ini_save() ////
-void ini_save(const ini_cfg_t* cfg, int tag)
+bool ini_save(const ini_cfg_t* cfg, int tag)
 {
   int section, var;
   char line[INI_LINE_SIZE] = {0};
@@ -355,7 +355,7 @@ void ini_save(const ini_cfg_t* cfg, int tag)
   if (f_open(&ini_file, cfg->filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
   #endif
     ini_parser_debugf("Can't open file %s !", cfg->filename);
-    return;
+    return false;
   }
 
   // loop over sections
@@ -426,4 +426,6 @@ void ini_save(const ini_cfg_t* cfg, int tag)
   #else
   f_close(&ini_file);
   #endif
+
+  return true;
 }

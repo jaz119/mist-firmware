@@ -43,14 +43,14 @@ static const ini_var_t config_ini_vars[] = {
   {"IDE0_ENABLE",      (void*)&tmpconf.enable_ide[0], UINT8, 0, 1, 1},
   {"IDE1_ENABLE",      (void*)&tmpconf.enable_ide[1], UINT8, 0, 1, 1},
   {"SCANLINES",        (void*)&tmpconf.scanlines, UINT8, 0, 15, 1},
-  {"HDD0_ENABLE",      (void*)&tmpconf.hardfile[0].enabled, UINT8, 0, 255, 1},
-  {"HDD0",             (void*)tmpconf.hardfile[0].name, STRING, 1, 63, 1},
-  {"HDD1_ENABLE",      (void*)&tmpconf.hardfile[1].enabled, UINT8, 0, 255, 1},
-  {"HDD1",             (void*)tmpconf.hardfile[1].name, STRING, 1, 63, 1},
-  {"HDD2_ENABLE",      (void*)&tmpconf.hardfile[2].enabled, UINT8, 0, 255, 1},
-  {"HDD2",             (void*)tmpconf.hardfile[2].name, STRING, 1, 63, 1},
-  {"HDD3_ENABLE",      (void*)&tmpconf.hardfile[3].enabled, UINT8, 0, 255, 1},
-  {"HDD3",             (void*)tmpconf.hardfile[3].name, STRING, 1, 63, 1},
+  {"HDD0_ENABLE",      (void*)&tmpconf.hardfile[0].enabled, UINT32, 0, 255, 1},
+  {"HDD0",             (void*)tmpconf.hardfile[0].path, STRING, 1, 63, 1},
+  {"HDD1_ENABLE",      (void*)&tmpconf.hardfile[1].enabled, UINT32, 0, 255, 1},
+  {"HDD1",             (void*)tmpconf.hardfile[1].path, STRING, 1, 63, 1},
+  {"HDD2_ENABLE",      (void*)&tmpconf.hardfile[2].enabled, UINT32, 0, 255, 1},
+  {"HDD2",             (void*)tmpconf.hardfile[2].path, STRING, 1, 63, 1},
+  {"HDD3_ENABLE",      (void*)&tmpconf.hardfile[3].enabled, UINT32, 0, 255, 1},
+  {"HDD3",             (void*)tmpconf.hardfile[3].path, STRING, 1, 63, 1},
   {"CPU",              (void*)&tmpconf.cpu, UINT8, 0, 15, 1},
   {"AUTOFIRE",         (void*)&tmpconf.autofire, UINT8, 0, 7, 1},
   {"AUDIOFILTERMODE",  (void*)&tmpconf.features.audiofiltermode, UINT8, 0, 2, 1},
@@ -330,8 +330,8 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
     config.enable_ide[0]=0;
     config.enable_ide[1]=0;
     config.hardfile[0].enabled = 1;
-    strncpy(config.hardfile[0].name, "HARDFILE", sizeof(config.hardfile[0].name));
-    strncpy(config.hardfile[1].name, "HARDFILE", sizeof(config.hardfile[1].name));
+    strncpy(config.hardfile[0].path, "HARDFILE", sizeof(config.hardfile[0].path));
+    strncpy(config.hardfile[1].path, "HARDFILE", sizeof(config.hardfile[1].path));
     config.hardfile[1].enabled = 2;  // Default is access to entire SD card
     config.features.audiofiltermode = 0;
     config.features.powerledoffstate = 0;
@@ -409,10 +409,10 @@ static void ApplyConfiguration(char reloadkickstart)
       switch(hdf[i].type) {
         // Customise message for SD card acces
         case (HDF_FILE | HDF_SYNTHRDB):
-          siprintf(s, "\nHardfile %d (with fake RDB): %s", i, hardfile[i]->name);
+          siprintf(s, "\nHardfile %d (with fake RDB): %s", i, get_short_name(hardfile[i]->path));
           break;
         case HDF_FILE:
-          siprintf(s, "\nHardfile %d: %s", i, hardfile[i]->name);
+          siprintf(s, "\nHardfile %d: %s", i, get_short_name(hardfile[i]->path));
           break;
         case HDF_CARD:
           siprintf(s, "\nHardfile %d: using entire SD card", i);
