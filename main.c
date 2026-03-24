@@ -166,7 +166,7 @@ int GetUSBStorageDevices()
 }
 #endif
 
-FAST int main(void)
+int main(void)
 {
     uint8_t mmc_ok = 0;
     uint32_t last_try = 0;

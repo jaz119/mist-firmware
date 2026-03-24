@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include "errors.h"
-#include "attrs.h"
 
 #define FFCONF_DEF	80386	/* Revision ID */
 

@@ -50,7 +50,7 @@ const char *config_memory_fast_txt()
     return config_memory_fast_msg[(config.memory >> 4 & 0x03) + 1];
 }
 
-FAST static void _strncpy(char *p1, const char *p2, size_t n)
+static void _strncpy(char *p1, const char *p2, size_t n)
 {
 	// customized strncpy() function to fill remaing destination string part with spaces
 	while (n > 0) {

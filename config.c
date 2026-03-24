@@ -169,7 +169,7 @@ char UploadKickstart(char *name)
 }
 
 //// UploadActionReplay() ////
-FAST char UploadActionReplay()
+char UploadActionReplay()
 {
   FIL romfile;
 

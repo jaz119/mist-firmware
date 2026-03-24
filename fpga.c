@@ -60,7 +60,7 @@ char minimig_ver_minion;
 #ifdef XILINX_CCLK
 
 // single byte serialization of FPGA configuration datastream
-FAST static inline void ShiftFpga(unsigned char data)
+static inline void ShiftFpga(unsigned char data)
 {
     AT91_REG *ppioa_codr = AT91C_PIOA_CODR;
     AT91_REG *ppioa_sodr = AT91C_PIOA_SODR;
@@ -117,7 +117,7 @@ FAST static inline void ShiftFpga(unsigned char data)
 
 // Xilinx FPGA configuration
 // was before unsigned char ConfigureFpga(void)
-FAST unsigned char ConfigureFpga(const char *name)
+unsigned char ConfigureFpga(const char *name)
 {
     unsigned long  t;
     unsigned long  n;
@@ -237,7 +237,7 @@ FAST unsigned char ConfigureFpga(const char *name)
 
 
 #ifdef ALTERA_DCLK
-FAST static inline void ShiftFpga(unsigned int data)
+static inline void ShiftFpga(unsigned int data)
 {
 #pragma GCC unroll 8
     for (uint32_t i = 0; i < 8; i++)
@@ -252,7 +252,7 @@ FAST static inline void ShiftFpga(unsigned int data)
 }
 
 // Altera FPGA configuration
-FAST unsigned char ConfigureFpga(const char *name)
+unsigned char ConfigureFpga(const char *name)
 {
     unsigned long i;
     unsigned char *ptr;
@@ -428,7 +428,7 @@ out:
 }
 
 // SendFileV2 (for minimig_v2)
-FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size)
+void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size)
 {
   UINT br;
   int i,j;
@@ -486,7 +486,7 @@ FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, in
 }
 
 // draw on screen
-FAST char BootDraw(char *data, unsigned short len, unsigned short offset)
+char BootDraw(char *data, unsigned short len, unsigned short offset)
 {
   DEBUG_FUNC_IN();
 
@@ -565,7 +565,7 @@ FAST char BootDraw(char *data, unsigned short len, unsigned short offset)
   DEBUG_FUNC_OUT();
 }
 
-FAST void BootExit(void)
+void BootExit(void)
 {
     unsigned char c1, c2, c3, c4;
 

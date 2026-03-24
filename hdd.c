@@ -68,7 +68,7 @@ typedef struct
 
 static cdrom_t cdrom;
 
-FAST static void SwapBytes(char *c, int len)
+static void SwapBytes(char *c, int len)
 {
   char temp;
 
@@ -82,7 +82,7 @@ FAST static void SwapBytes(char *c, int len)
 }
 
 // RDBChecksum()
-FAST static void RDBChecksum(unsigned long *p)
+static void RDBChecksum(unsigned long *p)
 {
   unsigned long count=p[1];
   unsigned long c2;
@@ -1229,7 +1229,7 @@ static void ATA_DeviceReset(unsigned char *tfr, unsigned char unit)
 }
 
 // ATA_ReadSectors()
-FAST static void ATA_ReadSectors(
+static void ATA_ReadSectors(
   unsigned char* tfr, unsigned short sector, unsigned short cylinder, unsigned char head,
   unsigned char unit, unsigned short sector_count, bool multiple, bool lbamode, bool verify)
 {
@@ -1411,7 +1411,7 @@ FAST static void ATA_ReadSectors(
 }
 
 // ATA_WriteSectors()
-FAST static void ATA_WriteSectors(unsigned char* tfr,
+static void ATA_WriteSectors(unsigned char* tfr,
   unsigned short sector, unsigned short cylinder, unsigned char head,
   unsigned char unit, unsigned short sector_count, bool multiple, char lbamode)
 {
@@ -1512,7 +1512,7 @@ FAST static void ATA_WriteSectors(unsigned char* tfr,
 }
 
 // HandleHDD()
-FAST void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
+void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
 {
   unsigned char  tfr[8];
   unsigned short sector;

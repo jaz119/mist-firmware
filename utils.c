@@ -6,13 +6,13 @@
 #include "utils.h"
 #include "attrs.h"
 
-FAST unsigned int bin2bcd(unsigned int in) {
+unsigned int bin2bcd(unsigned int in) {
   unsigned int tens = (in * 205) >> 11;
   unsigned int units = in - (tens * 10);
   return (tens << 4) | units;
 }
 
-FAST unsigned char bcd2bin(unsigned char in) {
+unsigned char bcd2bin(unsigned char in) {
   return 10*(in >> 4) + (in & 0x0f);
 }
 
@@ -24,7 +24,7 @@ unsigned char incval(unsigned char in, unsigned char min, unsigned char max) {
   return (in == max) ? min : in+1;
 }
 
-FAST int _strnicmp(const char *s1, const char *s2, size_t n) {
+int _strnicmp(const char *s1, const char *s2, size_t n) {
     int v = 0;
     while (n--) {
         unsigned char c1 = *s1++;

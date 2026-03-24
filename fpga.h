@@ -11,9 +11,9 @@ extern char minimig_ver_minor;
 extern char minimig_ver_minion;
 
 unsigned char fpga_init(const char *name);
-FAST unsigned char ConfigureFpga(const char*);
-FAST void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size);
-FAST char BootDraw(char *data, unsigned short len, unsigned short offset);
+unsigned char ConfigureFpga(const char*);
+void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size);
+char BootDraw(char *data, unsigned short len, unsigned short offset);
 
 static inline char BootPrint(const char *text)
 {
@@ -21,7 +21,7 @@ static inline char BootPrint(const char *text)
     return 0;
 }
 
-FAST void BootExit(void);
+void BootExit(void);
 unsigned char GetFPGAStatus(void);
 
 // minimig reset stuff

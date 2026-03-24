@@ -232,7 +232,7 @@ static DIR dir;
 static FILINFO fil;
 static unsigned int nNewEntries = 0;   // indicates if a new entry has been found (used in scroll mode)
 
-FAST static int CompareDirEntries(FILINFO *pDirEntry1, FILINFO *pDirEntry2)
+static int CompareDirEntries(FILINFO *pDirEntry1, FILINFO *pDirEntry2)
 {
 	int rc;
 
@@ -248,7 +248,7 @@ FAST static int CompareDirEntries(FILINFO *pDirEntry1, FILINFO *pDirEntry2)
 	return(rc);
 }
 
-FAST static bool CompareExt(const char *fileName, const char *extension)
+static bool CompareExt(const char *fileName, const char *extension)
 {
 	bool found = 0;
 	const char *fileExt = GetExtension(fileName);
@@ -271,7 +271,7 @@ FAST static bool CompareExt(const char *fileName, const char *extension)
 	return found;
 }
 
-FAST const char *GetExtension(const char *fileName) {
+const char *GetExtension(const char *fileName) {
 	const char *fileExt = 0;
 	int len = strlen(fileName);
 
@@ -285,7 +285,7 @@ FAST const char *GetExtension(const char *fileName) {
 	return fileExt;
 }
 
-FAST static void SortTempTable(char prev) {
+static void SortTempTable(char prev) {
 	unsigned char x;
 	for (int i = nNewEntries - 1; i > 0; i--) {// one pass bubble-sorting (table is already sorted, only the new item must be placed in order)
 		if ((prev * CompareDirEntries(&t_DirEntries[t_sort_table[i]], &t_DirEntries[t_sort_table[i-1]])) > 0) {

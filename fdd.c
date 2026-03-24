@@ -52,7 +52,7 @@ ALIGNED(4) adfTYPE df[4];            // drive 0 information structure
 
 // sends the data in the sector buffer to the FPGA, translated into an Amiga floppy format sector
 // note that we do not insert clock bits because they will be stripped by the Amiga software anyway
-FAST static void SendSector(unsigned char *pData, unsigned char sector, unsigned char track, unsigned char dsksynch, unsigned char dsksyncl)
+static void SendSector(unsigned char *pData, unsigned char sector, unsigned char track, unsigned char dsksynch, unsigned char dsksyncl)
 {
     ALIGNED(4) unsigned char checksum[4];
     unsigned short i;
@@ -165,7 +165,7 @@ static inline void SendGap(void)
 }
 
 // read a track from disk
-FAST static void ReadTrack(adfTYPE *drive)
+static void ReadTrack(adfTYPE *drive)
 { // track number is updated in drive struct before calling this function
 
     unsigned char sector;
@@ -474,7 +474,7 @@ static unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector)
     return 0;
 }
 
-FAST static unsigned char GetData(void)
+static unsigned char GetData(void)
 {
     unsigned char c, c1, c2, c3, c4;
     unsigned char i;
@@ -651,7 +651,7 @@ void UpdateFDDStatus(void)
     DisableFpga();
 }
 
-FAST void HandleFDD(unsigned int c1, unsigned int c2)
+void HandleFDD(unsigned int c1, unsigned int c2)
 {
     unsigned int sel;
     drives = (c1 >> 4) & 0x03; // number of active floppy drives

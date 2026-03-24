@@ -37,7 +37,7 @@
 
 //// functions ////
 void BootInit();
-FAST void BootPrintEx(char * str);
+void BootPrintEx(char * str);
 void BootHome();
 
 #endif // __BOOT_H__

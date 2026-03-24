@@ -1800,7 +1800,7 @@ void HandleUI(uint8_t key)
 }
 
 
-FAST static void ScrollLongName(void)
+static void ScrollLongName(void)
 {
 	// this function is called periodically when file selection window is displayed
 	// it checks if predefined period of time has elapsed and scrolls the name if necessary
@@ -1826,7 +1826,7 @@ FAST static void ScrollLongName(void)
 	}
 }
 
-FAST static char* GetDiskInfo(char* lfn, long len)
+static char* GetDiskInfo(char* lfn, long len)
 {
 // extracts disk number substring from file name
 // if file name contains "X of Y" substring where X and Y are one or two digit number

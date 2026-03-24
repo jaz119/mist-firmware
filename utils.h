@@ -20,10 +20,10 @@
 unsigned char decval(unsigned char in, unsigned char min, unsigned char max);
 unsigned char incval(unsigned char in, unsigned char min, unsigned char max);
 
-FAST unsigned int bin2bcd(unsigned int in);
-FAST unsigned char bcd2bin(unsigned char in);
+unsigned int bin2bcd(unsigned int in);
+unsigned char bcd2bin(unsigned char in);
 
-FAST int _strnicmp(const char *s1, const char *s2, size_t n);
+int _strnicmp(const char *s1, const char *s2, size_t n);
 void hexdump(void *data, int size, int offset);
 
 #endif

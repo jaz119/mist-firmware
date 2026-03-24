@@ -27,7 +27,7 @@ typedef struct
 extern adfTYPE df[4];
 extern unsigned char drives;
 
-FAST void UpdateFDDStatus(void);
-FAST void HandleFDD(unsigned int c1, unsigned int c2);
+void UpdateFDDStatus(void);
+void HandleFDD(unsigned int c1, unsigned int c2);
 
 #endif

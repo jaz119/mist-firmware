@@ -106,15 +106,18 @@
 #include <inttypes.h>
 
 /*functions*/
-FAST void OsdSetTitle(const char *s, int arrow); // arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
-FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char inver, unsigned char stipple, char offset); // Used for scrolling "Exit" text downwards...
+void OsdSetTitle(const char *s, int arrow); // arrow > 0 = display right arrow in bottom right, < 0 = display left arrow
+void OsdWriteOffset(unsigned char n, char *s, unsigned char inver, unsigned char stipple, char offset); // Used for scrolling "Exit" text downwards...
 
 static inline void OsdWrite(unsigned char n, char *s, unsigned char invert, unsigned char stipple)
 {
   OsdWriteOffset(n, s, invert, stipple, 0);
 }
 
-FAST void OsdPrintText(unsigned char line, char *text, unsigned long start, unsigned long width, unsigned long xoffset, unsigned char yoffset, unsigned char invert, unsigned char stipple);
+FORCE_ARM void OsdPrintText(unsigned char line, char *text,
+  unsigned long start, unsigned long width, unsigned long xoffset,
+  unsigned char yoffset, unsigned char invert, unsigned char stipple);
+
 void OsdClear(void);
 void OsdEnable(unsigned char mode);
 void OsdDisable(void);
@@ -142,11 +145,11 @@ static inline void OsdDisableMenuButton(unsigned char disable)
 unsigned char GetASCIIKey(unsigned char c);
 void OsdWriteDoubleSize(unsigned char n, char *s, unsigned char pass);
 //void OsdDrawLogo(unsigned char n, char row);
-FAST void OsdDrawLogo(unsigned char n, char row, char superimpose);
-FAST void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset);
+void OsdDrawLogo(unsigned char n, char row, char superimpose);
+void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset);
 void ScrollReset();
 void StarsInit();
-FAST void StarsUpdate();
+void StarsUpdate();
 char OsdLines();
 
 void OsdKeySet(unsigned char);

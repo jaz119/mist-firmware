@@ -51,7 +51,7 @@ void hid_joystick_button_remap_init(void) {
 	memset(joystick_button_remap, 0, sizeof(joystick_button_remap));
 }
 
-FAST char hid_joystick_button_remap(char *s, char action, int tag) {
+char hid_joystick_button_remap(char *s, char action, int tag) {
 	uint32_t i;
 
 	hid_debugf("%s(%s)", __FUNCTION__, s);
@@ -87,7 +87,7 @@ FAST char hid_joystick_button_remap(char *s, char action, int tag) {
 /*****************************************************************************/
 
 //get HID report descriptor
-FAST static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size) {
+static uint8_t hid_get_report_descr(usb_device_t *dev, uint8_t i, uint16_t size) {
 	//  hid_debugf("%s(0x%x, if=%d, size=%d)", __FUNCTION__, dev->bAddress, iface, size);
 
 	if (size > USB_MAX_CONFIG_DESC_SIZE)

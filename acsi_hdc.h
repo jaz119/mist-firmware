@@ -83,6 +83,6 @@ typedef struct ALIGNED(4) {
 extern SCSI_CTRLR AcsiBus;
 
 const char *HDC_CmdInfoStr(SCSI_CTRLR *);
-FAST void HDC_HandleCommandPacket(SCSI_CTRLR *);
+void HDC_HandleCommandPacket(SCSI_CTRLR *);
 
 #endif // ACSI_HDC_H

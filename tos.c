@@ -29,8 +29,8 @@ typedef struct {
 typedef struct {
   uint32_t system_ctrl;
   char cdc_control_redirect;
-  char tos_img[FF_LFN_BUF + 1];
-  char cart_img[FF_LFN_BUF + 1];
+  char tos_img[FF_LFN_BUF];
+  char cart_img[FF_LFN_BUF];
   hardfileTYPE  acsi[2];
   floppyTYPE fdd[2];
 } configTYPE;
@@ -162,7 +162,7 @@ static void dma_nak(void) {
   DisableFpga();
 }
 
-FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
+static int acsi_disk_read(int target, uint32_t lba, size_t length) {
   int read = 0;
   UINT br = 0;
   DISKLED_ON;
@@ -200,7 +200,7 @@ FAST static int acsi_disk_read(int target, uint32_t lba, size_t length) {
   return read;
 }
 
-FAST static int acsi_disk_write(int target, uint32_t lba, size_t length) {
+static int acsi_disk_write(int target, uint32_t lba, size_t length) {
   unsigned short blocklen;
   unsigned char *buf;
   int written = 0;

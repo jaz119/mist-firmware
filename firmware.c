@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern DWORD clmt[99];
 
-FAST unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize) {
+FORCE_ARM unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize) {
    int i, j;
    unsigned long byte, mask;
 
@@ -47,7 +47,7 @@ FAST unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, uns
    return crc;
 }
 
-FAST unsigned char CheckFirmware(char *name)
+unsigned char CheckFirmware(char *name)
 {
     unsigned long crc;
     unsigned long size;
@@ -141,7 +141,7 @@ FAST unsigned char CheckFirmware(char *name)
 }
 
 char *GetFirmwareVersion(char *name) {
-  static char v[16];
+  ALIGNED(4) static char v[16];
   FIL file;
   UINT br;
 
@@ -162,7 +162,7 @@ char *GetFirmwareVersion(char *name) {
 #define GCC_OPTIMZES_TOO_MUCH
 
 #pragma section_code_init
-RAMFUNC void WriteFirmware(char *name)
+FORCE_ARM RAMFUNC void WriteFirmware(char *name)
 {
     unsigned long read_size;
     unsigned long i;

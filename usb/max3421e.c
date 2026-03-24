@@ -157,7 +157,7 @@ void max3421e_init() {
 
 #include "timer.h"
 
-FAST uint8_t max3421e_poll() {
+uint8_t max3421e_poll() {
   uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
 
   if( hirq & MAX3421E_CONDETIRQ ) {

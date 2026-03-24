@@ -15,8 +15,8 @@ typedef struct
     unsigned long crc;
 } UPGRADE;
 
-FAST unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize);
-FAST unsigned char CheckFirmware(char *name);
+FORCE_ARM unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize);
+unsigned char CheckFirmware(char *name);
 
-RAMFUNC void WriteFirmware(char *name) RAMFUNC;
+FORCE_ARM RAMFUNC void WriteFirmware(char *name) RAMFUNC;
 char *GetFirmwareVersion(char *name);

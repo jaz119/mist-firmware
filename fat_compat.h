@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include "FatFs/ff.h"
+#include "attrs.h"
 
 struct PartitionEntry
 {
@@ -60,7 +61,7 @@ extern unsigned char sector_buffer[SECTOR_BUFFER_SIZE];
 // functions
 bool FindDrive(void);
 void ChangeDirectoryName(const char *name);
-FAST const char *GetExtension(const char *fileName);
+const char *GetExtension(const char *fileName);
 char ScanDirectory(unsigned long mode, char *extension, unsigned char options);
 
 RAMFUNC FRESULT FileReadNextBlock(FIL *, void *pBuffer);

@@ -255,7 +255,7 @@ FORCE_ARM static void usb_xbox_read_report(usb_device_t *dev, uint16_t len, uint
 	user_io_analog_joystick(idx, buf[7], ~buf[9], buf[11], ~buf[13]);
 }
 
-FAST static uint8_t usb_xbox_poll(usb_device_t *dev) {
+static uint8_t usb_xbox_poll(usb_device_t *dev) {
 
 	if(!dev->xbox_info.bPollEnable)
 		return 0;

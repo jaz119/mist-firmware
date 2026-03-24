@@ -316,7 +316,7 @@ void BootInit()
 }
 
 //// BootPrint() ////
-FAST void BootPrintEx(char * str)
+void BootPrintEx(char * str)
 {
   uint32_t i,j;
   uint32_t len;

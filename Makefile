@@ -97,8 +97,6 @@ crt.o: hw/AT91SAM/Cstartup.S
 
 %.d: ;
 
-firmware.o: CFLAGS += -marm
-
 sections: $(PRJ).elf
 	$(OBJDUMP) --section-headers $<
 

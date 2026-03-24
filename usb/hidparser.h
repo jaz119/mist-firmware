@@ -52,6 +52,6 @@ typedef struct {
   };
 } hid_report_t;
 
-FAST bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf);
+bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf);
 
 #endif // HIDPARSER_H

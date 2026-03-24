@@ -805,7 +805,7 @@ static void HDC_Cmd_WriteSector(SCSI_CTRLR *ctr)
 /**
  * Handling routine for HDC command packets.
  */
-FAST void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
+void HDC_HandleCommandPacket(SCSI_CTRLR *ctr)
 {
     SCSI_DEV *dev = &ctr->devs[ctr->target];
 

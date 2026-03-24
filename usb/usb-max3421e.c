@@ -24,7 +24,7 @@ void usb_hw_init() {
 	usb_reset_state();
 }
 
-FAST static uint8_t usb_wait_irq() {
+static uint8_t usb_wait_irq() {
 	unsigned long start = timer_get_msec();
 
 	// wait for transfer completion
@@ -51,7 +51,7 @@ FAST static uint8_t usb_wait_irq() {
 	return USB_ERROR_TRANSFER_TIMEOUT;
 }
 
-FAST static uint8_t usb_set_address(
+static uint8_t usb_set_address(
 	usb_device_t *dev, ep_t *ep, uint16_t *nak_limit) {
 
 	*nak_limit = ( 1U << ( ( ep->bmNakPower > USB_NAK_MAX_POWER )
@@ -81,7 +81,7 @@ FAST static uint8_t usb_set_address(
 /* If nak_limit == 0, do not count NAKs, exit after timeout */
 /* If bus timeout, re-sends up to USB_RETRY_LIMIT times */
 /* return codes 0x00-0x0f are HRSLT (0x00 being success), 0xff means timeout */
-FAST static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) {
+static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) {
 	//  iprintf("  %s(token=%x, ep=%d, nak_limit=%d)\n",
 	//	  __FUNCTION__, token, ep, nak_limit);
 	uint8_t tmpdata;
@@ -121,7 +121,7 @@ FAST static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_lim
 	return USB_ERROR_TRANSFER_TIMEOUT;
 }
 
-FAST static uint8_t usb_InTransfer(ep_t *pep, uint16_t nak_limit,
+static uint8_t usb_InTransfer(ep_t *pep, uint16_t nak_limit,
 		       uint16_t *nbytesptr, uint8_t* data) {
 	uint8_t rcode = 0;
 	uint8_t pktsize;
@@ -182,7 +182,7 @@ FAST static uint8_t usb_InTransfer(ep_t *pep, uint16_t nak_limit,
 /* pointed by 'data' */
 /* rcode 0 if no errors. rcode 01-0f is relayed from dispatchPkt(). Rcode f0 means RCVDAVIRQ error, */
 /* fe USB xfer timeout */
-FAST uint8_t usb_in_transfer( usb_device_t *dev, ep_t *ep, uint16_t *nbytesptr, uint8_t* data) {
+uint8_t usb_in_transfer( usb_device_t *dev, ep_t *ep, uint16_t *nbytesptr, uint8_t* data) {
 	uint16_t nak_limit = USB_NAK_DEFAULT;
 
 	uint8_t rcode = usb_set_address(dev, ep, &nak_limit);
@@ -191,7 +191,7 @@ FAST uint8_t usb_in_transfer( usb_device_t *dev, ep_t *ep, uint16_t *nbytesptr, 
 	return usb_InTransfer(ep, nak_limit, nbytesptr, data);
 }
 
-FAST static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
+static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 			uint16_t nbytes, const uint8_t *data) {
 	//  iprintf("%s(%d)\n", __FUNCTION__, nbytes);
 
@@ -265,7 +265,7 @@ FAST static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 /* OUT transfer to arbitrary endpoint. Handles multiple packets if necessary. Transfers 'nbytes' bytes. */
 /* Handles NAK bug per Maxim Application Note 4000 for single buffer transfer   */
 /* rcode 0 if no errors. rcode 01-0f is relayed from HRSL                       */
-FAST uint8_t usb_out_transfer(usb_device_t *dev, ep_t *ep, uint16_t nbytes, const uint8_t* data ) {
+uint8_t usb_out_transfer(usb_device_t *dev, ep_t *ep, uint16_t nbytes, const uint8_t* data ) {
 	uint16_t nak_limit = USB_NAK_DEFAULT;
 
 	uint8_t rcode = usb_set_address(dev, ep, &nak_limit);
@@ -282,7 +282,7 @@ FAST uint8_t usb_out_transfer(usb_device_t *dev, ep_t *ep, uint16_t nbytes, cons
 /* 00       =   success         */
 /* 01-0f    =   non-zero HRSLT  */
 
-FAST uint8_t usb_ctrl_req(usb_device_t *dev, uint8_t bmReqType,
+uint8_t usb_ctrl_req(usb_device_t *dev, uint8_t bmReqType,
 		    uint8_t bRequest, uint8_t wValLo, uint8_t wValHi,
 		    uint16_t wInd, uint16_t nbytes, uint8_t* dataptr) {
 	//  iprintf("%s(addr=%x, len=%d, ptr=%p)\n", __FUNCTION__,
@@ -333,7 +333,7 @@ FAST uint8_t usb_ctrl_req(usb_device_t *dev, uint8_t bmReqType,
 	return usb_dispatchPkt( (direction) ? tokOUTHS : tokINHS, 0, nak_limit );
 }
 
-FAST void usb_poll() {
+void usb_poll() {
 	uint8_t rcode;
 	uint8_t tmpdata;
 	static msec_t delay = 0;

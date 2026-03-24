@@ -64,7 +64,7 @@ struct star
 ALIGNED(4) struct star stars[64];
 ALIGNED(4) static char linebuffer[256];
 
-FAST static int quickrand()
+static int quickrand()
 {
 	static int prev;
 #ifndef MIST
@@ -92,7 +92,8 @@ void StarsInit()
 	}
 }
 
-FAST void StarsUpdate()
+
+void StarsUpdate()
 {
 	int i;
 	int lines=OsdLines()*8 - 10;
@@ -125,7 +126,7 @@ extern char s[OSD_BUF_SIZE];
 static int arrow;
 ALIGNED(4) static unsigned char titlebuffer[128];
 
-FAST static void rotatechar(unsigned char *in,unsigned char *out)
+static void rotatechar(unsigned char *in,unsigned char *out)
 {
 	for(int b=0; b<8; ++b)
 	{
@@ -139,7 +140,7 @@ FAST static void rotatechar(unsigned char *in,unsigned char *out)
 	}
 }
 
-FAST void OsdSetTitle(const char *s, int a)
+void OsdSetTitle(const char *s, int a)
 {
 	// Compose the title, condensing character gaps
 	arrow=a;
@@ -208,7 +209,7 @@ char OsdLines()
 }
 
 // write a null-terminated string <s> to the OSD buffer starting at line <n>
-FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned char stipple,char offset)
+void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned char stipple,char offset)
 {
   char *text = s;
   ALIGNED(4) char arrowline[31];
@@ -229,7 +230,7 @@ FAST void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigne
   OsdPrintText(n, text, 22, OSDLINELEN-3*8, 0, offset, invert, stipple);
 }
 
-FAST void OsdDrawLogo(unsigned char n, char row, char superimpose) {
+void OsdDrawLogo(unsigned char n, char row, char superimpose) {
   unsigned int i;
   const unsigned char *p;
   int linelimit=OSDLINELEN;
@@ -308,7 +309,9 @@ FAST void OsdDrawLogo(unsigned char n, char row, char superimpose) {
 
 
 // write a null-terminated string <s> to the OSD buffer starting at line <n>
-FAST void OsdPrintText(unsigned char line, char *text, unsigned long start, unsigned long width, unsigned long xoffset, unsigned char yoffset, unsigned char invert, unsigned char stipple)
+FORCE_ARM void OsdPrintText(unsigned char line, char *text,
+    unsigned long start, unsigned long width, unsigned long xoffset,
+    unsigned char yoffset, unsigned char invert, unsigned char stipple)
 {
   // line : OSD line number (0-7)
   // text : pointer to null-terminated string
@@ -438,7 +441,7 @@ void OsdReset(unsigned char boot)
 }
 
 void ConfigVideo(unsigned char hires, unsigned char lores, unsigned char scanlines) {
-  spi_osd_cmd8(OSD_CMD_VID, (((scanlines>>2)&0x03)<< 6) | ((hires & 0x03) << 4) | ((lores & 0x03)<<2) | (scanlines & 0x03) );
+    spi_osd_cmd8(OSD_CMD_VID, (((scanlines>>2)&0x03)<< 6) | ((hires & 0x03) << 4) | ((lores & 0x03)<<2) | (scanlines & 0x03) );
 }
 
 void ConfigMemory(unsigned char memory)
@@ -555,8 +558,7 @@ unsigned char GetASCIIKey(unsigned char keycode)
     return keycode_table[keycode & 0x7F];
 }
 
-
-FAST void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset)
+void ScrollText(char n, const char *str, int len, int max_len, unsigned char invert, int len_offset)
 {
 // this function is called periodically when a string longer than the window is displayed.
 
@@ -609,8 +611,8 @@ void ScrollReset()
 static unsigned char osd_key;
 
 void OsdKeySet(unsigned char c) {
-  //  iprintf("OSD enqueue: %x\n", c);
-  osd_key = c;
+    //  iprintf("OSD enqueue: %x\n", c);
+    osd_key = c;
 }
 
 unsigned char OsdKeyGet() {
@@ -625,10 +627,10 @@ unsigned char OsdKeyGet() {
 static char lastcorename[65] = "CORE";
 
 void OsdCoreNameSet(const char* str) {
-  strncpy(lastcorename, str, sizeof(lastcorename));
-  lastcorename[sizeof(lastcorename)-1] = 0;
+    strncpy(lastcorename, str, sizeof(lastcorename));
+    lastcorename[sizeof(lastcorename)-1] = 0;
 }
 
 char* OsdCoreName() {
-  return lastcorename;
+    return lastcorename;
 }

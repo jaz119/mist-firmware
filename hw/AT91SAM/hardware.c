@@ -123,7 +123,7 @@ volatile static unsigned char tx_rptr, tx_wptr;
 volatile static unsigned char rx_buf[256] ALIGNED(4);
 volatile static unsigned char rx_rptr, rx_wptr;
 
-FAST static void Usart0IrqHandler(void) {
+static void Usart0IrqHandler(void) {
   // Read USART status
   unsigned char status = AT91C_BASE_US0->US_CSR;
 
@@ -370,7 +370,7 @@ void PollADC() {
 }
 
 // poll db9 joysticks
-FAST char GetDB9(char index, uint16_t *joy_map) {
+char GetDB9(char index, uint16_t *joy_map) {
   static int joy0_state = JOY0;
   static int joy1_state = JOY1;
   if (!index) {

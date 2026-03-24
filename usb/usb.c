@@ -12,7 +12,7 @@ usb_device_t *usb_get_devices() {
 }
 
 // get (last connected) device by type
-FAST usb_device_t *usb_get_device(usb_dev_type_t type) {
+usb_device_t *usb_get_device(usb_dev_type_t type) {
 	usb_device_t *devs = usb_get_devices();
 
 	for(int i=USB_NUMDEVICES-1;i>=0;i--)

@@ -616,7 +616,7 @@ static const BYTE DbcTbl[] = MKCVTBL(TBL_DC, FF_CODE_PAGE);
 /* Load/Store multi-byte word in the FAT structure                       */
 /*-----------------------------------------------------------------------*/
 
-FAST static WORD ld_16 (const BYTE* ptr)	/*	 Load a 2-byte little-endian word */
+static WORD ld_16 (const BYTE* ptr)	/*	 Load a 2-byte little-endian word */
 {
 	WORD rv;
 
@@ -625,7 +625,7 @@ FAST static WORD ld_16 (const BYTE* ptr)	/*	 Load a 2-byte little-endian word */
 	return rv;
 }
 
-FAST static DWORD ld_32 (const BYTE* ptr)	/* Load a 4-byte little-endian word */
+static DWORD ld_32 (const BYTE* ptr)	/* Load a 4-byte little-endian word */
 {
 	DWORD rv;
 
@@ -637,7 +637,7 @@ FAST static DWORD ld_32 (const BYTE* ptr)	/* Load a 4-byte little-endian word */
 }
 
 #if FF_FS_EXFAT
-FAST static QWORD ld_64 (const BYTE* ptr)	/* Load an 8-byte little-endian word */
+static QWORD ld_64 (const BYTE* ptr)	/* Load an 8-byte little-endian word */
 {
 	QWORD rv;
 
@@ -803,7 +803,7 @@ static DWORD tchar2uni (	/* Returns a character in UTF-16 encoding (>=0x10000 on
 
 
 /* Store a Unicode char in defined API encoding */
-FAST static UINT put_utf (	/* Returns number of encoding units written (0:buffer overflow or wrong encoding) */
+static UINT put_utf (	/* Returns number of encoding units written (0:buffer overflow or wrong encoding) */
 	DWORD chr,	/* UTF-16 encoded character (Surrogate pair if >=0x10000) */
 	TCHAR* buf,	/* Output buffer */
 	UINT szb	/* Size of the buffer */
@@ -1759,7 +1759,7 @@ static FRESULT dir_sdi (	/* FR_OK(0):succeeded, !=0:error */
 /* Directory handling - Move directory table index next                  */
 /*-----------------------------------------------------------------------*/
 
-FAST static FRESULT dir_next (	/* FR_OK(0):succeeded, FR_NO_FILE:End of table, FR_DENIED:Could not stretch */
+static FRESULT dir_next (	/* FR_OK(0):succeeded, FR_NO_FILE:End of table, FR_DENIED:Could not stretch */
 	DIR* dp,				/* Pointer to the directory object */
 	int stretch				/* 0: Do not stretch table, 1: Stretch table if needed */
 )
@@ -1935,7 +1935,7 @@ static int cmp_lfn (		/* 1:matched, 0:not matched */
 /* FAT-LFN: Pick a part of file name from an LFN entry */
 /*-----------------------------------------------------*/
 
-FAST static int pick_lfn (	/* 1:succeeded, 0:buffer overflow or invalid LFN entry */
+static int pick_lfn (	/* 1:succeeded, 0:buffer overflow or invalid LFN entry */
 	WCHAR* lfnbuf,		/* Pointer to the name buffer to be stored */
 	const BYTE* dir		/* Pointer to the LFN entry */
 )
@@ -2067,7 +2067,7 @@ static void gen_numname (
 /* FAT-LFN: Calculate checksum of an SFN entry                           */
 /*-----------------------------------------------------------------------*/
 
-FAST static BYTE sum_sfn (
+static BYTE sum_sfn (
 	const BYTE* dir		/* Pointer to the SFN entry */
 )
 {
@@ -2089,7 +2089,7 @@ FAST static BYTE sum_sfn (
 /* exFAT: Checksum                                                       */
 /*-----------------------------------------------------------------------*/
 
-FAST static WORD xdir_sum (	/* Get checksum of the directoly entry block */
+static WORD xdir_sum (	/* Get checksum of the directoly entry block */
 	const BYTE* dir		/* Directory entry block to be calculated */
 )
 {
@@ -2331,7 +2331,7 @@ static void create_xdir (
 #define DIR_READ_FILE(dp) dir_read(dp, 0)
 #define DIR_READ_LABEL(dp) dir_read(dp, 1)
 
-FAST static FRESULT dir_read (
+static FRESULT dir_read (
 	DIR* dp,		/* Pointer to the directory object */
 	int vol			/* Filtered by 0:file/directory or 1:volume label */
 )
@@ -2650,7 +2650,7 @@ static FRESULT dir_remove (	/* FR_OK:Succeeded, FR_DISK_ERR:A disk error */
 /* Get file information from directory entry                             */
 /*-----------------------------------------------------------------------*/
 
-FAST static void get_fileinfo (
+static void get_fileinfo (
 	DIR* dp,			/* Pointer to the directory object */
 	FILINFO* fno		/* Pointer to the file information to be filled */
 )

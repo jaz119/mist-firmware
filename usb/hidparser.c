@@ -78,7 +78,7 @@ bool report_is_usable(uint16_t bit_count, uint8_t report_complete, hid_report_t 
 	return false;
 }
 
-FAST bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf) {
+bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf) {
 	int8_t app_collection = 0;
 	int8_t phys_log_collection = 0;
 	uint8_t skip_collection = 0;

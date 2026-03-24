@@ -178,7 +178,7 @@ static inline bool CheckButton() {
 }
 
 static inline void InitDB9() {};
-FAST char GetDB9(char index, uint16_t *joy_map);
+char GetDB9(char index, uint16_t *joy_map);
 
 static inline char GetRTC(unsigned char *d) {
   return usb_rtc_get_time(d);

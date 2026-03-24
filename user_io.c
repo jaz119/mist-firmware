@@ -37,7 +37,7 @@
 
 // up to 16 key can be remapped
 #define MAX_REMAP  16
-unsigned char key_remap_table[MAX_REMAP][2];
+ALIGNED(4) unsigned char key_remap_table[MAX_REMAP][2];
 
 #define BREAK  0x8000
 
@@ -56,7 +56,7 @@ static unsigned long emu_timer = 0;
 #define EMU_MOUSE_FREQ 5
 
 // keep state over core type and its capabilities
-static uint32_t core_type = CORE_TYPE_UNKNOWN;
+uint32_t core_type = CORE_TYPE_UNKNOWN;
 static char core_type_8bit_with_config_string = 0;
 
 // extra features in the firmware requested by the core
@@ -164,13 +164,13 @@ void user_io_reset() {
 void user_io_init() {
 	user_io_reset();
 
-	if(VIDEO_KEEP_VAR != VIDEO_KEEP_VALUE) VIDEO_ALTERED_VAR = 0;
+	if (VIDEO_KEEP_VAR != VIDEO_KEEP_VALUE) VIDEO_ALTERED_VAR = 0;
 	VIDEO_KEEP_VAR = 0;
 
 	// mark remap table as unused
 	memset(key_remap_table, 0, sizeof(key_remap_table));
 
-	if(MenuButton()) DEBUG_MODE_VAR = DEBUG_MODE ? 0 : DEBUG_MODE_VALUE;
+	if (MenuButton()) DEBUG_MODE_VAR = DEBUG_MODE ? 0 : DEBUG_MODE_VALUE;
 
 	iprintf("Debug mode: %s\n",
 		DEBUG_MODE ? "on" : "off");
@@ -180,15 +180,11 @@ void user_io_init() {
 		is_dip_switch2_on() ? "on" : "off");
 }
 
-uint32_t user_io_core_type() {
-	return core_type;
-}
-
 char user_io_create_config_name(char *s, const char *ext, uint8_t flags) {
 	const char *p = 0;
 	if (flags & CONFIG_VHD) p = arc_get_vhdname();
 	if (!p || !*p) p = user_io_get_core_name();
-	if(p[0]) {
+	if (p[0]) {
 		if (flags & CONFIG_ROOT) strcpy(s,"/"); else s[0] = 0;
 		strcat(s, p);
 		if (ext) {
@@ -467,7 +463,7 @@ static inline unsigned short usb2ps2code(unsigned char k) {
 	return (ps2_kbd_scan_set == 1) ? usb2ps2_set1[k] : usb2ps2[k];
 }
 
-FAST void user_io_analog_joystick(unsigned char joystick, int valueX, int valueY, int valueX2, int valueY2) {
+void user_io_analog_joystick(unsigned char joystick, int valueX, int valueY, int valueX2, int valueY2) {
 	if(osd_is_visible) return;
 
 	if(core_type == CORE_TYPE_8BIT || core_type == CORE_TYPE_MINIMIG_AGA) {
@@ -526,7 +522,7 @@ static inline char dig2ana(char min, char max) {
 }
 
 static void user_io_joystick(unsigned char joystick, uint16_t map) {
-  // digital joysticks also send analog signals
+	// digital joysticks also send analog signals
 	user_io_digital_joystick(joystick, map);
 	user_io_digital_joystick_ext(joystick, map);
 	user_io_analog_joystick(joystick,
@@ -841,7 +837,7 @@ bool user_io_file_mount(const unsigned char *name, int index) {
 }
 
 // 8 bit cores have a config string telling the firmware how to treat it
-FAST char *user_io_8bit_get_string(unsigned char index) {
+char *user_io_8bit_get_string(unsigned char index) {
 	unsigned char i, lidx = 0, d = 0, arc = 0;
 	int arc_ptr = 0, j = 0;
 	char dip[3];
@@ -962,7 +958,7 @@ unsigned long long user_io_8bit_set_status(unsigned long long new_status, unsign
 
 int kbd_reset = 0;
 
-FAST void user_io_send_buttons(char force) {
+void user_io_send_buttons(char force) {
 	static unsigned char key_map = 0;
 
 	// frequently poll the adc the switches
@@ -1029,7 +1025,7 @@ static void set_kbd_led(unsigned char led, bool on)
 	}
 }
 
-FAST static void handle_ps2_kbd_commands()
+static void handle_ps2_kbd_commands()
 {
 	unsigned char c, cmd;
 	spi_uio_cmd_cont(UIO_KEYBOARD_IN);
@@ -1115,7 +1111,7 @@ ALIGNED(4) static const short ps2_typematic_rates[] = {
 	148, 162, 176, 192, 210, 229, 250, 272, 297, 324, 353, 385, 420, 458, 500
 };
 
-FAST static void handle_ps2_typematic_repeat()
+static void handle_ps2_typematic_repeat()
 {
 	if (ps2_typematic_rate & 0x80) return;
 	if (ps2_kbd_state != PS2_KBD_IDLE) return;
@@ -1134,7 +1130,7 @@ FAST static void handle_ps2_typematic_repeat()
 	}
 }
 
-FAST static void handle_ps2_mouse_commands()
+static void handle_ps2_mouse_commands()
 {
 	unsigned char c, cmd;
 	spi_uio_cmd_cont(UIO_MOUSE_IN);
@@ -1204,7 +1200,7 @@ FAST static void handle_ps2_mouse_commands()
 	}
 }
 
-FAST void user_io_poll() {
+void user_io_poll() {
 	// check of core has changed from a good one to a not supported on
 	// as this likely means that the user is reloading the core via jtag
 	unsigned char ct;
@@ -1888,7 +1884,7 @@ static void send_keycode(unsigned short code) {
 		archie_kbd(code);
 }
 
-FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) {
+void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) {
 
 	// send mouse data as minimig expects it
 	if(core_type == CORE_TYPE_MINIMIG_AGA) {
@@ -1914,7 +1910,7 @@ FAST void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char
 
 // check if this is a key that's supposed to be suppressed
 // when emulation is active
-FAST static unsigned char is_emu_key(unsigned int c, unsigned int alt) {
+static unsigned char is_emu_key(unsigned int c, unsigned int alt) {
 	ALIGNED(4) static const unsigned char m[] = { JOY_RIGHT, JOY_LEFT, JOY_DOWN, JOY_UP };
 	ALIGNED(4) static const unsigned char m2[] = {
 		0x5A, JOY_DOWN,
@@ -2085,7 +2081,7 @@ ALIGNED(4) static const uint8_t kr_fn_table[] = {
 	0x28, 0x58  //KP Enter
 };
 
-FAST static void keyrah_trans(unsigned char *m, unsigned char *k)
+static void keyrah_trans(unsigned char *m, unsigned char *k)
 {
 	static int keyrah_fn_state = 0;
 	char fn = 0;
@@ -2156,7 +2152,7 @@ FAST static void keyrah_trans(unsigned char *m, unsigned char *k)
 //Keyrah v2: USB\VID_18D8&PID_0002\A600/A1200_MULTIMEDIA_EXTENSION_VERSION
 #define KEYRAH_ID (mist_cfg.keyrah_mode && (((((uint32_t)vid)<<16) | pid) == mist_cfg.keyrah_mode))
 
-FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
+void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
 {
 	static int caps=0;
 	// ignore lower priority clears if higher priority key was pressed
@@ -2538,7 +2534,7 @@ FAST void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsig
 }
 
 /* translates a USB modifiers into scancodes */
-FAST void add_modifiers(uint8_t mod, uint16_t* keys_ps2)
+void add_modifiers(uint8_t mod, uint16_t* keys_ps2)
 {
 	uint32_t i;
 	uint8_t offset = 1;
@@ -2587,7 +2583,7 @@ char user_io_key_remap(char *s, char action, int tag) {
 	return 0;
 }
 
-FAST unsigned char user_io_ext_idx(const char *name, const char* ext) {
+unsigned char user_io_ext_idx(const char *name, const char* ext) {
 	unsigned int idx = 0;
 	ALIGNED(4) char ext3[4]; // extension truncated or extended to 3 chars
 	int len = strlen(ext);
