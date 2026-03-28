@@ -68,7 +68,7 @@ static void _strncpy(char *p1, const char *p2, size_t n)
 // insert floppy image pointed to to by global <file> into <drive>
 static void InsertFloppy(adfTYPE *drive, const unsigned char *name)
 {
-	unsigned char i, j, readonly = false;
+	bool readonly = false;
 	unsigned long tracks;
 	FRESULT res;
 
@@ -404,7 +404,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 						if(enabled == HDF_CDROM)
 							strcpy(&s[14], toc.valid ? "* Inserted *" : "* Empty *");
 						else
-							strncpy(&s[14], get_short_name(t_hardfile[(t_ide_idx << 1)+slave].path), sizeof(t_hardfile[0].path));
+							strncpy(&s[14], get_fname(t_hardfile[(t_ide_idx << 1)+slave].path), sizeof(t_hardfile[0].path));
 					} else
 						strcpy(s, "       ** file not found **");
 					item->item = s;
@@ -515,7 +515,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 43:
 					strcpy(s, "  ROM   : ");
-					strncat(s, get_short_name(config.kickstart), sizeof(config.kickstart) - 1);
+					strncat(s, get_fname(config.kickstart), sizeof(config.kickstart));
 					item->item = s;
 					break;
 				case 44:

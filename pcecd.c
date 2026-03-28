@@ -275,8 +275,6 @@ static void pcecd_command() {
 	ALIGNED(4) uint8_t buf[32];
 	memset(buf, 0, 32);
 
-	int i;
-
 	EnableFpga();
 	SPI(CD_COMMAND_GET);
 

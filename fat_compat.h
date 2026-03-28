@@ -33,7 +33,7 @@ extern int partitioncount;
 extern unsigned int nDirEntries;
 extern unsigned int maxDirEntries;
 extern unsigned int iSelectedEntry;
-extern char cwd[FF_LFN_BUF + 1];
+extern char cwd[FF_LFN_BUF];
 
 extern FILINFO  DirEntries[MAXDIRENTRIES];
 extern unsigned char sort_table[MAXDIRENTRIES];
@@ -66,11 +66,13 @@ char ScanDirectory(unsigned long mode, char *extension, unsigned char options);
 
 RAMFUNC FRESULT FileReadNextBlock(FIL *, void *pBuffer);
 
-int8_t fat_uses_mmc(void);
-void fat_switch_to_usb(void);
-int8_t fat_medium_present(void);
+bool fat_uses_mmc(void);
+bool fat_medium_present(void);
+
 const char *fs_type_to_string(void);
-const char *get_short_name(const char *);
+const char *get_fname(const char *);
+
+void fat_switch_to_usb(void);
 void purge_dir_cache();
 
 #endif

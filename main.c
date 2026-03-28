@@ -86,19 +86,19 @@ ALIGNED(4) DWORD clmt[99]; // fast seek cache
 
 unsigned long storage_size = 0; // MiB
 
-void FatalError(unsigned long error)
+void FatalError(unsigned int error)
 {
-    iprintf("Fatal error: %lu\r", error);
+    iprintf("Fatal error: %u\r", error);
 
     while (true)
     {
         for (int i = 0; i < error; i++)
         {
-          DISKLED_ON;
-          WaitTimer(250);
+            DISKLED_ON;
+            WaitTimer(250);
 
-          DISKLED_OFF;
-          WaitTimer(250);
+            DISKLED_OFF;
+            WaitTimer(250);
         }
 
         WaitTimer(2000);
@@ -168,7 +168,7 @@ int GetUSBStorageDevices()
 
 int main(void)
 {
-    uint8_t mmc_ok = 0;
+    bool mmc_ok = 0;
     uint32_t last_try = 0;
 
 #ifdef __GNUC__
@@ -254,7 +254,7 @@ int main(void)
     // tos config also contains cdc redirect settings used by minimig
     tos_init();
 
-    int64_t mod = -1;
+    int64_t mod = -1LL;
 
     if ((USB_LOAD_VAR != USB_LOAD_VALUE) && !is_dip_switch1_on())
     {
@@ -337,14 +337,15 @@ int main(void)
             last_try = timer_get_msec();
         }
 
-        cdc_control_poll();
-        storage_control_poll();
-
-        user_io_poll();
-
         usb_poll();
 
+        cdc_control_poll();
+
+        storage_control_poll();
+
         eth_poll();
+
+        user_io_poll();
 
         switch (user_io_core_type())
         {

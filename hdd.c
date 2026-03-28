@@ -209,7 +209,7 @@ static void IdentifyDevice(unsigned short *pBuffer, unsigned char unit)
       } else {
         memcpy(p, "YAQUBE                                  ", 40); // model name - byte swapped
         p += 8;
-        const char *fname = get_short_name(hardfile[unit]->path);
+        const char *fname = get_fname(hardfile[unit]->path);
         for (int i = 0; (x = fname[i]) && i < 16; i++) // copy file name as model name
           p[i] = x;
       }

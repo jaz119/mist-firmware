@@ -59,7 +59,7 @@ bool MMC_CheckCard() {
     return false;
 }
 
-RAMFUNC static char check_card() {
+RAMFUNC static bool check_card() {
   // check of card has been removed and try to re-initialize it
   if(CardType == CARDTYPE_NONE) {
     iprintf("Card was removed, try to init it\n");
@@ -221,7 +221,7 @@ unsigned char MMC_Init(void)
     return(CARDTYPE_NONE);
 }
 
-RAMFUNC static unsigned char MMC_GetCXD(unsigned char cmd, unsigned char *ptr) {
+static unsigned char MMC_GetCXD(unsigned char cmd, unsigned char *ptr) {
   int i;
   EnableCard();
 
@@ -292,7 +292,7 @@ unsigned long MMC_GetCapacity()
 	}
 }
 
-RAMFUNC static unsigned char MMC_WaitBusy(unsigned long timeout)
+RAMFUNC static bool MMC_WaitBusy(unsigned long timeout)
 {
     unsigned long timer = GetTimer(timeout);
     while (1) {
@@ -425,7 +425,7 @@ RAMFUNC static char MMC_SendDataBlock(const unsigned char *pWriteBuffer, unsigne
 }
 
 // write 512-byte block
-RAMFUNC unsigned char MMC_Write(unsigned long lba, const unsigned char *pWriteBuffer)
+unsigned char MMC_Write(unsigned long lba, const unsigned char *pWriteBuffer)
 {
     // check of card has been removed and try to re-initialize it
     if(!check_card()) return 0;
@@ -448,7 +448,7 @@ RAMFUNC unsigned char MMC_Write(unsigned long lba, const unsigned char *pWriteBu
 }
 
 // write 512-byte block
-RAMFUNC unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBuffer, unsigned long nBlockCount)
+unsigned char MMC_WriteMultiple(unsigned long lba, const unsigned char *pWriteBuffer, unsigned long nBlockCount)
 {
     //iprintf("MMC_WriteMultiple (lba=%d, count=%d)\n", lba, nBlockCount);
     // check of card has been removed and try to re-initialize it
@@ -585,7 +585,6 @@ RAMFUNC static unsigned char MMC_CMD12(void)
 */
     return response;
 }
-
 
 // MMC CRC calc
 RAMFUNC static void MMC_CRC(unsigned char c)

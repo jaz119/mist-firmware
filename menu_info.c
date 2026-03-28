@@ -81,7 +81,6 @@ static char *nextline()
 
 static char* infoline(uint8_t idx)
 {
-	int pos = 0;
 	char *p;
 	int from;
 	if (idx != last_idx + 1) {

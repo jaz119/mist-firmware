@@ -22,7 +22,6 @@ typedef struct {
 
 static archie_config_t config;
 static char floppy_name[MAX_FLOPPY][64];
-static FIL file;
 
 extern char s[OSD_BUF_SIZE];
 
@@ -71,18 +70,18 @@ static unsigned long hold_off_timer;
 void assign_full_path(char *, int, const char *);
 
 static inline const char *archie_get_rom_name(void) {
-  return get_short_name(config.rom_img);
+  return get_fname(config.rom_img);
 }
 
 static inline const char *archie_get_cmos_name(void) {
-  return get_short_name(config.cmos_img);
+  return get_fname(config.cmos_img);
 }
 
 static const char *archie_get_floppy_name(char i) {
   if(!floppy_name[i][0]) {
     return "* no disk *";
   } else
-    return get_short_name(floppy_name[i]);
+    return get_fname(floppy_name[i]);
 }
 
 static void archie_save_config(void) {
@@ -100,7 +99,7 @@ static void archie_set_floppy(int i, const unsigned char *name) {
   user_io_file_mount(name, i);
 
   if (user_io_is_mounted(i)) {
-    assign_full_path(floppy_name[i], sizeof(floppy_name[i]) - 1, name);
+    assign_full_path(floppy_name[i], sizeof(floppy_name[i]), name);
   } else {
     floppy_name[i][0] = 0;
   }
@@ -123,7 +122,7 @@ static void archie_set_cmos(const unsigned char *name) {
   if(f_open(&file, name, FA_READ) == FR_OK) {
     archie_debugf("CMOS file %s with %lu bytes to send", name, (uint32_t) f_size(&file));
     // save file name
-    assign_full_path(config.cmos_img, sizeof(config.cmos_img) - 1, name);
+    assign_full_path(config.cmos_img, sizeof(config.cmos_img), name);
     data_io_file_tx(&file, 0x03, 0);
     f_close(&file);
   } else
@@ -137,7 +136,7 @@ static void archie_set_rom(const unsigned char *name) {
   if(f_open(&file, name, FA_READ) == FR_OK) {
     archie_debugf("ROM file %s with %lu bytes to send", name, (uint32_t) f_size(&file));
     // save file name
-    assign_full_path(config.rom_img, sizeof(config.rom_img) - 1, name);
+    assign_full_path(config.rom_img, sizeof(config.rom_img), name);
     data_io_file_tx(&file, 0x01, 0);
     f_close(&file);
   } else

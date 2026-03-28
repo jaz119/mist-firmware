@@ -84,7 +84,6 @@ static uint8_t usb_set_address(
 static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) {
 	//  iprintf("  %s(token=%x, ep=%d, nak_limit=%d)\n",
 	//	  __FUNCTION__, token, ep, nak_limit);
-	uint8_t tmpdata;
 	uint8_t rcode = 0;
 	uint8_t retry_count = 0;
 	uint16_t nak_count = 0;

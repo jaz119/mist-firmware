@@ -287,7 +287,6 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
   char result=0;
   uint32_t key, i;
   ini_cfg_t config_ini_cfg;
-  FIL file;
 
   if(!filename) {
     // use slot-based filename if none provided
@@ -409,10 +408,10 @@ static void ApplyConfiguration(char reloadkickstart)
       switch(hdf[i].type) {
         // Customise message for SD card acces
         case (HDF_FILE | HDF_SYNTHRDB):
-          siprintf(s, "\nHardfile %d (with fake RDB): %s", i, get_short_name(hardfile[i]->path));
+          siprintf(s, "\nHardfile %d (with fake RDB): %s", i, get_fname(hardfile[i]->path));
           break;
         case HDF_FILE:
-          siprintf(s, "\nHardfile %d: %s", i, get_short_name(hardfile[i]->path));
+          siprintf(s, "\nHardfile %d: %s", i, get_fname(hardfile[i]->path));
           break;
         case HDF_CARD:
           siprintf(s, "\nHardfile %d: using entire SD card", i);
@@ -524,8 +523,6 @@ static void ApplyConfiguration(char reloadkickstart)
 unsigned char SaveConfiguration(char *filename)
 {
   ini_cfg_t config_ini_cfg;
-  FIL file;
-  UINT bw;
 
   if(!filename) {
     // use slot-based filename if none provided

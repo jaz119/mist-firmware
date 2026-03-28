@@ -42,6 +42,18 @@ void DisableOsd()
     *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
 }
 
+RAMFUNC void EnableCard() {
+    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
+    AT91C_BASE_PIOA->PIO_PDR = MMC_SEL;
+    *AT91C_SPI_CR = AT91C_SPI_SPIEN;
+}
+
+RAMFUNC void DisableCard() {
+    *AT91C_SPI_CR = AT91C_SPI_SPIEN | AT91C_SPI_LASTXFER;
+    spi_wait4xfer_end();
+    AT91C_BASE_PIOA->PIO_PER = MMC_SEL;
+}
+
 RAMFUNC void spi_block(unsigned short num) {
   unsigned short i;
   unsigned long t;

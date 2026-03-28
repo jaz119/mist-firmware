@@ -9,8 +9,8 @@
 #include "usb/rtc.h"
 #include "attrs.h"
 
-#define MCLK 48000000
-#define FWS 1 // Flash wait states
+#define MCLK  48000000
+#define FWS   1 // Flash wait states
 
 #define IFLASH_ADDR     AT91C_IFLASH
 #define IFLASH_SIZE     AT91C_IFLASH_SIZE

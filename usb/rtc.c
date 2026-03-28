@@ -4,8 +4,6 @@
 // interface for RTC USB device drivers
 //
 
-#include <string.h>
-
 #include "usb.h"
 #include "usb/rtc.h"
 

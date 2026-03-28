@@ -23,13 +23,13 @@ FATFS fs;
 char fat_device = 0;
 uint32_t iPreviousDirectory = 0;
 
-ALIGNED(4) char cwd[FF_LFN_BUF + 1];
+ALIGNED(4) char cwd[FF_LFN_BUF];
 
-int8_t fat_uses_mmc(void) {
+bool fat_uses_mmc(void) {
 	return(fat_device == 0);
 }
 
-int8_t fat_medium_present() {
+bool fat_medium_present() {
 	if (fat_device == 0)
 		return MMC_CheckCard();
 	else
@@ -63,7 +63,7 @@ const char *fs_type_to_string(void) {
 	}
 }
 
-const char *get_short_name(const char *full_path) {
+const char *get_fname(const char *full_path) {
 
 	if (!full_path)
 		return NULL;
@@ -169,11 +169,10 @@ RAMFUNC FRESULT FileReadNextBlock (
 	void* buff	/* Data buffer to store the read data */
 )
 {
-	FRESULT res;
 	DWORD clst;
 	WORD csize;
 	LBA_t sect;
-	UINT rcnt, cc, csect;
+	UINT csect;
 	DWORD cl, ncl, *tbl;
 
 	csect = (UINT)((fp->fptr >> 9) & (fs.csize - 1));	/* Sector offset in the cluster */

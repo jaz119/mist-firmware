@@ -23,7 +23,7 @@ extern bool eth_present;
 extern char s[OSD_BUF_SIZE];
 
 typedef struct {
-  char path[FF_LFN_BUF + 1];
+  char path[FF_LFN_BUF];
 } floppyTYPE;
 
 typedef struct {
@@ -31,7 +31,7 @@ typedef struct {
   char cdc_control_redirect;
   char tos_img[FF_LFN_BUF];
   char cart_img[FF_LFN_BUF];
-  hardfileTYPE  acsi[2];
+  hardfileTYPE acsi[2];
   floppyTYPE fdd[2];
 } configTYPE;
 
@@ -39,7 +39,8 @@ static configTYPE config;
 static uint32_t runtime_ctrl;
 
 static const ini_section_t config_sections[] = {
-  {1, "MISTERY"}
+  {1, "MISTERY"},
+  {1, "ATARI_ST"},
 };
 
 static const ini_var_t config_vars[] = {
@@ -49,8 +50,8 @@ static const ini_var_t config_vars[] = {
   {"CARTRIDGE",     (void*) config.cart_img, STRING, 0, FF_LFN_BUF, 1},
   {"ACSI0",         (void*) config.acsi[0].path, STRING, 1, FF_LFN_BUF, 1},
   {"ACSI1",         (void*) config.acsi[1].path, STRING, 1, FF_LFN_BUF, 1},
-  {"FDD_A",         (void*) config.fdd[0].path, STRING, 1, FF_LFN_BUF, 1},
-  {"FDD_B",         (void*) config.fdd[1].path, STRING, 1, FF_LFN_BUF, 1},
+  {"FDD0",          (void*) config.fdd[0].path, STRING, 1, FF_LFN_BUF, 1},
+  {"FDD1",          (void*) config.fdd[1].path, STRING, 1, FF_LFN_BUF, 1},
 };
 
 #define TOS_BASE_ADDRESS_192k    0xfc0000
@@ -287,7 +288,6 @@ static void get_dma_state() {
   AcsiBus.target = (AcsiBus.command[10] & 0xE0) >> 5;
 
   // only a harddisk on ACSI 0/1 is supported
-  // ACSI 0/1 is only supported if a image is loaded
   if (AcsiBus.target < 2)
     dev = &AcsiBus.devs[AcsiBus.target];
 
@@ -316,7 +316,8 @@ static void tos_load_cartridge(const char *name) {
   tos_debugf("Erasing cartridge memory");
   data_io_fill_tx(0xff, 128*1024, 0x2);
 
-  if(!config.cart_img[0] || f_open(&file, name, FA_READ) != FR_OK)
+  if(!tos_cartridge_is_inserted()
+    || f_open(&file, name, FA_READ) != FR_OK)
     return;
 
   if(f_size(&file) > 128*1024) {
@@ -418,7 +419,7 @@ void tos_update_sysctrl(unsigned long n) {
 }
 
 static inline const char *tos_get_image_name() {
-  return get_short_name(config.tos_img);
+  return get_fname(config.tos_img);
 }
 
 static const char *tos_get_disk_name(int index) {
@@ -428,10 +429,10 @@ static const char *tos_get_disk_name(int index) {
 
   // 0-1 floppy, 2-3 hdd
   if (index < 2) {
-    return get_short_name(config.fdd[index].path);
+    return get_fname(config.fdd[index].path);
   }
 
-  return get_short_name(config.acsi[index-2].path);
+  return get_fname(config.acsi[index-2].path);
 }
 
 static const char *tos_get_cartridge_name() {
@@ -439,7 +440,7 @@ static const char *tos_get_cartridge_name() {
     return "* no cartridge *";
   }
 
-  return get_short_name(config.cart_img);
+  return get_fname(config.cart_img);
 }
 
 static void tos_select_hdd_image(int i, const char *name) {
@@ -517,9 +518,9 @@ static void tos_insert_disk(int i, const char *name) {
 static const char *get_config_fname(int slot) {
   static char fname[16];
   if(slot) {
-    siprintf(fname,"/ATARIST%d.CFG", slot);
+    sniprintf(fname, sizeof(fname), "/ATARIST%d.CFG", slot);
   } else {
-    strcpy(fname,"/ATARIST.CFG");
+    strcpy(fname, "/ATARIST.CFG");
   }
   return fname;
 }
@@ -547,14 +548,16 @@ static void tos_config_load(int slot) {
   }
 
   // set default values
-  config.system_ctrl = TOS_MEMCONFIG_1M | TOS_CONTROL_VIDEO_COLOR;
+  config.system_ctrl = TOS_CONTROL_STE | TOS_MEMCONFIG_1M | TOS_CONTROL_VIDEO_COLOR;
   config.cdc_control_redirect = CDC_REDIRECT_NONE;
+
   strcpy(config.tos_img, "/TOS.IMG");
-  config.cart_img[0] = 0;
   strcpy(config.acsi[0].path, "/HARDDISK.HD");
-  config.acsi[1].path[0] = 0;
   strcpy(config.fdd[0].path, "DISK_A.ST");
+
+  config.acsi[1].path[0] = 0;
   config.fdd[1].path[0] = 0;
+  config.cart_img[0] = 0;
 
   runtime_ctrl = config.system_ctrl;
 }
@@ -585,7 +588,7 @@ static bool tos_config_exists(int slot) {
 
 void tos_eject_all() {
   // ejecting floppies
-  for(int i=0; i<2; i++) {
+  for (int i=0; i<2; i++) {
     tos_insert_disk(i, NULL);
   }
 
@@ -603,7 +606,7 @@ void tos_reset(bool cold_boot) {
   timer_delay_msec(10);
   acsi_init(cold_boot);
 
-  if(cold_boot) {
+  if (cold_boot) {
     tos_upload(NULL);
   }
 
@@ -687,7 +690,7 @@ static char tos_get_menu_page(uint8_t idx, char action, menu_page_t *page) {
   switch (idx) {
     case 0:
       page->title = "\x0e\x0f Atari ST";
-      page->flags = OSD_ARROW_LEFT;
+      page->flags = OSD_ARROW_RIGHT;
       break;
     case 1:
       page->title = "Storage";
@@ -1128,13 +1131,12 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
 
     case MENU_ACT_RIGHT:
       switch(page_idx) {
-        case 0:
+        case 0: // main
           item->newpage = 2;
           break;
-        case 2:
+        case 2: // Settings
           SetupSystemMenu();
           break;
-
         default:
           return 0;
       }
@@ -1143,15 +1145,16 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
     case MENU_ACT_LEFT:
       switch(page_idx) {
         case 1: // Storage
-        case 2: // Settings
+        case 2: // return to main
+          ClosePage();
+          break;
         case 3: // Load
         case 4: // Save
         case 5: // System
         case 6: // Video
         case 7: // Features
-          ClosePage();
+          item->newpage = 2;
           break;
-
         default:
           return 0;
       }

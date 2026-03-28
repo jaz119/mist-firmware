@@ -12,6 +12,7 @@ extern char minimig_ver_minion;
 
 unsigned char fpga_init(const char *name);
 unsigned char ConfigureFpga(const char*);
+
 void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size);
 char BootDraw(char *data, unsigned short len, unsigned short offset);
 

@@ -8,11 +8,11 @@
 #ifdef CONFIG_CHIP_SAMV71
     #define FAST
     #define FORCE_ARM
-    #define RAMFUNC     __attribute__((aligned(32), section(".ramsection"), noclone, noinline, long_call, used))
+    #define RAMFUNC     __attribute__((optimize("O2"), section(".ramsection"), long_call, noinline, noclone))
 #else
-    #define FAST        __attribute__((aligned(4), optimize("O2"), noclone))
-    #define FORCE_ARM   __attribute__((aligned(4), optimize("O2"), target("arm"), noclone))
-    #define RAMFUNC     __attribute__((aligned(4), optimize("O2"), section(".ramsection"), noclone, noinline, long_call, used))
+    #define FAST        __attribute__((optimize("O2")))
+    #define FORCE_ARM   __attribute__((optimize("O2"), target("arm")))
+    #define RAMFUNC     __attribute__((optimize("O2"), section(".ramsection"), long_call, noinline, noclone))
 #endif
 
 #endif // ATTRS_H

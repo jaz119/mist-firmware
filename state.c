@@ -61,7 +61,7 @@ void StateReset() {
 }
 
 /* latest joystick state */
-static uint8_t mist_joystick_menu;
+// static uint8_t mist_joystick_menu;
 
 uint8_t StateJoyGetMenuAny() {
 	for(int joy_num=0; joy_num<6; joy_num++) {

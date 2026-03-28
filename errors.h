@@ -12,4 +12,4 @@
 extern unsigned char Error;
 
 void ErrorMessage(const char *message, unsigned char code);
-void FatalError(unsigned long error);
+void FatalError(unsigned int error);

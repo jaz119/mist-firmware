@@ -18,5 +18,5 @@ typedef struct
 FORCE_ARM unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize);
 unsigned char CheckFirmware(char *name);
 
-FORCE_ARM RAMFUNC void WriteFirmware(char *name) RAMFUNC;
+FORCE_ARM RAMFUNC void WriteFirmware(char *name);
 char *GetFirmwareVersion(char *name);

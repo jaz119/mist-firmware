@@ -33,7 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern DWORD clmt[99];
 
 FORCE_ARM unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize) {
-   int i, j;
+   int j;
    unsigned long byte, mask;
 
    while (nSize--) {

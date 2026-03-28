@@ -72,7 +72,7 @@ bool MMC_CheckCard() {
     return false;
 }
 
-RAMFUNC static char check_card() {
+RAMFUNC static bool check_card() {
   // check of card has been removed and try to re-initialize it
   if(CardType == CARDTYPE_NONE) {
     iprintf("Card was removed, try to init it\n");

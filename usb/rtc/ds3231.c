@@ -97,7 +97,7 @@ static bool ds3231_set_time(
 
 const rtc_chip_t rtc_ds3231_chip = {
     .name = "DS3231",
-    .clock_rate = 400,
+    .clock_rate = 100,
     .probe = ds3231_probe,
     .get_time = ds3231_get_time,
     .set_time = ds3231_set_time,

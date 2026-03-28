@@ -485,7 +485,6 @@ unsigned char disable_menu = 0;
 unsigned char OsdGetCtrl(void)
 {
     static unsigned char c2;
-    static unsigned long delay;
     static unsigned long repeat;
     static unsigned long repeat2;
     unsigned char c1=0,c;

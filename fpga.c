@@ -222,7 +222,7 @@ unsigned char ConfigureFpga(const char *name)
     *AT91C_PIOA_SODR = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B;
 
     iprintf("]\r");
-    iprintf("FPGA bitstream loaded\r");
+    // iprintf("FPGA bitstream loaded\r");
     DISKLED_OFF;
 
     // check if DONE is high
@@ -258,23 +258,22 @@ unsigned char ConfigureFpga(const char *name)
     unsigned char *ptr;
     UINT br;
 
-    // set outputs
-    ALTERA_DCLK_SET;
-    ALTERA_NCONFIG_SET;
-    ALTERA_DATA0_SET;
-
-    if(!name)
+    if (!name)
       name = DEFAULT_CORE_NAME;
 
     // open bitstream file
-    if (f_open(&file, name, FA_READ) != FR_OK)
-    {
+    if (f_open(&file, name, FA_READ) != FR_OK) {
         iprintf("No FPGA configuration file found!\r");
         return ERROR_BITSTREAM_OPEN;
     }
 
     iprintf("FPGA bitstream file %s opened, file size = %lu\r", name, (uint32_t) f_size(&file));
     iprintf("[");
+
+    // set outputs
+    ALTERA_DCLK_SET;
+    ALTERA_NCONFIG_SET;
+    ALTERA_DATA0_SET;
 
     // using fast seek
     clmt[0] = ARRAY_SIZE(clmt);
@@ -288,18 +287,15 @@ unsigned char ConfigureFpga(const char *name)
     ALTERA_START_CONFIG
 
     /* Drive a transition of 0 to 1 to NCONFIG to indicate start of configuration */
-    for(i=0;i<10;i++)
+    for (i = 0; i < 10; i++)
       ALTERA_NCONFIG_RESET;  // must be low for at least 500ns
-
     ALTERA_NCONFIG_SET;
 
     // now wait for NSTATUS to go high
     // specs: max 800us
-    i = 1000000;
-    while (!ALTERA_NSTATUS_STATE)
+    for (i = 1000000; !ALTERA_NSTATUS_STATE; )
     {
-        if (--i == 0)
-        {
+        if (--i == 0) {
             ALTERA_STOP_CONFIG
             iprintf("FPGA NSTATUS is NOT high!\r");
             f_close(&file);
@@ -308,16 +304,15 @@ unsigned char ConfigureFpga(const char *name)
     }
 
     DISKLED_ON;
-
     int fsize = f_size(&file), n = fsize >> 3;
 
     /* Loop through every single byte */
-    for ( i = 0; i < fsize; )
+    for (i = 0; i < fsize; )
     {
         // read sector if SECTOR_BUFFER_SIZE bytes done
         if ((i & (SECTOR_BUFFER_SIZE-1)) == 0)
         {
-            if (i & (1<<13))
+            if (i & (1 << 13))
                 DISKLED_OFF;
             else
                 DISKLED_ON;
@@ -335,14 +330,14 @@ unsigned char ConfigureFpga(const char *name)
 
         int bytes2copy = (i < fsize - 8) ? 8 : fsize - i;
         i += bytes2copy;
-        while(bytes2copy) {
+        while (bytes2copy) {
           ShiftFpga(*ptr++);
           bytes2copy--;
         }
 
         /* Check for error through NSTATUS for every 8KB programmed and the last byte */
-        if ( !(i % 8192) || (i == fsize - 1) ) {
-            if ( !ALTERA_NSTATUS_STATE ) {
+        if (!(i & 8191) || (i == fsize - 1)) {
+            if (!ALTERA_NSTATUS_STATE) {
                 ALTERA_STOP_CONFIG
 
                 iprintf("FPGA NSTATUS is NOT high!\r");
@@ -354,13 +349,11 @@ unsigned char ConfigureFpga(const char *name)
     }
 
     ALTERA_STOP_CONFIG
-
-    f_close(&file);
+    DISKLED_OFF;
 
     iprintf("]\r");
-    iprintf("FPGA bitstream loaded\r");
-
-    DISKLED_OFF;
+    // iprintf("FPGA bitstream loaded\r");
+    f_close(&file);
 
     // check if DONE is high
     if (!ALTERA_DONE_STATE) {
@@ -377,18 +370,15 @@ unsigned char ConfigureFpga(const char *name)
        while waiting for the initialization of the device to complete before
        checking the CONFDONE and NSTATUS signals at the end of whole
        configuration cycle */
-
-    for ( i = 0; i < 50; i++ )
-    {
+    for (int n = 0; n < 50; n++) {
         ALTERA_DCLK_RESET;
         ALTERA_DCLK_SET;
     }
 
     /* Initialization end */
-
     if ( !ALTERA_NSTATUS_STATE || !ALTERA_DONE_STATE ) {
       iprintf("FPGA Initialization finish but contains error: NSTATUS is %s and CONF_DONE is %s.\r",
-             ALTERA_NSTATUS_STATE?"HIGH":"LOW", ALTERA_DONE_STATE?"HIGH":"LOW" );
+        ALTERA_NSTATUS_STATE ? "HIGH" : "LOW", ALTERA_DONE_STATE ? "HIGH" : "LOW" );
       return ERROR_UPDATE_FAILED;
     }
 

@@ -482,7 +482,6 @@ void user_io_analog_joystick(unsigned char joystick, int valueX, int valueY, int
 }
 
 void user_io_digital_joystick(unsigned char joystick, unsigned char map) {
-	uint8_t state = map;
 	// "only" 6 joysticks are supported
 	if(joystick > 5)
 		return;

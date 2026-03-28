@@ -66,7 +66,7 @@ char page_plugin_add(menu_page_plugin_t *plugin) {
 static menu_page_plugin_t *get_page_plugin(const char *plugin_id) {
 	for (int i = 0; i < MAX_PAGE_PLUGINS; i++) {
 		if (PAGE_PLUGINS[i]) {
-			if (PAGE_PLUGINS[i]->id && strncmp(PAGE_PLUGINS[i]->id, plugin_id, 3) == 0) {
+			if (strncmp(PAGE_PLUGINS[i]->id, plugin_id, 3) == 0) {
 				return PAGE_PLUGINS[i];
 			}
 		} else {
@@ -137,7 +137,7 @@ static unsigned long long setStatus(char *opt, unsigned long long status, unsign
 	return (status & ~x) | (((unsigned long long)value << idx1) & x);
 }
 
-static unsigned long long getStatusMask(char *opt) {
+/*static unsigned long long getStatusMask(char *opt) {
 	char idx1 = getIdx(opt);
 	char idx2 = getIdx(opt+1);
 	unsigned long long x = 1;
@@ -147,7 +147,7 @@ static unsigned long long getStatusMask(char *opt) {
 	//iprintf("grtStatusMask %d %d %x\n", idx1, idx2, x);
 
 	return x << idx1;
-}
+}*/
 
 static char RomFileSelected(uint8_t, const char *SelectedName) {
 	IDXFile *index = &sd_image[selected_drive_slot & 3];
@@ -523,7 +523,7 @@ void Setup8bitMenu() {
 	while ((p = user_io_8bit_get_string(i++))) {
 		if(p[0] == 'V') {
 			// p[1] is not used but kept for future use
-			char x = p[1];
+			// char x = p[1];
 			// get version string
 			strcpy(s, user_io_get_core_name());
 			strcat(s," ");

@@ -81,8 +81,6 @@ int MSF2LBA(unsigned char m, unsigned char s, unsigned char f) {
 }
 
 static char ParseMSF(const char *s, msf_t *msf) {
-  char c;
-
   if (*s && CHAR_IS_NUM(*s)) msf->m = 10*(*s++ - '0'); else return 0;
   if (*s && CHAR_IS_NUM(*s)) msf->m+= (*s++ - '0'); else return 0;
   if (*s && *s == ':') s++; else return 0;

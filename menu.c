@@ -211,8 +211,6 @@ static void get_joystick_state_usb( char s[32], unsigned char joy_num ) {
 	/* USB specific - current "raw" state
 	  (in reverse binary format to correspont to MIST.INI mapping entries)
 	*/
-	char buffer[5];
-	unsigned short i;
 	char binary_string[9]="00000000";
 	unsigned char joy = 0;
 	unsigned int max_btn = 1;
@@ -264,7 +262,7 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 		return;
 	}
 
-	char buffer[20]={0}; // limited by width of OSD
+	char buffer[21] = { 0 }; // limited by width of OSD
 
 	//hack populate from outside
 	int vid = StateUsbVidGet(joy_num);
@@ -272,14 +270,14 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 
 	if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2) || (!mist_cfg.joystick_db9_fixed_index && joy_num >= StateNumJoysticks())) {
 		if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2) || (!mist_cfg.joystick_db9_fixed_index && joy_num < StateNumJoysticks()+2)) {
-			strcpy( buffer, "Atari DB9 Joystick");
+			strcpy( buffer, "Atari DB9 Joystick" );
 		} else {
-			strcpy( buffer, "None");
+			strcpy( buffer, "None" );
 		}
 	} else if (vid>0) {
 		const char* joy_name = get_joystick_name( vid, pid );
 		if (joy_name) {
-			strncpy( buffer, joy_name, sizeof(buffer) - 1 );
+			strncpy( buffer, joy_name, sizeof(buffer) );
 			buffer[sizeof(buffer) - 1] = '\0';
 		} else {
 			append_joystick_usbid( buffer, vid, pid );
@@ -467,19 +465,19 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			helptext=helptexts[HELPTEXT_INPUT];
 			siprintf(s, "Joy%d", idx-3);
 			page->title = s;
-			page->timer = 10;
+			page->timer = 100;
 			page->stdexit = MENU_STD_SPACE_EXIT;
 			memset(&mapping, 0, sizeof(joymapping_t));
 			setup_phase = 0;
 			break;
 		case 8:
 			page->title = "Keyboard";
-			page->timer = 10;
+			page->timer = 100;
 			page->stdexit = MENU_STD_COMBO_EXIT;
 			break;
 		case 9:
 			page->title = "USB";
-			page->timer = 10;
+			page->timer = 100;
 			break;
 		case 10:
 			page->title = "Status";
@@ -526,7 +524,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 1:
 					item->item = " Date & Time";
-					item->active = (usb_get_device(USB_RTC) != NULL);
+					item->active = !!usb_get_device(USB_RTC);
 					item->stipple = !item->active;
 					item->newpage = 2;
 					break;
@@ -554,7 +552,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->item = " About";
 					break;
 
-				// page 1 - firmware & core
+				// page 1 - Firmware & Core
 				case 7:
 					siprintf(s, "   ARM  s/w ver. %s", version + 5);
 					item->item = s;
@@ -647,7 +645,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->newpage = 9;
 					break;
 
-				// page 4-7 - joy test
+				// page 4-7 - Joy test
 				case 27:
 					if (!setup_phase) {
 						get_joystick_state(joy_string, joy_string2, page_idx-4); //grab state of joy
@@ -730,7 +728,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->item = s;
 					break;
 
-				// page 8 - keyboard test
+				// page 8 - Keyboard test
 				case 37:
 					item->item = "       USB scancodes";
 					break;
@@ -777,9 +775,9 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 				// page 10 - System status
 				case 47:
 					siprintf(s, " Boot device:    %11s", fat_uses_mmc()
-						? (MMC_GetCardType() == CARDTYPE_MMC  ? "   MMC card" :
-						   MMC_GetCardType() == CARDTYPE_SD   ? "    SD card" :
-						   MMC_GetCardType() == CARDTYPE_SDHC ? "  SDHC card" : "None")
+						? (MMC_GetCardType() == CARDTYPE_MMC  ? "MMC card" :
+						   MMC_GetCardType() == CARDTYPE_SD   ? "SD card" :
+						   MMC_GetCardType() == CARDTYPE_SDHC ? "SDHC card" : "None")
 						: "USB storage");
 					item->active = fat_medium_present();
 					item->stipple = !item->active;
@@ -836,21 +834,17 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					}
 					item->stipple = !item->active;
 					item->item = s;
-					}
 					break;
+				}
 				case 52: {
-					uint8_t cdc_count = 0;
-#ifdef USB_PL2303_CDC
-					cdc_count = get_pl2303s();
-#endif
-					siprintf(s, " Serial:");
-					cdc_count ? siprintf(s + 8, " %10u", cdc_count) : siprintf(s + 8, "       none");
-					siprintf(s + 19, " detected");
-					item->active = cdc_count;
+					bool have_uart = !!usb_get_device(USB_UART);
+					siprintf(s, " Serial: %10s detected",
+						have_uart ? "USB UART" : "none");
+					item->active = have_uart;
 					item->stipple = !item->active;
 					item->item = s;
-					}
 					break;
+				}
 #ifdef CONFIG_HAVE_ETH
 				case 53: {
 					uint8_t mac[6];
@@ -899,7 +893,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->newsub = 6;
 					break;
 				case 1:
-					if(GetRTC((uint8_t*)&date)) item->newpage = 2;
+					if(!!usb_get_device(USB_RTC)) item->newpage = 2;
 					break;
 				case 2:
 					item->newpage = 3;
@@ -954,8 +948,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 			}
 			break;
-		case MENU_ACT_LEFT:
-		case MENU_ACT_RIGHT:
+		// case MENU_ACT_LEFT:
+		// case MENU_ACT_RIGHT:
 		case MENU_ACT_PLUS:
 		case MENU_ACT_MINUS:
 			if (page_idx == 0 && action == MENU_ACT_LEFT) {
@@ -982,15 +976,13 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 			if (page_idx == 2) {
 				if (GetRTC((uint8_t*)&date)) {
 					static const char mdays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-					int year;
-					uint8_t is_leap, month, maxday;
-					char left = action == MENU_ACT_LEFT || action == MENU_ACT_MINUS;
+					bool left = (action == MENU_ACT_LEFT) || (action == MENU_ACT_MINUS);
 
-					year = 1900+date[T_YEAR];
-					month = date[T_MONTH];
+					int year = 1900 + date[T_YEAR];
+					int month = date[T_MONTH];
 					if (month > 12) month = 12;
-					is_leap = (!(year % 4) && (year % 100)) || !(year % 400);
-					maxday = mdays[month-1] + (month == 2 && is_leap);
+					bool is_leap = (!(year % 4) && (year % 100)) || !(year % 400);
+					int maxday = mdays[month - 1] + (month == 2 && is_leap);
 
 					switch(idx) {
 						case 14: if (left) date[T_YEAR]--; else date[T_YEAR]++; break;
@@ -1335,7 +1327,7 @@ void HandleUI(uint8_t key)
 				} else {
 					if (idx == 0) {
 						uint8_t date[7];
-						char rtc = GetRTC((uint8_t*)&date);
+						bool rtc = GetRTC((uint8_t*)&date);
 						if (rtc) {
 							siprintf(s, "%s%04d/%02d/%02d %02d:%02d:%02d %s",
 								date[T_WDAY]==4 ? "" : " ",1900+date[T_YEAR], date[T_MONTH], date[T_DAY],
@@ -1900,8 +1892,6 @@ static void PrintDirectory(void)
     unsigned long len;
     char *lfn;
     char *info;
-    char *p;
-    unsigned int j;
 
     s[32] = 0; // set temporary string length to OSD line length
 

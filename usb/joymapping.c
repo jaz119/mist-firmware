@@ -63,13 +63,13 @@ static const uint16_t default_joystick_mapping [16] = {
 	JOY_R3
 };
 
-static void dump_mapping() {
+/*static void dump_mapping() {
 	for(int i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
 		if(joystick_mappers[i].vid && joystick_mappers[i].pid) {
 			iprintf("map[%d]: VID: %04x PID: %04x tag: %d\n", i, joystick_mappers[i].vid, joystick_mappers[i].pid, joystick_mappers[i].tag);
 		}
 	}
-}
+}*/
 
 static char idx = 0;
 
@@ -92,8 +92,6 @@ char virtual_joystick_remap(char *s, char action, int tag) {
   uint16_t value = 0;
   uint16_t pid, vid;
   char *token;
-  char *sub_token;
-
 
   // save entry to string
   if(action == INI_SAVE) {
@@ -243,7 +241,7 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 static const struct {
 	uint16_t vid;
 	uint16_t pid;
-	char name[20];
+	char name[21];
 } joy_devs[] = {
 	{ 0x0079, 0x0006, "Retrolink N64/GC" },
 	{ 0x0079, 0x0011, "Retrolink NES" },
@@ -590,7 +588,6 @@ bool virtual_joystick_keyboard( uint16_t vjoy ) {
 	}
 
 	// process mapped keyboard commands from mist.ini
-	uint32_t count=0;
 	uint8_t mapped_hit = 0;
 	uint8_t modifier = 0;
 	uint8_t has_mapping = 0;
