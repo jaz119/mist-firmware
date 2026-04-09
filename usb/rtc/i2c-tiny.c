@@ -140,8 +140,6 @@ struct timeS {
 static uint8_t tiny_rtc_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc) {
   uint8_t rcode = 0;
 
-  usbrtc_debugf("%s(%d)", __FUNCTION__, dev->bAddress);
-
   union {
     usb_configuration_descriptor_t conf_desc;
     struct timeS time;
@@ -151,12 +149,11 @@ static uint8_t tiny_rtc_init(usb_device_t *dev, usb_device_descriptor_t *dev_des
   if (dev_desc->bDeviceClass != USB_CLASS_VENDOR_SPECIFIC)
     return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 
-  usbrtc_debugf("vid/pid = 0x%x/0x%x", dev_desc->idVendor, dev_desc->idProduct);
-
   if((dev_desc->idVendor != 0x0403) || (dev_desc->idProduct != 0xc631)) {
-    usbrtc_debugf("Not a i2c-tiny-usb device");
     return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
   }
+
+  usbrtc_debugf("%s(%d)", __FUNCTION__, dev->bAddress);
 
   if((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), 0, &buf.conf_desc))) {
     usbrtc_debugf("Failed getting conf descriptor #0");

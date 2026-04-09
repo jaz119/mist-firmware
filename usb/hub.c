@@ -145,16 +145,16 @@ static uint8_t usb_hub_init(
 
   usb_dump_conf_descriptor(&buf.conf_desc);
 
+  rcode = usb_hub_parse_conf(dev, 0, buf.conf_desc.wTotalLength, &info->ep);
+  if (rcode) {
+    iprintf("hub: failed to get endpoint data (%d)\n", rcode);
+    return rcode;
+  }
+
   // Set Configuration Value
   rcode = usb_set_conf(dev, buf.conf_desc.bConfigurationValue);
   if (rcode) {
     iprintf("hub: failed to set configuration to %d\n", buf.conf_desc.bConfigurationValue);
-    return rcode;
-  }
-
-  rcode = usb_hub_parse_conf(dev, 0, buf.conf_desc.wTotalLength, &info->ep);
-  if (rcode) {
-    iprintf("hub: failed to get endpoint data (%d)\n", rcode);
     return rcode;
   }
 
@@ -209,8 +209,8 @@ static uint8_t usb_hub_port_status_change(
   usb_hub_info_t *info = &(dev->hub_info);
   uint8_t rcode = 0;
 
-  usb_debugf("%s(%u, event=0x%x, change=0x%x)",
-    __FUNCTION__, port, evt->bmEvent, evt->bmChange);
+  iprintf("hub: port %u: event 0x%lx, change 0x%x\n",
+    port, evt->bmEvent, evt->bmChange);
 
   if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_ENABLE)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_ENABLE, port, 0);
@@ -230,13 +230,13 @@ static uint8_t usb_hub_port_status_change(
     if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
       if (!(info->resetMask & mask)) {
         info->resetMask |= mask;
-        iprintf("hub: port %d CONNECT\n", port);
+        iprintf("hub: port %d: CONNECT\n", port);
         usb_release_device(dev->bAddress, port);
         usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
         return HUB_ERROR_PORT_HAS_BEEN_RESET;
       }
     } else {
-      iprintf("hub: port %d DISCONNECT\n", port);
+      iprintf("hub: port %d: DISCONNECT\n", port);
       usb_release_device(dev->bAddress, port);
       usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
     }

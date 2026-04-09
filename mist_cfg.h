@@ -14,7 +14,6 @@ typedef struct {
   uint32_t keyrah_mode;
   uint8_t scandoubler_disable;
   uint8_t csync_disable;
-  uint8_t mouse_boot_mode;
   uint8_t mouse_speed;
   uint8_t joystick_ignore_hat;
   uint8_t joystick_ignore_osd;

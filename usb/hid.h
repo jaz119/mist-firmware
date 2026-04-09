@@ -33,11 +33,13 @@
 #define HID_PROTOCOL_KEYBOARD       0x01
 #define HID_PROTOCOL_MOUSE          0x02
 
-#define HID_REQ_HIDREPORT     USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_STANDARD|USB_SETUP_RECIPIENT_INTERFACE
-#define HID_REQ_HIDOUT        USB_SETUP_HOST_TO_DEVICE|USB_SETUP_TYPE_CLASS|USB_SETUP_RECIPIENT_INTERFACE
-#define HID_REQ_HIDIN         USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_CLASS|USB_SETUP_RECIPIENT_INTERFACE
+#define HID_REQ_HIDREPORT     (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_INTERFACE)
+#define HID_REQ_HIDOUT        (USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE)
+#define HID_REQ_HIDIN         (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE)
 
-#define MAX_IFACES  2  // max supported interfaces per device. 2 to support kbd/mouse combos
+#define MAX_IFACES            2  // max supported interfaces per device. 2 to support kbd/mouse combos
+#define REPORT_BUF_SZ         64
+#define MIN_POLLING_TIME      8  // min interval for reports polling (ms)
 
 #define HID_DEVICE_UNKNOWN  0
 #define HID_DEVICE_MOUSE    1
@@ -46,11 +48,10 @@
 
 // when the joystick axis counts as trigger a direction for binary
 #define JOYSTICK_AXIS_MIN           0
-#define JOYSTICK_AXIS_MID           127
+#define JOYSTICK_AXIS_MID           128
 #define JOYSTICK_AXIS_MAX           255
 #define JOYSTICK_AXIS_TRIGGER_MIN   64
 #define JOYSTICK_AXIS_TRIGGER_MAX   192
-
 
 
 typedef struct {

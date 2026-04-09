@@ -24,7 +24,7 @@ jobs:
                 name: "Latest Build: ${{ github.ref_name }}"
                 body: "The latest build from the branch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}"
                 fail_on_unmatched_files: true
-                # prerelease: true
+                prerelease: true
                 files: |
                     firmware.bin
                     firmware.upg

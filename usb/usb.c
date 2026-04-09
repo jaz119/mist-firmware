@@ -34,12 +34,11 @@ void usb_init() {
 // list of supported device classes
 static const usb_device_class_config_t *class_list[] = {
   &usb_hub_class,
+  &usb_xbox_class,
 #ifndef CONFIG_CHIP_SAMV71
   &usb_rtc_tiny_class.base,
   &usb_rtc_mcp2221_class.base,
 #endif
-  &usb_hid_class,
-  &usb_xbox_class,
 #ifdef USB_STORAGE
   &usb_storage_class,
 #endif
@@ -49,6 +48,7 @@ static const usb_device_class_config_t *class_list[] = {
 #ifdef USB_ASIX_NET
   &usb_asix_class,
 #endif
+  &usb_hid_class,
   NULL
 };
 
@@ -86,8 +86,10 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 
 		if((rcode = usb_get_dev_descr( d, 8, &dev_desc )))
 			return rcode;
+
 		d->ep0.maxPktSize = dev_desc.bMaxPacketSize0;
 		usb_debugf("EP0 max packet size: %d", d->ep0.maxPktSize);
+
 		// Assign new address to the device
 		// (address is simply the number of the free slot + 1)
 		rcode = usb_set_addr(d, i+1);
@@ -104,8 +106,10 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		// --- enumerate device ---
 		if((rcode = usb_get_dev_descr( d, sizeof(usb_device_descriptor_t), &dev_desc)))
 			return rcode;
+
 		usb_dump_device_descriptor(&dev_desc);
-		iprintf("USB vendor ID: %04X, product ID: %04X\n", dev_desc.idVendor, dev_desc.idProduct);
+		iprintf("USB device %04x:%04x detected\n",
+			dev_desc.idVendor, dev_desc.idProduct);
 
 		// save vid/pid
 		d->vid = dev_desc.idVendor;
@@ -114,8 +118,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		// The Retroflag Classic USB Gamepad doesn't report movement until the string descriptors are read,
 		// so read all of them here (and show them on the console)
 		if (!usb_get_string_descr(d, sizeof(str), 0, 0, &str.str_desc)) { // supported languages descriptor
-			uint16_t wLangId = str.str0_desc.wLANGID[0];
-			usb_debugf("wLangId: 0x%04X", wLangId);
+			usb_debugf("wLangId: 0x%04X", str.str0_desc.wLANGID[0]);
 
 			// Some gamepads (Retrobit) breaks if its strings are queried like below, so don't do it until it can be done safely.
 #if 0
@@ -167,7 +170,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	} else
 		usb_debugf("no more free entries");
 
-	iprintf("usb: unsupported device\n");
+	iprintf("usb: unknown device\n");
 	return 0;
 }
 

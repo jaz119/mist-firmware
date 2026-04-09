@@ -31,6 +31,7 @@ RAMFUNC const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* dat
 
 // discard data if NULL ptr was provided
 RAMFUNC uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data) {
+  uint8_t count = n;
   spi_max_start();
   spi8(reg);
 
@@ -41,7 +42,7 @@ RAMFUNC uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data) {
     while(n--) spi8(0);
 
   spi_max_end();
-  return data+n;
+  return data ? (data + count) : NULL;
 }
 
 static uint8_t vbusState = MAX3421E_STATE_SE0;

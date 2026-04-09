@@ -48,7 +48,6 @@ void mist_ini_parse()
 mist_cfg_t mist_cfg = {
   .scandoubler_disable = 0,
   .csync_disable = 0,
-  .mouse_boot_mode = 0,
   .mouse_speed = 100,
   .joystick_ignore_hat = 0,
   .joystick_ignore_osd = 0,
@@ -100,7 +99,6 @@ static const ini_var_t mist_ini_vars[] = {
   {"RESET_COMBO", (void*)(&(mist_cfg.reset_combo)), UINT8, 0, 2, 1},
   {"SCANDOUBLER_DISABLE", (void*)(&(mist_cfg.scandoubler_disable)), UINT8, 0, 1, 1},
   {"CSYNC_DISABLE", (void*)(&(mist_cfg.csync_disable)), UINT8, 0, 1, 1},
-  {"MOUSE_BOOT_MODE", (void*)(&(mist_cfg.mouse_boot_mode)), UINT8, 0, 1, 1},
   {"MOUSE_SPEED", (void*)(&(mist_cfg.mouse_speed)), UINT8, 10, 200, 1},
   {"JOYSTICK_IGNORE_HAT", (void*)(&(mist_cfg.joystick_ignore_hat)), UINT8, 0, 1, 1},
   {"JOYSTICK_DISABLE_SHORTCUTS", (void*)(&(mist_cfg.joystick_disable_shortcuts)), UINT8, 0, 1, 1},

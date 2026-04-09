@@ -175,7 +175,7 @@ void user_io_init() {
 	iprintf("Debug mode: %s\n",
 		DEBUG_MODE ? "on" : "off");
 
-	iprintf("DIP switches: 1:%s, 2:%s\n",
+	iprintf("DIP switches (1/2): %s/%s\n",
 		is_dip_switch1_on() ? "on" : "off",
 		is_dip_switch2_on() ? "on" : "off");
 }

@@ -170,7 +170,7 @@ char virtual_joystick_remap(char *s, char action, int tag) {
         if (count < 16) {
             //parse sub-tokens sequentially and assign 16-bit value to them
             joystick_mappers[i].mapping[count] = value;
-            hid_debugf("parsed: 0x%x/0x%x %d -> %d",
+            hid_debugf("parsed: 0x%x/0x%x %lu -> %d",
                       joystick_mappers[i].vid, joystick_mappers[i].pid,
                       count, joystick_mappers[i].mapping[count]);
         }
@@ -256,7 +256,8 @@ static const struct {
 	{ 0x0738, 0x2217, "Speedlink Compet Pro" },
 	{ 0x081F, 0xE401, "SNES Generic Pad" },
 	{ 0x0F30, 0x1012, "Qanba Q4RAF" },
-	{ 0x0CA3, 0x0024, "8BitDo M30 2.4G" },
+	{ 0x0CA3, 0x0024, "8BitDo M30 Sega" },
+	{ 0x057E, 0x2009, "8BitDo M30 SwitchPro" },
 	{ 0x1002, 0x9000, "8BitDo FC30" },
 	{ 0x1235, 0xab11, "8BitDo SFC30" },
 	{ 0x1235, 0xab21, "8BitDo SFC30"},

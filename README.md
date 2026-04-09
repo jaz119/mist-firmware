@@ -9,10 +9,10 @@ The purpose of this fork is to get rid of outdated code and further improve it.
 - Improved USB support:
     - improved Hub events handling for better peripheral compatibility;
     - MAX3421e INT pin is used to wait for interrupts instead of polling the SPI bus;
+    - HID: better compatibility for modern devices in *Report mode*;
     - implemented robust timeouts for retries and NAKs;
 
 - Smaller size, but speed optimized:
-    - speed rate of SD card has been increased (slightly);
     - faster loading of FPGA cores;
 
 - Other:
@@ -22,7 +22,6 @@ The purpose of this fork is to get rid of outdated code and further improve it.
         | :--    | :--  | :--   | :--    | :--   | :--          |
         | 157285 | 0    | 44536 | 201821 | 3145d | firmware.elf |
 
-    - firmware upgrading: flash pages full unlock is fixed;
     - SD card hot swap (*it may require hardware modification*);
     - disks images and ROMs can be loaded from any directories for *Archie*;
     - *memory-consuming ASIX driver is disabled by default*;
@@ -33,6 +32,7 @@ The purpose of this fork is to get rid of outdated code and further improve it.
 
 - *Minimig core*:
     - disk images and ROMs can be loaded from any directories;
+    - speed rate of SD card has been increased (slightly);
     - *removed legacy V1 core support*;
 
 - *MiSTery core*:

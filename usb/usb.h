@@ -8,10 +8,17 @@
 /* NAK powers. To save space in endpoint data structure, amount of retries */
 /* before giving up and returning 0x4 is stored in bmNakPower as a power of 2.*/
 /* The actual nak_limit is then calculated as nak_limit = ( 2^bmNakPower - 1) */
-#define USB_NAK_MAX_POWER     16 // NAK binary order maximum value
-#define USB_NAK_DEFAULT       7  // default 127 NAKs before giving up
-#define USB_NAK_NOWAIT        1  // Single NAK stops transfer
-#define USB_NAK_NONAK         0  // Do not count NAKs, stop retrying after USB Timeout
+#define USB_NAK_MAX_POWER     16    // NAK binary order maximum value
+#define USB_NAK_DEFAULT       7     // default 127 NAKs before giving up
+#define USB_NAK_NOWAIT        1     // Single NAK stops transfer
+#define USB_NAK_NONAK         0     // Do not count NAKs, stop retrying after USB Timeout
+
+#define USB_SETTLE_DELAY      200   // Settle delay (msec)
+#define USB_XFER_TIMEOUT      2500  // USB transfer timeout (msec), per section 9.2.6.1 of USB 2.0 spec
+#define USB_ACK_TIMEOUT       25    // USB ACK timeout (msec)
+#define USB_NACK_DELAY        100   // USB NACK delay (usec)
+#define USB_RETRY_DELAY       150   // USB timeout retry delay (usec)
+#define USB_RETRY_LIMIT       10    // Retry limit for a transfer
 
 #define EP_TYPE_CTRL          0U
 #define EP_TYPE_ISOC          1U
@@ -20,9 +27,9 @@
 #define EP_TYPE_MSK           3U
 
 typedef struct {
-  uint8_t epAddr;     // Endpoint address
-  uint8_t maxPktSize; // Maximum packet size
   uint8_t epType;
+  uint8_t epAddr;       // Endpoint address
+  uint16_t maxPktSize;  // Maximum packet size
 
   union {
     uint8_t epAttribs;
@@ -38,21 +45,14 @@ typedef struct {
   };
 } ep_t;
 
-#define USB_NUMDEVICES 16      // number of supported USB devices
-#define USB_MAX_CONFIG_DESC_SIZE 512 // config descriptor size limit
+#define USB_NUMDEVICES            16  // number of supported USB devices
+#define USB_MAX_CONFIG_DESC_SIZE  512 // config descriptor size limit
 
 /* Common setup data constant combinations  */
-#define USB_REQ_GET_DESCR     USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_STANDARD|USB_SETUP_RECIPIENT_DEVICE     //get descriptor request type
-#define USB_REQ_GET           USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_STANDARD|USB_SETUP_RECIPIENT_DEVICE     //get request type for all but 'get feature' and 'get interface'
-#define USB_REQ_SET           USB_SETUP_HOST_TO_DEVICE|USB_SETUP_TYPE_STANDARD|USB_SETUP_RECIPIENT_DEVICE     //set request type for all but 'set feature' and 'set interface'
-#define USB_REQ_CL_GET_INTF   USB_SETUP_DEVICE_TO_HOST|USB_SETUP_TYPE_CLASS|USB_SETUP_RECIPIENT_INTERFACE     //get interface request type
-
-#define USB_SETTLE_DELAY      200   // settle delay (msec)
-#define USB_XFER_TIMEOUT      5000  // USB transfer timeout (msec), per section 9.2.6.1 of USB 2.0 spec
-#define USB_ACK_TIMEOUT       25    // USB ACK timeout (msec)
-#define USB_NACK_DELAY        50    // USB NACK delay (usec)
-#define USB_RETRY_DELAY       150   // USB timeout retry delay (usec)
-#define USB_RETRY_LIMIT       3     // retry limit for a transfer
+#define USB_REQ_GET_DESCR     (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_DEVICE) // get descriptor request type
+#define USB_REQ_GET           (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_DEVICE) // get request type for all but 'get feature' and 'get interface'
+#define USB_REQ_SET           (USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_DEVICE) // set request type for all but 'set feature' and 'set interface'
+#define USB_REQ_CL_GET_INTF   (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE) // get interface request type
 
 /* USB state machine states */
 #define USB_STATE_MASK                                      0xf0
@@ -307,6 +307,8 @@ typedef struct {
 #define USB_DESCRIPTOR_DEVICE_QUALIFIER 0x06    // bDescriptorType for a Device Qualifier.
 #define USB_DESCRIPTOR_OTHER_SPEED      0x07    // bDescriptorType for a Other Speed Configuration.
 #define USB_DESCRIPTOR_INTERFACE_POWER  0x08    // bDescriptorType for Interface Power.
+#define USB_DESCRIPTOR_IAD              0x0b    // Interface Association Descriptor
+#define USB_DESCRIPTOR_CS_IFACE         0x24    // Class-Specific Interface
 
 void usb_init();
 

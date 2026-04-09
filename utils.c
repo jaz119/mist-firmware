@@ -41,10 +41,8 @@ int _strnicmp(const char *s1, const char *s2, size_t n) {
 
 void hexdump(void *data, int size, int offset) {
   uint8_t i, b2c;
-  uint16_t n=0;
+  uint16_t n = 0;
   char *ptr = data;
-
-  if(!size || !is_dip_switch1_on()) return;
 
   while(size>0) {
     iprintf("%04x: ", n + offset);

@@ -8,8 +8,8 @@
 #define REPORT_TYPE_KEYBOARD 2
 #define REPORT_TYPE_JOYSTICK 3
 
-#define MAX_AXES 4
-#define MAX_BUTTONS 12
+#define MAX_AXES             4
+#define MAX_BUTTONS          18
 
 // currently only joysticks are supported
 typedef struct {
@@ -23,28 +23,28 @@ typedef struct {
 				uint16_t offset;
 				uint8_t size;
 				struct {
-					uint16_t min;
+					int16_t min;
 					uint16_t max;
 				} logical;
-      } axis[MAX_AXES];               // x and y axis + wheel or right hat
+      } axis[MAX_AXES];         // x and y axis + wheel or right hat
 
       struct {
 				uint8_t byte_offset;
 				uint8_t bitmask;
-      } button[MAX_BUTTONS];          // 12 buttons max
+      } button[MAX_BUTTONS];    // 18 buttons max
 
       struct {
 				uint16_t offset;
 				uint8_t size;
 				struct {
-					uint16_t min;
+					int16_t min;
 					uint16_t max;
 				} logical;
 				struct {
-					uint16_t min;
+					int16_t min;
 					uint16_t max;
 				} physical;
-      } hat;                   // 1 hat (joystick only)
+      } hat;                    // 1 hat (joystick only)
 
 			uint8_t button_count;
 
@@ -52,6 +52,6 @@ typedef struct {
   };
 } hid_report_t;
 
-bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf);
+bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf, int target_type);
 
 #endif // HIDPARSER_H

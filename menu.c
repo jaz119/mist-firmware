@@ -456,7 +456,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			break;
 		case 3:
 			page->title = "Inputs";
-			page->timer = 100;
+			page->timer = 1000;
 			break;
 		case 4:
 		case 5:
@@ -472,12 +472,12 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			break;
 		case 8:
 			page->title = "Keyboard";
-			page->timer = 100;
+			page->timer = 500;
 			page->stdexit = MENU_STD_COMBO_EXIT;
 			break;
 		case 9:
 			page->title = "USB";
-			page->timer = 100;
+			page->timer = 500;
 			break;
 		case 10:
 			page->title = "Status";

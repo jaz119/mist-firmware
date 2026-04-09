@@ -123,9 +123,9 @@ static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) 
 static uint8_t usb_InTransfer(ep_t *pep, uint16_t nak_limit,
 		       uint16_t *nbytesptr, uint8_t* data) {
 	uint8_t rcode = 0;
-	uint8_t pktsize;
-	uint16_t nbytes    = *nbytesptr;
-	uint8_t maxpktsize = pep->maxPktSize;
+	uint16_t pktsize;
+	uint16_t nbytes = *nbytesptr;
+	uint16_t maxpktsize = pep->maxPktSize;
 
 	*nbytesptr = 0;
 
@@ -139,13 +139,13 @@ static uint8_t usb_InTransfer(ep_t *pep, uint16_t nak_limit,
 		rcode = usb_dispatchPkt( tokIN, pep->epAddr, nak_limit );
 
 		//should be 0, indicating ACK. Else return error code.
-		if( rcode ) return( rcode );
+		if( rcode ) return rcode;
 
 		/* check for RCVDAVIRQ and generate error if not present */
 		/* the only case when absense of RCVDAVIRQ makes sense is when */
 		/* toggle error occured. Need to add handling for that */
 		if(( max3421e_read_u08( MAX3421E_HIRQ ) & MAX3421E_RCVDAVIRQ ) == 0 )
-			return ( 0xf0 );                            //receive error
+			return 0xf0; // receive error
 
 		pktsize = max3421e_read_u08( MAX3421E_RCVBC ); // number of received bytes
 
@@ -155,7 +155,12 @@ static uint8_t usb_InTransfer(ep_t *pep, uint16_t nak_limit,
 			mem_left = 0;
 
 		uint8_t data_size = (pktsize > mem_left) ? mem_left : pktsize;
-		data = max3421e_read(MAX3421E_RCVFIFO, data_size, data );
+		data = max3421e_read(MAX3421E_RCVFIFO, data_size, data);
+
+		// FIFO tail discard
+		if (pktsize > data_size) {
+			max3421e_read(MAX3421E_RCVFIFO, pktsize - data_size, NULL);
+		}
 
 		// Clear the IRQ & free the buffer
 		max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_RCVDAVIRQ );
@@ -190,14 +195,13 @@ uint8_t usb_in_transfer( usb_device_t *dev, ep_t *ep, uint16_t *nbytesptr, uint8
 	return usb_InTransfer(ep, nak_limit, nbytesptr, data);
 }
 
-static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
-			uint16_t nbytes, const uint8_t *data) {
-	//  iprintf("%s(%d)\n", __FUNCTION__, nbytes);
+static uint8_t usb_OutTransfer(ep_t *pep,
+	uint16_t nak_limit, uint16_t nbytes, const uint8_t *data) {
 
 	uint8_t rcode = 0, retry_count;
 	uint16_t bytes_tosend, nak_count;
 	uint16_t bytes_left = nbytes;
-	uint8_t maxpktsize = pep->maxPktSize;
+	uint16_t maxpktsize = pep->maxPktSize;
 
 	if( maxpktsize < 1 || maxpktsize > 64 )
 		return USB_ERROR_INVALID_MAX_PKT_SIZE;
@@ -244,12 +248,12 @@ static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 				continue;
 
 			default:
-				return( rcode );
+				return rcode;
 			}
 		} // retries loop
 
 		if (rcode != 0)
-			return( rcode ); // timeout
+			return rcode; // timeout
 
 		bytes_left -= bytes_tosend;
 		data += bytes_tosend;
@@ -258,7 +262,7 @@ static uint8_t usb_OutTransfer(ep_t *pep, uint16_t nak_limit,
 
 	// update toggle
 	pep->bmSndToggle = ( max3421e_read_u08( MAX3421E_HRSL ) & MAX3421E_SNDTOGRD ) ? 1 : 0;
-	return( rcode );    // should be 0 in all cases
+	return rcode; // should be 0 in all cases
 }
 
 /* OUT transfer to arbitrary endpoint. Handles multiple packets if necessary. Transfers 'nbytes' bytes. */
