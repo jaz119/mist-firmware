@@ -9,7 +9,16 @@
 #define REPORT_TYPE_JOYSTICK 3
 
 #define MAX_AXES             4
-#define MAX_BUTTONS          18
+#define MAX_BUTTONS          14
+
+typedef struct {
+  uint16_t offset;
+  uint8_t size;
+  struct {
+    int16_t min;
+    uint16_t max;
+  } logical;
+} hid_axis_t;
 
 // currently only joysticks are supported
 typedef struct {
@@ -19,19 +28,12 @@ typedef struct {
 
   union {
     struct {
-      struct {
-				uint16_t offset;
-				uint8_t size;
-				struct {
-					int16_t min;
-					uint16_t max;
-				} logical;
-      } axis[MAX_AXES];         // x and y axis + wheel or right hat
+      hid_axis_t axis[MAX_AXES]; // x and y axis + wheel or right hat
 
       struct {
 				uint8_t byte_offset;
 				uint8_t bitmask;
-      } button[MAX_BUTTONS];    // 18 buttons max
+      } button[MAX_BUTTONS];    // 14 buttons max
 
       struct {
 				uint16_t offset;

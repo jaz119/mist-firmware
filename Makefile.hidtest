@@ -1,5 +1,5 @@
 PRJ = hidtest
-SRC = hid_test.c usb/usb.c usb/hid.c usb/hidparser.c usb/usbdebug.c state.c utils.c
+SRC = hid_test.c usb/usb.c usb/usbdebug.c usb/hid.c usb/hidparser.c usb/hidquirks.c state.c utils.c
 
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)

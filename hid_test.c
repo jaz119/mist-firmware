@@ -54,6 +54,13 @@ uint8_t usb_in_transfer(usb_device_t *, ep_t *, uint16_t *, uint8_t *)
     return 0;
 }
 
+uint8_t usb_out_transfer(usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t* data)
+{
+    printf("%s: ep%d, report id = 0x%02x\n", __FUNCTION__, ep->epAddr, data[0]);
+    hexdump(data, nbytes, 0);
+    return 0;
+}
+
 const uint8_t *get_config_desc(uint8_t conf_idx)
 {
     const void *p = usb_desc_buf[0] + sizeof(usb_device_descriptor_t);

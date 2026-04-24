@@ -38,7 +38,7 @@
 #define HID_REQ_HIDIN         (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE)
 
 #define MAX_IFACES            2  // max supported interfaces per device. 2 to support kbd/mouse combos
-#define REPORT_BUF_SZ         96
+#define REPORT_BUF_SZ         64
 
 #define HID_DEVICE_UNKNOWN  0
 #define HID_DEVICE_MOUSE    1
@@ -54,7 +54,8 @@
 
 
 typedef struct {
-  ep_t ep;    // interrupt endpoint info structure
+  ep_t ep_in;
+  ep_t ep_out;
 
   uint8_t iface_idx;
   uint16_t report_desc_size;
@@ -62,7 +63,6 @@ typedef struct {
   uint8_t device_type;
   bool ignore_boot_mode: 1;  // don't use boot mode even if device supports it
   bool has_boot_mode: 1;     // device supports boot mode
-  bool is_5200daptor: 1;     // device is a 5200daptor with special key handling
   uint16_t key_state;        // needed to detect key state changes in 5200daptor
 
   // additional info extracted from the report descriptor

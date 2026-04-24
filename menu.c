@@ -46,6 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "archie.h"
 #include "arc_file.h"
 #include "usb/joymapping.h"
+#include "usb/hidquirks.h"
 #include "mist_cfg.h"
 #include "menu-minimig.h"
 #include "menu-8bit.h"
@@ -275,9 +276,9 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 			strcpy( buffer, "None" );
 		}
 	} else if (vid>0) {
-		const char* joy_name = get_joystick_name( vid, pid );
-		if (joy_name) {
-			strncpy( buffer, joy_name, sizeof(buffer) );
+		const hid_dev_info_t* joy = get_hid_dev( vid, pid );
+		if (joy && joy->name) {
+			strncpy( buffer, joy->name, sizeof(buffer) );
 			buffer[sizeof(buffer) - 1] = '\0';
 		} else {
 			append_joystick_usbid( buffer, vid, pid );

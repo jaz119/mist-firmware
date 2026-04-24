@@ -7,6 +7,7 @@
 #include "max3421e.h"
 #include "timer.h"
 #include "hidparser.h"
+#include "hidquirks.h"
 #include "joymapping.h"
 #include "joystick.h"
 #include "hardware.h"
@@ -151,7 +152,7 @@ static uint8_t hid_set_protocol(usb_device_t *dev, uint8_t iface, uint8_t protoc
 		protocol, 0x00, iface, 0x0000, NULL);
 }
 
-static uint8_t hid_set_report(usb_device_t *dev, uint8_t iface,
+uint8_t hid_set_report(usb_device_t *dev, uint8_t iface,
 	uint8_t report_type, uint8_t report_id, uint16_t nbytes, uint8_t* dataptr ) {
 
 	return usb_ctrl_req(dev, HID_REQ_HIDOUT, HID_REQUEST_SET_REPORT,
@@ -218,22 +219,24 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 		case USB_DESCRIPTOR_ENDPOINT:
 			usb_dump_endpoint_descriptor(&p->ep_desc);
+			bool is_in = (p->ep_desc.bEndpointAddress & 0x80);
 
-			// only interrupt in endpoints are supported
 			if (!cur_iface
-				|| (p->ep_desc.bmAttributes & 0x03) != 3
-				|| (p->ep_desc.bEndpointAddress & 0x80) != 0x80)
+				|| (is_in && (p->ep_desc.bmAttributes & EP_TYPE_MSK) != EP_TYPE_INTR))
 				break;
 
-			iprintf(" -> endpoint %d, %s, interval: %d ms\n", p->ep_desc.bEndpointAddress & 0x0F,
-				hid_device_name[cur_iface->conf.type], p->ep_desc.bInterval);
+			ep_t *ep = (is_in) ? &cur_iface->ep_in : &cur_iface->ep_out;
+			memset(ep, 0, sizeof(ep_t));
 
-			// fill in the endpoint info structure
-			cur_iface->interval      = p->ep_desc.bInterval;
-			cur_iface->ep.epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
-			cur_iface->ep.epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
-			cur_iface->ep.maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
-			cur_iface->ep.bmNakPower = USB_NAK_NOWAIT;
+			// fill the endpoint info structure
+			ep->bmNakPower = USB_NAK_NOWAIT;
+			ep->epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
+			ep->epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
+			ep->maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
+			cur_iface->interval = p->ep_desc.bInterval;
+
+			iprintf(" -> %s endpoint %d, %s, interval: %d ms\n", (is_in) ? "IN" : "OUT",
+				ep->epAddr, hid_device_name[cur_iface->conf.type], cur_iface->interval);
 			break;
 
 		case HID_DESCRIPTOR_HID:
@@ -298,23 +301,14 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	info->bPollEnable = false;
 	info->bNumIfaces = 0;
 
-	for(uint32_t i=0; i<MAX_IFACES; i++) {
-		info->iface[i].qLastPollTime = 0;
-		info->iface[i].ep.epAddr     = i;
-		info->iface[i].ep.epType     = 0;
-		info->iface[i].ep.maxPktSize = 8;
-		info->iface[i].ep.epAttribs  = 0;
-		info->iface[i].ep.bmNakPower = USB_NAK_DEFAULT;
-	}
-
 	// save vid/pid for automatic hack later
 	vid = dev_desc->idVendor;
 	pid = dev_desc->idProduct;
 
 	uint32_t num_of_conf = dev_desc->bNumConfigurations;
 
-	for(uint32_t i=0; i<num_of_conf; i++) {
-		if((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), i, &conf_desc)))
+	for (uint32_t i=0; i<num_of_conf; i++) {
+		if ((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), i, &conf_desc)))
 			return rcode;
 
 		usb_dump_conf_descriptor(&conf_desc);
@@ -324,7 +318,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	}
 
 	// check if we found valid hid interfaces
-	if(!info->bNumIfaces) {
+	if (!info->bNumIfaces) {
 		hid_debugf("no interface(s) found");
 		return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 	}
@@ -333,45 +327,39 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	rcode = usb_set_conf(dev, conf_desc.bConfigurationValue);
 	if (rcode) hid_debugf("hid_set_conf error: %d", rcode);
 
-	// process all supported interfaces
-	for(uint32_t i=0; i<info->bNumIfaces; i++) {
+	// apply device init quirks
+	const hid_dev_info_t* hid_dev = get_hid_dev(vid, pid);
+	if (hid_dev && hid_dev->init_quirk)
+		hid_dev->init_quirk(dev);
 
-		if(!info->iface[i].has_boot_mode || info->iface[i].ignore_boot_mode) {
+	// process all supported interfaces
+	for (uint32_t i=0; i<info->bNumIfaces; i++) {
+
+		if (!info->iface[i].has_boot_mode || info->iface[i].ignore_boot_mode) {
 
 			iprintf("%s: report ID = 0x%02x, size = %d\n",
 				hid_device_name[info->iface[i].conf.type],
 				info->iface[i].conf.report_id,
 				info->iface[i].conf.report_size);
 
-			if(info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
+			if (info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
 
-				for(int k=0; k<MAX_AXES; k++)
+				for (int k=0; k<MAX_AXES; k++)
 					iprintf("Axis%d: %d@%d %d->%d\n", k,
 						info->iface[i].conf.joystick_mouse.axis[k].size,
 						info->iface[i].conf.joystick_mouse.axis[k].offset/8,
 						info->iface[i].conf.joystick_mouse.axis[k].logical.min,
 						info->iface[i].conf.joystick_mouse.axis[k].logical.max);
 
-				for(int k=0; k<info->iface[i].conf.joystick_mouse.button_count; k++)
+				for (int k=0; k<info->iface[i].conf.joystick_mouse.button_count; k++)
 					iprintf("Button%d: @%d/%d\n", k,
 						info->iface[i].conf.joystick_mouse.button[k].byte_offset,
 						info->iface[i].conf.joystick_mouse.button[k].bitmask);
 			}
 
-			if((vid == 0x04d8) && (pid == 0xf6ec) && (i==0)) {
-				iprintf("hacking 5200daptor\n");
-
-				info->iface[0].conf.joystick_mouse.button[2].byte_offset = 4;
-				info->iface[0].conf.joystick_mouse.button[2].bitmask = 0x40;    // "Reset"
-				info->iface[0].conf.joystick_mouse.button[3].byte_offset = 4;
-				info->iface[0].conf.joystick_mouse.button[3].bitmask = 0x10;    // "Start"
-
-				info->iface[0].is_5200daptor = true;
-			}
-
 			// apply remap information from mist.ini if present
-			for(int j=0; j<MAX_JOYSTICK_BUTTON_REMAP; j++) {
-				if((joystick_button_remap[j].vid == vid) && (joystick_button_remap[j].pid == pid)) {
+			for (int j=0; j<MAX_JOYSTICK_BUTTON_REMAP; j++) {
+				if ((joystick_button_remap[j].vid == vid) && (joystick_button_remap[j].pid == pid)) {
 					uint8_t but = joystick_button_remap[j].button;
 					info->iface[0].conf.joystick_mouse.button[but].byte_offset = joystick_button_remap[j].offset >> 3;
 					info->iface[0].conf.joystick_mouse.button[but].bitmask = 0x80 >> (joystick_button_remap[j].offset & 7);
@@ -386,7 +374,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 		if (rcode && rcode != hrSTALL) {
 			hid_debugf("%s: set IDLE error 0x%x",
 				hid_device_name[info->iface[i].device_type], rcode);
-			if(info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
+			if (info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
 				uint8_t c_jindex = joystick_index(info->iface[i].jindex);
 				hid_debugf("releasing joystick #%d, renumbering", c_jindex);
 				joystick_release(c_jindex);
@@ -395,24 +383,20 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 		}
 
 		// enable boot mode if its not diabled
-		if(info->iface[i].has_boot_mode && !info->iface[i].ignore_boot_mode) {
+		if (info->iface[i].has_boot_mode && !info->iface[i].ignore_boot_mode) {
 			iprintf("%s: enabling BOOT mode\n",
 				hid_device_name[info->iface[i].device_type]);
 			hid_set_protocol(dev, info->iface[i].iface_idx, HID_BOOT_PROTOCOL);
-		} else
+		} else {
 			hid_set_protocol(dev, info->iface[i].iface_idx, HID_RPT_PROTOCOL);
+		}
 	}
 
 	// update leds
-	for(int i=0; i<info->bNumIfaces; i++)
-		if(dev->hid_info.iface[i].device_type == HID_DEVICE_KEYBOARD)
+	for (int i=0; i<info->bNumIfaces; i++) {
+		if (dev->hid_info.iface[i].device_type == HID_DEVICE_KEYBOARD) {
 			hid_set_report(dev, dev->hid_info.iface[i].iface_idx, 2, 0, 1, &kbd_led_state);
-
-	// Logitech K400r : set F1-F12 as primary functions
-	if((vid == 0x046d) && (pid == 0xc52b)) {
-		hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x03\x15\x00\x00\x00"); timer_delay_msec(100);
-		hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x0F\x15\x01\x00\x00"); timer_delay_msec(100);
-		hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x10\x15\x00\x00\x00"); timer_delay_msec(100);
+		}
 	}
 
 	iprintf("HID configured\n");
@@ -465,64 +449,6 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 	}
 
 	return 0;
-}
-
-// special 5200daptor button processing
-static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf) {
-
-	// list of buttons that are reported as keys
-	static const struct {
-	    uint8_t byte_offset;   // offset of the byte within the report which the button bit is in
-	    uint8_t mask;          // bitmask of the button bit
-	    uint8_t key_code[2];   // usb keycodes to be sent for joystick 0 and joystick 1
-	} button_map[] ALIGNED(4) = {
-	    { 4, 0x10, { 0x3a, 0x3d }}, /* START -> f1/f4 */
-	    { 4, 0x20, { 0x3b, 0x3e }}, /* PAUSE -> f2/f5 */
-	    { 4, 0x40, { 0x3c, 0x3f }}, /* RESET -> f3/f6 */
-	    { 5, 0x01, { 0x1e, 0x21 }}, /*     1 ->  1/4  */
-	    { 5, 0x02, { 0x1f, 0x22 }}, /*     2 ->  2/5  */
-	    { 5, 0x04, { 0x20, 0x23 }}, /*     3 ->  3/6  */
-	    { 5, 0x08, { 0x14, 0x15 }}, /*     4 ->  q/r  */
-	    { 5, 0x10, { 0x1a, 0x17 }}, /*     5 ->  w/t  */
-	    { 5, 0x20, { 0x08, 0x1c }}, /*     6 ->  e/y  */
-	    { 5, 0x40, { 0x04, 0x09 }}, /*     7 ->  a/f  */
-	    { 5, 0x80, { 0x16, 0x0a }}, /*     8 ->  s/g  */
-	    { 6, 0x01, { 0x07, 0x0b }}, /*     9 ->  d/h  */
-	    { 6, 0x02, { 0x1d, 0x19 }}, /*     * ->  z/v  */
-	    { 6, 0x04, { 0x1b, 0x05 }}, /*     0 ->  x/b  */
-	    { 6, 0x08, { 0x06, 0x11 }}, /*     # ->  c/n  */
-	    { 0, 0x00, { 0x00, 0x00 }}  /* ----  end ---- */
-	};
-
-	// keyboard events are only generated for the first
-	// two joysticks in the system
-	uint8_t jindex = joystick_index(iface->jindex);
-	if(jindex > 1) return;
-
-	// build map of pressed keys
-	uint16_t keys = 0;
-	for(uint32_t i=0; button_map[i].mask; i++)
-		if(buf[button_map[i].byte_offset] & button_map[i].mask)
-			keys |= (1<<i);
-
-	// check if keys have changed
-	if(iface->key_state != keys) {
-		ALIGNED(4) uint8_t buf[6] = { 0,0,0,0,0,0 };
-		uint8_t p = 0;
-
-		// report up to 6 pressed keys
-		for(uint32_t i=0; (i<16)&&(p<6); i++)
-			if(keys & (1<<i))
-				buf[p++] = button_map[i].key_code[jindex];
-
-		//    iprintf("5200: %d %d %d %d %d %d\n", buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
-
-		// generate key events
-		user_io_kbd(0x00, buf, UIO_PRIORITY_GAMEPAD, dev->vid, dev->pid);
-
-		// save current state of keys
-		iface->key_state = keys;
-	}
 }
 
 // collect bits from byte stream and assemble them into a signed word
@@ -588,8 +514,8 @@ FORCE_ARM static void usb_process_iface(
 	uint8_t btn = 0, btn_extra = 0, jmap = 0;
 
 	for (uint32_t i=0; i<MAX_BUTTONS; i++) {
-		uint8_t idx = conf->joystick_mouse.button[i].byte_offset;
-		if(buf[idx] & conf->joystick_mouse.button[i].bitmask) {
+		uint8_t offs = conf->joystick_mouse.button[i].byte_offset;
+		if(buf[offs] & conf->joystick_mouse.button[i].bitmask) {
 			if (i < 4) btn |= (1 << i);
 			else btn_extra |= (1 << (i - 4));
 		}
@@ -616,27 +542,34 @@ FORCE_ARM static void usb_process_iface(
 		return;
 
 	// ---------- process joystick -------------
-	for (uint32_t i=0; i<MAX_AXES; i++) {
-		if (conf->joystick_mouse.axis[i].size == 0) {
+	for (uint32_t i = 0; i < MAX_AXES; i++) {
+		const hid_axis_t *axis = &conf->joystick_mouse.axis[i];
+
+		if (axis->size == 0) {
 			a[i] = JOYSTICK_AXIS_MID;
-		} else {
-			int32_t val = a[i];
-			int32_t min = conf->joystick_mouse.axis[i].logical.min;
-			int32_t max = conf->joystick_mouse.axis[i].logical.max;
-			int32_t range = max - min;
-			if (range <= 0) {
-				a[i] = JOYSTICK_AXIS_MID;
-			} else {
-				if (val < min) val = min;
-				if (val > max) val = max;
-				// scale
-				a[i] = ((val - min) * 255) / range;
-				// apply dead range
-				if (a[i] > (JOYSTICK_AXIS_MID - mist_cfg.joystick_dead_range) &&
-					a[i] < (JOYSTICK_AXIS_MID + mist_cfg.joystick_dead_range)) {
-					a[i] = JOYSTICK_AXIS_MID;
-				}
-			}
+			continue;
+		}
+
+		int32_t val = a[i];
+		int32_t l_min = axis->logical.min;
+		int32_t l_max = axis->logical.max;
+		int32_t range = l_max - l_min;
+
+		if (range == 0) {
+			a[i] = JOYSTICK_AXIS_MID;
+			continue;
+		}
+
+		int32_t real_min = (l_min < l_max) ? l_min : l_max;
+		int32_t real_max = (l_min < l_max) ? l_max : l_min;
+
+		if (val < real_min) val = real_min;
+		if (val > real_max) val = real_max;
+
+		a[i] = ((val - l_min) * 255) / range;
+
+		if (labs(a[i] - JOYSTICK_AXIS_MID) < mist_cfg.joystick_dead_range) {
+			a[i] = JOYSTICK_AXIS_MID;
 		}
 	}
 
@@ -671,7 +604,7 @@ FORCE_ARM static void usb_process_iface(
 	// map virtual joypad
 	uint32_t vjoy = jmap;
 	vjoy |= btn_extra << 8;
-	vjoy = virtual_joystick_mapping(dev->vid, dev->pid, vjoy );
+	vjoy = virtual_joystick_mapping(dev->vid, dev->pid, vjoy);
 
 	// now go back to original variables for downstream processing
 	btn_extra = ((vjoy & 0xFF00) >> 8);
@@ -698,7 +631,7 @@ FORCE_ARM static void usb_process_iface(
 	if (!mist_cfg.joystick_disable_swap || user_io_core_type() != CORE_TYPE_8BIT) {
 		if (idx == 0)      idx = 1;
 		else if (idx == 1) idx = 0;
-		// StateJoySetExtra( btn_extra, idx);
+		// StateJoySetExtra(btn_extra, idx);
 	}
 
 	// if real DB9 mouse is preffered, switch the id back to 1
@@ -716,9 +649,10 @@ FORCE_ARM static void usb_process_iface(
 	// also send analog values
 	user_io_analog_joystick(idx, a[0]-128, a[1]-128, a[3]-128, a[2]-128);
 
-	// do special 5200daptor treatment
-	if (iface->is_5200daptor)
-		handle_5200daptor(dev, iface, buf);
+	// apply device poll quirks
+	const hid_dev_info_t* hid_dev = get_hid_dev(dev->vid, dev->pid);
+	if (hid_dev && hid_dev->poll_quirk)
+		hid_dev->poll_quirk(dev, iface, buf);
 
 	// apply keyboard mappings
 	if ((!virt_joy_kbd_iface) || (virt_joy_kbd_iface == iface)) {
@@ -735,7 +669,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	if (!info->bPollEnable)
 		return 0;
 
-	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ];
+	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ + 4];
 
 	for (int i=0; i<info->bNumIfaces; i++)
 	{
@@ -751,7 +685,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		memset(buf, 0, REPORT_BUF_SZ);
 
 		uint16_t read = MIN(iface->conf.report_size, sizeof(buf));
-		uint8_t rcode = usb_in_transfer(dev, &(iface->ep), &read, buf);
+		uint8_t rcode = usb_in_transfer(dev, &(iface->ep_in), &read, buf);
 
 		if (rcode) {
 			if (rcode != hrNAK)

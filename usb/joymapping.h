@@ -26,8 +26,8 @@
 #include <inttypes.h>
 
 // VID of vendors who are consistent
-#define VID_DAPTOR 		0x04D8
-#define VID_RETROLINK 0x0079
+#define VID_DAPTOR      0x04D8
+#define VID_RETROLINK   0x0079
 
 typedef struct {
     uint16_t vid;
@@ -48,9 +48,6 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag);
 
 // runtime mapping
 uint16_t virtual_joystick_mapping (uint16_t vid, uint16_t pid, uint16_t joy_input);
-
-// name known joysticks
-const char* get_joystick_name( uint16_t vid, uint16_t pid );
 
 /*****************************************************************************/
 

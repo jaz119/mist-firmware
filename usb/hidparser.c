@@ -158,7 +158,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					if(btns) {
 						if((conf->type == REPORT_TYPE_JOYSTICK) ||
 						   (conf->type == REPORT_TYPE_MOUSE)) {
-							// scan for up to 18 buttons
+							// scan for buttons
 							for(int b=0; b<report_count && b<MAX_BUTTONS; b++) {
 								if(conf->joystick_mouse.button_count < MAX_BUTTONS) {
 									uint16_t this_bit = bit_count + b * report_size;

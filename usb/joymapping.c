@@ -238,45 +238,6 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 
 /*****************************************************************************/
 
-static const struct {
-	uint16_t vid;
-	uint16_t pid;
-	char name[21];
-} joy_devs[] = {
-	{ 0x0079, 0x0006, "Retrolink N64/GC" },
-	{ 0x0079, 0x0011, "Retrolink NES" },
-	{ 0x040b, 0x6533, "Speedlink Compet Pro" },
-	{ 0x0411, 0x00C6, "iBuffalo SFC BSGP801" },
-	{ 0x045E, 0x028E, "Xbox360 Controller" },
-	{ 0x04D8, 0xF421, "NEOGEO-daptor" },
-	{ 0x04D8, 0xF672, "Vision-daptor" },
-	{ 0x04D8, 0xF6EC, "NEOGEO-daptor" },
-	{ 0x04D8, 0xF947, "2600-daptor II" },
-	{ 0x0583, 0x2060, "iBuffalo SFC BSGP801" },
-	{ 0x0738, 0x2217, "Speedlink Compet Pro" },
-	{ 0x081F, 0xE401, "SNES Generic Pad" },
-	{ 0x0F30, 0x1012, "Qanba Q4RAF" },
-	{ 0x0CA3, 0x0024, "8BitDo M30 Sega" },
-	{ 0x057E, 0x2009, "8BitDo M30 SwitchPro" },
-	{ 0x1002, 0x9000, "8BitDo FC30" },
-	{ 0x1235, 0xab11, "8BitDo SFC30" },
-	{ 0x1235, 0xab21, "8BitDo SFC30"},
-	{ 0x1F4F, 0x0003, "ROYDS Stick.EX" },
-	{ 0x1345, 0x1030, "Retro Freak gamepad" },
-	{ 0x1C59, 0x0026, "Retro Games GAMEPAD" },
-};
-
-const char* get_joystick_name( uint16_t vid, uint16_t pid ) {
-	for (uint32_t n = 0; n < ARRAY_SIZE(joy_devs); n++)
-	{
-		if (joy_devs[n].vid == vid && joy_devs[n].pid == pid)
-		{
-			return joy_devs[n].name;
-		}
-	}
-	return NULL;
-}
-
 /* Translates USB input into internal virtual joystick,
    with some default handling for common/known gampads */
 
