@@ -18,7 +18,7 @@
 #define USB_ACK_TIMEOUT       25    // USB ACK timeout (msec)
 #define USB_NACK_DELAY        100   // USB NACK delay (usec)
 #define USB_RETRY_DELAY       150   // USB timeout retry delay (usec)
-#define USB_RETRY_LIMIT       10    // Retry limit for a transfer
+#define USB_RETRY_LIMIT       3     // Retry limit for a transfer
 
 #define EP_TYPE_CTRL          0U
 #define EP_TYPE_ISOC          1U
@@ -45,7 +45,7 @@ typedef struct {
   };
 } ep_t;
 
-#define USB_NUMDEVICES            16  // number of supported USB devices
+#define USB_NUMDEVICES            8   // number of supported USB devices
 #define USB_MAX_CONFIG_DESC_SIZE  512 // config descriptor size limit
 
 /* Common setup data constant combinations  */
@@ -322,6 +322,8 @@ uint8_t usb_get_conf( usb_device_t *dev, uint8_t *conf_value );
 uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value );
 uint8_t usb_release_device(uint8_t parent, uint8_t port);
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed);
+
+usb_device_t *usb_get_next_device(bool);
 usb_device_t *usb_get_device(usb_dev_type_t);
 usb_device_t *usb_get_devices();
 
@@ -332,7 +334,7 @@ uint8_t usb_ctrl_req( usb_device_t *, uint8_t bmReqType,
                       uint8_t bRequest, uint8_t wValLo, uint8_t wValHi,
                       uint16_t wInd, uint16_t nbytes, uint8_t* dataptr );
 void usb_hw_init();
-void usb_poll();
+uint8_t usb_poll();
 void usb_SetHubPreMask(void);
 void usb_ResetHubPreMask(void);
 

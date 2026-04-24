@@ -38,8 +38,7 @@
 #define HID_REQ_HIDIN         (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE)
 
 #define MAX_IFACES            2  // max supported interfaces per device. 2 to support kbd/mouse combos
-#define REPORT_BUF_SZ         64
-#define MIN_POLLING_TIME      8  // min interval for reports polling (ms)
+#define REPORT_BUF_SZ         96
 
 #define HID_DEVICE_UNKNOWN  0
 #define HID_DEVICE_MOUSE    1

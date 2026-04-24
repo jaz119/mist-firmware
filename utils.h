@@ -7,7 +7,6 @@
 
 #define BIT(nr)         (1UL << (nr))
 #define MIN(a, b)       (((a) < (b)) ? (a) : (b))
-#define MAX(a, b)       (((a) > (b)) ? (a) : (b))
 
 // for tiny version of newlib
 #define PRIu64_llx      "%lx%08lx"

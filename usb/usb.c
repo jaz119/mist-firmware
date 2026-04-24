@@ -22,6 +22,31 @@ usb_device_t *usb_get_device(usb_dev_type_t type) {
 	return NULL;
 }
 
+// iterate usb device over list
+usb_device_t *usb_get_next_device(bool with_poll) {
+	usb_device_t *devs = usb_get_devices();
+	static int cur_index = -1;
+
+	for (int n = 0; n < USB_NUMDEVICES; n++)
+	{
+		cur_index++;
+
+		if (cur_index >= USB_NUMDEVICES) {
+			cur_index = 0;
+		}
+
+		if (!devs[cur_index].bAddress || !devs[cur_index].class)
+			continue;
+
+		if (with_poll && !devs[cur_index].class->poll)
+			continue;
+
+		return &devs[cur_index];
+	}
+
+	return NULL;
+}
+
 void usb_init() {
 	usb_debugf("%s()", __FUNCTION__);
 
@@ -53,13 +78,10 @@ static const usb_device_class_config_t *class_list[] = {
 };
 
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
-	uint8_t rcode = 0;
 
 	usb_debugf("%s(parent=0x%x, port=%d, lowspeed=%d)",
 		__FUNCTION__, parent, port, lowspeed);
 
-	// find an empty device entry
-	uint8_t i;
 	usb_device_descriptor_t dev_desc;
 	ALIGNED(4) union {
 		usb_string0_descriptor_t str0_desc;
@@ -67,86 +89,60 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		uint8_t buf[255];
 	} str;
 
+	uint8_t rcode = 0, i;
+
+	// find an empty device entry
 	for(i=0; i<USB_NUMDEVICES && usb_devices[i].bAddress; i++);
 
 	if(i < USB_NUMDEVICES) {
 		usb_debugf("using free entry at %d", i);
 
-		usb_device_t *d = &usb_devices[i];
-		memset(d, 0, sizeof(*d));
+		usb_device_t *dev = &usb_devices[i];
+		memset(dev, 0, sizeof(*dev));
 
 		// setup generic info
-		d->parent = parent;
-		d->lowspeed = lowspeed;
-		d->port = port;
+		dev->parent = parent;
+		dev->lowspeed = lowspeed;
+		dev->port = port;
 
 		// setup endpoint 0
-		d->ep0.maxPktSize = 8;
-		d->ep0.bmNakPower = USB_NAK_DEFAULT;
+		dev->ep0.maxPktSize = 8;
+		dev->ep0.bmNakPower = USB_NAK_DEFAULT;
 
-		if((rcode = usb_get_dev_descr( d, 8, &dev_desc )))
+		if((rcode = usb_get_dev_descr( dev, 8, &dev_desc )))
 			return rcode;
 
-		d->ep0.maxPktSize = dev_desc.bMaxPacketSize0;
-		usb_debugf("EP0 max packet size: %d", d->ep0.maxPktSize);
+		dev->ep0.maxPktSize = dev_desc.bMaxPacketSize0;
+		usb_debugf("EP0 max packet size: %d", dev->ep0.maxPktSize);
 
 		// Assign new address to the device
 		// (address is simply the number of the free slot + 1)
-		rcode = usb_set_addr(d, i+1);
+		rcode = usb_set_addr(dev, i+1);
 		if(rcode) {
 			iprintf("usb: failed to assign address (rcode=%d)\n", rcode);
+			dev->bAddress = 0;
 			return rcode;
 		}
+
 		uint32_t timer = timer_get_msec();
 		do {
-			rcode = usb_get_dev_descr( d, 8, &dev_desc );
+			rcode = usb_get_dev_descr( dev, sizeof(usb_device_descriptor_t), &dev_desc );
 		} while (rcode && !timer_check(timer, 5)); // Some recovery interval (2 ms as USB 2.0 9.2.6.3)
 		if(rcode) return rcode;
 
 		// --- enumerate device ---
-		if((rcode = usb_get_dev_descr( d, sizeof(usb_device_descriptor_t), &dev_desc)))
-			return rcode;
-
 		usb_dump_device_descriptor(&dev_desc);
 		iprintf("USB device %04x:%04x detected\n",
 			dev_desc.idVendor, dev_desc.idProduct);
 
 		// save vid/pid
-		d->vid = dev_desc.idVendor;
-		d->pid = dev_desc.idProduct;
+		dev->vid = dev_desc.idVendor;
+		dev->pid = dev_desc.idProduct;
 
 		// The Retroflag Classic USB Gamepad doesn't report movement until the string descriptors are read,
 		// so read all of them here (and show them on the console)
-		if (!usb_get_string_descr(d, sizeof(str), 0, 0, &str.str_desc)) { // supported languages descriptor
+		if (!usb_get_string_descr(dev, sizeof(str), 0, 0, &str.str_desc)) { // supported languages descriptor
 			usb_debugf("wLangId: 0x%04X", str.str0_desc.wLANGID[0]);
-
-			// Some gamepads (Retrobit) breaks if its strings are queried like below, so don't do it until it can be done safely.
-#if 0
-			if (dev_desc.iManufacturer &&
-				!usb_get_string_descr(d, sizeof(str), dev_desc.iManufacturer, wLangId, &str.str_desc)) {
-				for (i=0; i<((str.str_desc.bLength-2)/2); i++) {
-					s[i] = ff_uni2oem(str.str_desc.bString[i], FF_CODE_PAGE);
-				}
-				s[i] = 0;
-				usb_debugf("Manufacturer: %s", s);
-			}
-			if (dev_desc.iProduct &&
-			    !usb_get_string_descr(d, sizeof(str), dev_desc.iProduct, wLangId, &str.str_desc)) {
-				for (i=0; i<((str.str_desc.bLength-2)/2); i++) {
-					s[i] = ff_uni2oem(str.str_desc.bString[i], FF_CODE_PAGE);
-				}
-				s[i] = 0;
-				usb_debugf("Product: %s", s);
-			}
-			if (dev_desc.iSerialNumber &&
-			    !usb_get_string_descr(d, sizeof(str), dev_desc.iSerialNumber, wLangId, &str.str_desc)) {
-				for (i=0; i<((str.str_desc.bLength-2)/2); i++) {
-					s[i] = ff_uni2oem(str.str_desc.bString[i], FF_CODE_PAGE);
-				}
-				s[i] = 0;
-				usb_debugf("Serial no: %s", s);
-			}
-#endif
 		}
 
 		// try to connect device to one of the supported classes
@@ -154,21 +150,21 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 			usb_debugf("trying to init class %d", c);
 
 			unsigned long time = GetRTTC();
-			rcode = class_list[c]->init(d, &dev_desc);
+			rcode = class_list[c]->init(dev, &dev_desc);
 
 			if (!rcode) {
-				d->class = class_list[c];
+				dev->class = class_list[c];
 
-				iprintf("USB device accepted, %lu ms\n", GetRTTC() - time);
+				iprintf("USB device %d accepted, %lu ms\n", i, GetRTTC() - time);
+
 				// ok, device accepted by class
-
 				return 0;
 			}
 
 			usb_debugf("device NOT accepted");
 		}
 	} else
-		usb_debugf("no more free entries");
+		iprintf("no more free device entries\n");
 
 	iprintf("usb: unknown device\n");
 	return 0;

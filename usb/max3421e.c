@@ -109,7 +109,7 @@ void max3421e_init() {
   timer_init();
 
   // switch to full duplex mode
-  max3421e_write_u08(MAX3421E_PINCTL, MAX3421E_FDUPSPI);
+  max3421e_write_u08( MAX3421E_PINCTL, MAX3421E_FDUPSPI );
 
   if( max3421e_reset() == 0 ) {
     iprintf("max3421e: pll init failed\n");
@@ -121,7 +121,7 @@ void max3421e_init() {
   // read and output version
   iprintf("max3421e: chip rev: 0x%X\n", max3421e_read_u08(MAX3421E_REVISION));
 
-  // enable pulldowns, set host mode
+  // enable pulldowns, set HOST mode
   max3421e_write_u08( MAX3421E_MODE, MAX3421E_MODE_HOST );
   delay_usec(50);
 
@@ -152,54 +152,22 @@ void max3421e_init() {
 
   // switch off leds
   max3421e_write_u08(MAX3421E_IOPINS2, 0xff);
-
-  return;
 }
 
 #include "timer.h"
 
-uint8_t max3421e_poll() {
-  uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
+uint8_t max3421e_poll(uint8_t *hirq) {
+  *hirq = max3421e_read_u08( MAX3421E_HIRQ );
 
-  if( hirq & MAX3421E_CONDETIRQ ) {
+  if( *hirq & MAX3421E_CONDETIRQ ) {
     max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_CONDETIRQ );
     usb_debugf("=> CONDETIRQ");
     max3421e_busprobe();
   }
 
-  if( hirq & MAX3421E_BUSEVENTIRQ ) {
+  if( *hirq & MAX3421E_BUSEVENTIRQ ) {
     max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_BUSEVENTIRQ );
     usb_debugf("=> BUSEVENTIRQ");
-  }
-
-  if( hirq & MAX3421E_SNDBAVIRQ ) {
-    max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_SNDBAVIRQ );
-  }
-
-  // do LED animation on V1.3+ boards if enabled via cfg file
-  if( mist_cfg.led_animation ) {
-    static msec_t last = 0;
-
-    if( timer_check(last, 100) ) {
-      static uint8_t led_pattern = 0x01;
-
-      // iprintf("irq src=%x, bus state %x\n", hirq, vbusState);
-      // iprintf("host result %x\n", max3421e_read_u08( MAX3421E_HRSL));
-
-      max3421e_write_u08(MAX3421E_IOPINS2, ~(led_pattern & 0x0f));
-
-      if(!(led_pattern & 0x10)) {
-        // knight rider left
-        led_pattern <<= 1;
-        if(!(led_pattern & 0x0f)) led_pattern = 0x18;
-      } else {
-        // knight rider right
-        led_pattern = ((led_pattern & 0x0f) >> 1) | 0x10;
-        if(!(led_pattern & 0x0f)) led_pattern = 0x01;
-      }
-
-      last = timer_get_msec();
-    }
   }
 
   return vbusState;

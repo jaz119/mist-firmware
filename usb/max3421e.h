@@ -1,4 +1,3 @@
-
 #ifndef MAX3421E_H
 #define MAX3421E_H
 
@@ -127,7 +126,7 @@
 #define MAX3421E_FRAMEIRQ      0x40
 #define MAX3421E_HXFRDNIRQ     0x80
 
-#define MAX3421E_HIEN			0xd0    //26<<3
+#define MAX3421E_HIEN       0xd0    //26<<3
 
 /* HIEN Bits */
 #define MAX3421E_BUSEVENTIE    0x01
@@ -139,7 +138,7 @@
 #define MAX3421E_FRAMEIE       0x40
 #define MAX3421E_HXFRDNIE      0x80
 
-#define MAX3421E_MODE			0xd8    //27<<3
+#define MAX3421E_MODE       0xd8    //27<<3
 
 /* MODE Bits */
 #define MAX3421E_HOST          0x01
@@ -204,11 +203,11 @@
 #define hrBABBLE    0x0F
 
 /* Base mode to keep SOF generation and host settings alive */
-#define MAX3421E_MODE_HOST      (MAX3421E_DPPULLDN|MAX3421E_DMPULLDN|MAX3421E_HOST|MAX3421E_SOFKAENAB)
+#define MAX3421E_MODE_HOST      (MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SOFKAENAB)
 
 // interface used by usb.c
 void max3421e_init();
-uint8_t max3421e_poll();
+uint8_t max3421e_poll(uint8_t *);
 RAMFUNC void max3421e_write_u08(uint8_t reg, uint8_t data);
 RAMFUNC uint8_t max3421e_read_u08(uint8_t reg);
 RAMFUNC const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data);

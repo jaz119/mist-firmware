@@ -117,13 +117,13 @@ static bool hid_get_report_descr(usb_device_t *dev, usb_hid_iface_info_t *iface,
 		iface->device_type ? iface->device_type : HID_DEVICE_JOYSTICK))
 		return false;
 
-	if (iface->conf.type == HID_DEVICE_MOUSE)
+	if (iface->conf.type == HID_DEVICE_MOUSE) {
 		iface->jindex = mice++;
-
-	if (iface->conf.type == HID_DEVICE_KEYBOARD)
+	}
+	else if (iface->conf.type == HID_DEVICE_KEYBOARD) {
 		keyboards++;
-
-	if (iface->conf.type == REPORT_TYPE_JOYSTICK) {
+	}
+	else if (iface->conf.type == REPORT_TYPE_JOYSTICK) {
 		iface->device_type = HID_DEVICE_JOYSTICK;
 		iface->jindex = joystick_add();
 	}
@@ -229,7 +229,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 				hid_device_name[cur_iface->conf.type], p->ep_desc.bInterval);
 
 			// fill in the endpoint info structure
-			cur_iface->interval      = MAX(MIN_POLLING_TIME, p->ep_desc.bInterval);
+			cur_iface->interval      = p->ep_desc.bInterval;
 			cur_iface->ep.epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
 			cur_iface->ep.epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 			cur_iface->ep.maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
@@ -338,11 +338,10 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 
 		if(!info->iface[i].has_boot_mode || info->iface[i].ignore_boot_mode) {
 
-			iprintf("%s: report ID = 0x%02x, size = %d, polling = %d ms\n",
+			iprintf("%s: report ID = 0x%02x, size = %d\n",
 				hid_device_name[info->iface[i].conf.type],
 				info->iface[i].conf.report_id,
-				info->iface[i].conf.report_size,
-				info->iface[i].interval);
+				info->iface[i].conf.report_size);
 
 			if(info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
 
@@ -559,9 +558,8 @@ FORCE_ARM static void usb_process_iface(
 	hid_report_t *conf = &iface->conf;
 	const uint8_t id_offset = (conf->report_id ? 1 : 0);
 
-	// checking size and ID of received report
-	if ((read < conf->report_size)
-		|| (conf->report_id && (buf[0] != conf->report_id)))
+	// checking ID of received report
+	if (conf->report_id && (buf[0] != conf->report_id))
 		return;
 
 	// ---------- process keyboard -------------
@@ -599,7 +597,7 @@ FORCE_ARM static void usb_process_iface(
 
 	// ---------- process mouse -------------
 	if (iface->device_type == HID_DEVICE_MOUSE) {
-		// limit mouse movement to +/- 128
+		// limit mouse movement to +/- 127
 		const uint8_t mouse_speed = mist_cfg.mouse_speed;
 		for (uint32_t i=0; i<3; i++) {
 			if (i < 2) {
@@ -737,9 +735,11 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	if (!info->bPollEnable)
 		return 0;
 
+	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ];
+
 	for (int i=0; i<info->bNumIfaces; i++)
 	{
-		usb_hid_iface_info_t *iface = info->iface+i;
+		usb_hid_iface_info_t *iface = &info->iface[i];
 
 		if (iface->device_type == HID_DEVICE_UNKNOWN)
 			continue;
@@ -748,19 +748,9 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		if (!timer_check(iface->qLastPollTime, iface->interval))
 			continue;
 
-		ALIGNED(4) uint8_t buf[REPORT_BUF_SZ];
 		memset(buf, 0, REPORT_BUF_SZ);
-		uint16_t read = iface->ep.maxPktSize;
 
-		// report may not fit into one packet
-		if (iface->conf.report_size > read)
-			read = iface->conf.report_size;
-
-		if (read > sizeof(buf)) {
-			hid_debugf("too BIG report, size = %u", read);
-			read = sizeof(buf);
-		}
-
+		uint16_t read = MIN(iface->conf.report_size, sizeof(buf));
 		uint8_t rcode = usb_in_transfer(dev, &(iface->ep), &read, buf);
 
 		if (rcode) {

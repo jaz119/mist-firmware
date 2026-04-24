@@ -33,7 +33,6 @@ typedef struct {
   uint8_t reset_combo;
   uint8_t ypbpr;
   uint8_t keep_video_mode;
-  uint8_t led_animation;
   uint8_t sdram64;
   uint8_t amiga_mod_keys;
   uint8_t usb_storage;
