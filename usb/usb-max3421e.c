@@ -110,6 +110,7 @@ static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) 
 			break;
 
 		default:
+			if( ep == 0 ) delay_usec( USB_NACK_DELAY );
 			return( rcode );
 		}
 	}

@@ -18,7 +18,7 @@
 #define USB_ACK_TIMEOUT       25    // USB ACK timeout (msec)
 #define USB_NACK_DELAY        100   // USB NACK delay (usec)
 #define USB_RETRY_DELAY       150   // USB timeout retry delay (usec)
-#define USB_RETRY_LIMIT       3     // Retry limit for a transfer
+#define USB_RETRY_LIMIT       5     // Retry limit for a transfer
 
 #define EP_TYPE_CTRL          0U
 #define EP_TYPE_ISOC          1U

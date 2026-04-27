@@ -229,6 +229,7 @@ static uint8_t usb_hub_port_status_change(
 
     if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
       if (!(info->resetMask & mask)) {
+        timer_delay_msec(10);
         info->resetMask |= mask;
         iprintf("hub: port %d: CONNECT\n", port);
         usb_release_device(dev->bAddress, port);
