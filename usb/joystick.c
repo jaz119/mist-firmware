@@ -67,14 +67,6 @@ uint8_t joystick_release(uint8_t c_jindex) {
 				}
 			}
 		}
-		if(dev[j].bAddress && (dev[j].class == &usb_xbox_class)) {
-			uint8_t jindex = joystick_index(dev[j].xbox_info.jindex);
-			if(jindex > c_jindex) {
-				iprintf("Decreasing xbox index of dev #%d from %d to %d\n", j, jindex, jindex-1);
-				dev[j].xbox_info.jindex--;
-				StateUsbIdSet( dev[j].vid, dev[j].pid, 8/*button_count*/, dev[j].xbox_info.jindex);
-			}
-		}
 
 	}
 	// one less joystick in the system ...

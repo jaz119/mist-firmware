@@ -9,7 +9,7 @@
 #define REPORT_TYPE_JOYSTICK 3
 
 #define MAX_AXES             4
-#define MAX_BUTTONS          14
+#define MAX_BUTTONS          16
 
 typedef struct {
   uint16_t offset;
@@ -33,7 +33,7 @@ typedef struct {
       struct {
 				uint8_t byte_offset;
 				uint8_t bitmask;
-      } button[MAX_BUTTONS];    // 14 buttons max
+      } button[MAX_BUTTONS];
 
       struct {
 				uint16_t offset;

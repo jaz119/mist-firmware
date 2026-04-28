@@ -24,6 +24,6 @@ unsigned int bin2bcd(unsigned int in);
 unsigned char bcd2bin(unsigned char in);
 
 int _strnicmp(const char *s1, const char *s2, size_t n);
-void hexdump(void *data, int size, int offset);
+void hexdump(const void *data, int size, int offset);
 
 #endif

@@ -123,7 +123,6 @@ typedef struct {
 
 #include "hub.h"
 #include "hid.h"
-#include "xboxusb.h"
 #ifdef USB_ASIX_NET
 #include "asix.h"
 #endif
@@ -150,7 +149,6 @@ typedef struct usb_device_entry {
   union {
     usb_hub_info_t hub_info;
     usb_hid_info_t hid_info;
-    usb_xbox_info_t xbox_info;
 #ifdef USB_STORAGE
     usb_storage_info_t storage_info;
 #endif

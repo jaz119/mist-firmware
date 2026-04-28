@@ -263,7 +263,7 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 		return;
 	}
 
-	char buffer[21] = { 0 }; // limited by width of OSD
+	char buffer[25] = { 0 }; // limited by width of OSD
 
 	//hack populate from outside
 	int vid = StateUsbVidGet(joy_num);
@@ -437,7 +437,7 @@ static char KeyEvent_System(uint8_t key) {
 static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 	if (action == MENU_PAGE_EXIT) return 0;
 
-	page->timer = 0;
+	page->timer = 1000;
 	page->stdexit = MENU_STD_EXIT;
 	page->flags = 0;
 	helptext=helptexts[HELPTEXT_NONE];
@@ -449,15 +449,12 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			break;
 		case 1:
 			page->title = "FW & Core";
-			page->timer = 1000;
 			break;
 		case 2:
 			page->title = "Clock";
-			page->timer = 1000;
 			break;
 		case 3:
 			page->title = "Inputs";
-			page->timer = 1000;
 			break;
 		case 4:
 		case 5:
@@ -466,7 +463,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			helptext=helptexts[HELPTEXT_INPUT];
 			siprintf(s, "Joy%d", idx-3);
 			page->title = s;
-			page->timer = 100;
+			page->timer = 50;
 			page->stdexit = MENU_STD_SPACE_EXIT;
 			memset(&mapping, 0, sizeof(joymapping_t));
 			setup_phase = 0;

@@ -59,7 +59,6 @@ void usb_init() {
 // list of supported device classes
 static const usb_device_class_config_t *class_list[] = {
   &usb_hub_class,
-  &usb_xbox_class,
 #ifndef CONFIG_CHIP_SAMV71
   &usb_rtc_tiny_class.base,
   &usb_rtc_mcp2221_class.base,

@@ -39,10 +39,10 @@ int _strnicmp(const char *s1, const char *s2, size_t n) {
     return v;
 }
 
-void hexdump(void *data, int size, int offset) {
+void hexdump(const void *data, int size, int offset) {
   uint8_t i, b2c;
   uint16_t n = 0;
-  char *ptr = data;
+  const char *ptr = data;
 
   while(size>0) {
     iprintf("%04x: ", n + offset);
