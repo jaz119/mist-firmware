@@ -530,7 +530,7 @@ FORCE_ARM static void usb_process_iface(
 			if (a[i] > 127) a[i] = 127;
 			else if (a[i] < -128) a[i] = -128;
 		}
-		user_io_mouse(iface->jindex > 1 ? 1 : iface->jindex, btn, a[0], a[1], a[2]);
+		user_io_mouse(0, btn, a[0], a[1], a[2]);
 		return;
 	}
 
