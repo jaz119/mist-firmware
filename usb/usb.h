@@ -14,11 +14,11 @@
 #define USB_NAK_NONAK         0     // Do not count NAKs, stop retrying after USB Timeout
 
 #define USB_SETTLE_DELAY      200   // Settle delay (msec)
-#define USB_XFER_TIMEOUT      2500  // USB transfer timeout (msec), per section 9.2.6.1 of USB 2.0 spec
-#define USB_ACK_TIMEOUT       25    // USB ACK timeout (msec)
+#define USB_XFER_TIMEOUT      500   // USB transfer timeout (msec), per section 9.2.6.1 of USB 2.0 spec
+#define USB_ACK_TIMEOUT       8     // USB ACK timeout (msec)
 #define USB_NACK_DELAY        100   // USB NACK delay (usec)
-#define USB_RETRY_DELAY       150   // USB timeout retry delay (usec)
-#define USB_RETRY_LIMIT       5     // Retry limit for a transfer
+#define USB_RETRY_DELAY       200   // USB timeout retry delay (usec)
+#define USB_RETRY_LIMIT       3     // Retry limit for a transfer
 
 #define EP_TYPE_CTRL          0U
 #define EP_TYPE_ISOC          1U

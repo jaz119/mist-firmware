@@ -62,6 +62,7 @@ RAMFUNC void spi_block(unsigned short num) {
     while (!(*AT91C_SPI_SR & AT91C_SPI_TDRE)); // wait until transmiter buffer is empty
     *AT91C_SPI_TDR = 0xFF; // write dummy spi data
   }
+
   while (!(*AT91C_SPI_SR & AT91C_SPI_TXEMPTY)); // wait for transfer end
   t = *AT91C_SPI_RDR; // dummy read to empty receiver buffer for new data
 }
@@ -71,18 +72,24 @@ RAMFUNC void spi_read(char *addr, uint16_t len) {
   *AT91C_PIOA_OER = AT91C_PA13_MOSI;  // GPIO pin as output
   *AT91C_PIOA_PER = AT91C_PA13_MOSI;  // enable GPIO function
 
+  volatile uint32_t junk = *AT91C_SPI_RDR;
+  junk = *AT91C_SPI_SR;
+
   // use SPI PDC (DMA transfer)
   *AT91C_SPI_TPR = (unsigned long)addr;
   *AT91C_SPI_TCR = len;
   *AT91C_SPI_TNCR = 0;
+
   *AT91C_SPI_RPR = (unsigned long)addr;
   *AT91C_SPI_RCR = len;
   *AT91C_SPI_RNCR = 0;
-  *AT91C_SPI_PTCR = AT91C_PDC_RXTEN | AT91C_PDC_TXTEN; // start DMA transfer
-  // wait for tranfer end
-  while ((*AT91C_SPI_SR & (AT91C_SPI_ENDTX | AT91C_SPI_ENDRX)) != (AT91C_SPI_ENDTX | AT91C_SPI_ENDRX));
-  *AT91C_SPI_PTCR = AT91C_PDC_RXTDIS | AT91C_PDC_TXTDIS; // disable transmitter and receiver
 
+  *AT91C_SPI_PTCR = AT91C_PDC_RXTEN | AT91C_PDC_TXTEN; // start DMA transfer
+
+  // wait for tranfer end
+  while (!(*AT91C_SPI_SR & AT91C_SPI_ENDRX));
+
+  *AT91C_SPI_PTCR = AT91C_PDC_RXTDIS | AT91C_PDC_TXTDIS; // disable transmitter and receiver
   *AT91C_PIOA_PDR = AT91C_PA13_MOSI; // disable GPIO function
 }
 
@@ -92,9 +99,12 @@ RAMFUNC void spi_write(const char *addr, uint16_t len) {
   *AT91C_SPI_TCR = len;
   *AT91C_SPI_TNCR = 0;
   *AT91C_SPI_RCR = 0;
+
   *AT91C_SPI_PTCR = AT91C_PDC_TXTEN; // start DMA transfer
+
   // wait for tranfer end
   while (!(*AT91C_SPI_SR & AT91C_SPI_TXEMPTY));
+
   *AT91C_SPI_PTCR = AT91C_PDC_TXTDIS; // disable transmitter
 }
 

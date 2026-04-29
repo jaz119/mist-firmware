@@ -209,15 +209,23 @@ static uint8_t usb_hub_port_status_change(
   usb_hub_info_t *info = &(dev->hub_info);
   uint8_t rcode = 0;
 
-  iprintf("hub: port %u: event 0x%lx, change 0x%x\n",
-    port, evt->bmEvent, evt->bmChange);
+  iprintf("hub: port %u: status 0x%x, change 0x%x\n",
+    port, evt->bmStatus, evt->bmChange);
+
+  if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT)
+    usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_OVER_CURRENT, port, 0);
+  if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT) {
+    usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_OVER_CURRENT, port, 0);
+    if (!(info->resetMask & mask)) {
+      info->resetMask |= mask;
+      usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
+    }
+  }
 
   if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_ENABLE)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_ENABLE, port, 0);
   if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_SUSPEND)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_SUSPEND, port, 0);
-  if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT)
-    usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_OVER_CURRENT, port, 0);
 
   if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_SUSPEND)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_PORT_SUSPEND, port, 0);
@@ -226,25 +234,26 @@ static uint8_t usb_hub_port_status_change(
 
   if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_CONNECTION, port, 0);
+    usb_release_device(dev->bAddress, port);
 
     if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
       if (!(info->resetMask & mask)) {
-        timer_delay_msec(10);
         info->resetMask |= mask;
         iprintf("hub: port %d: CONNECT\n", port);
-        usb_release_device(dev->bAddress, port);
+        timer_delay_msec(USB_SETTLE_DELAY / 2); // FIXME
         usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
         return HUB_ERROR_PORT_HAS_BEEN_RESET;
       }
     } else {
       iprintf("hub: port %d: DISCONNECT\n", port);
-      usb_release_device(dev->bAddress, port);
       usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
     }
   } else if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_RESET) {
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
+    iprintf("hub: port %d: RESET\n", port);
 
     if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
+      timer_delay_msec(20);
       bool isLS = !!(evt->bmStatus & USB_HUB_PORT_STATUS_PORT_LOW_SPEED);
       rcode = usb_configure(dev->bAddress, port, isLS);
     }

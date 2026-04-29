@@ -65,6 +65,15 @@ uint16_t max3421e_reset() {
   return 0;
 }
 
+void max3421e_clear_fifo(int8_t junk_count) {
+  while( junk_count > 0 ) {
+    max3421e_read_u08( MAX3421E_RCVFIFO );
+    junk_count--;
+  }
+  max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_RCVDAVIRQ );
+  delay_usec(10);
+}
+
 void max3421e_busprobe() {
   usb_debugf("%s()", __FUNCTION__);
 
@@ -109,14 +118,14 @@ void max3421e_init() {
   timer_init();
 
   // switch to full duplex mode
-  max3421e_write_u08( MAX3421E_PINCTL, MAX3421E_FDUPSPI );
+  max3421e_write_u08( MAX3421E_PINCTL, MAX3421E_FDUPSPI | MAX3421E_INTLEVEL );
 
   if( max3421e_reset() == 0 ) {
     iprintf("max3421e: pll init failed\n");
     return;
   }
 
-  max3421e_write_u08(MAX3421E_PINCTL, MAX3421E_FDUPSPI);
+  max3421e_write_u08( MAX3421E_PINCTL, MAX3421E_FDUPSPI | MAX3421E_INTLEVEL );
 
   // read and output version
   iprintf("max3421e: chip rev: 0x%X\n", max3421e_read_u08(MAX3421E_REVISION));
@@ -151,7 +160,7 @@ void max3421e_init() {
   max3421e_write_u08( MAX3421E_CPUCTL, MAX3421E_IE );
 
   // switch off leds
-  max3421e_write_u08(MAX3421E_IOPINS2, 0xff);
+  max3421e_write_u08( MAX3421E_IOPINS2, 0xff );
 }
 
 #include "timer.h"

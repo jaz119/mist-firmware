@@ -97,7 +97,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		usb_debugf("using free entry at %d", i);
 
 		usb_device_t *dev = &usb_devices[i];
-		memset(dev, 0, sizeof(*dev));
+		memset(dev, 0, sizeof(usb_device_t));
 
 		// setup generic info
 		dev->parent = parent;
@@ -116,7 +116,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 
 		// Assign new address to the device
 		// (address is simply the number of the free slot + 1)
-		rcode = usb_set_addr(dev, i+1);
+		rcode = usb_set_addr(dev, i + 1);
 		if(rcode) {
 			iprintf("usb: failed to assign address (rcode=%d)\n", rcode);
 			dev->bAddress = 0;
@@ -126,8 +126,12 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		uint32_t timer = timer_get_msec();
 		do {
 			rcode = usb_get_dev_descr( dev, sizeof(usb_device_descriptor_t), &dev_desc );
-		} while (rcode && !timer_check(timer, 5)); // Some recovery interval (2 ms as USB 2.0 9.2.6.3)
-		if(rcode) return rcode;
+		} while (rcode && !timer_check(timer, 20)); // Some recovery interval (2 ms as USB 2.0 9.2.6.3)
+
+		if(rcode) {
+			dev->bAddress = 0;
+			return rcode;
+		}
 
 		// --- enumerate device ---
 		usb_dump_device_descriptor(&dev_desc);
@@ -153,15 +157,14 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 
 			if (!rcode) {
 				dev->class = class_list[c];
-
 				iprintf("USB device %d accepted, %lu ms\n", i, GetRTTC() - time);
-
-				// ok, device accepted by class
 				return 0;
 			}
-
-			usb_debugf("device NOT accepted");
 		}
+
+		usb_debugf("device NOT accepted");
+		dev->bAddress = 0;
+
 	} else
 		iprintf("no more free device entries\n");
 
@@ -172,22 +175,20 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 uint8_t usb_release_device(uint8_t parent, uint8_t port) {
 	usb_debugf("%s(parent=0x%x, port=%d)", __FUNCTION__, parent, port);
 
-	uint8_t i;
-	for(i=0; i<USB_NUMDEVICES; i++) {
+	for(uint8_t i=0; i<USB_NUMDEVICES; i++) {
 		if(usb_devices[i].bAddress && usb_devices[i].parent == parent && usb_devices[i].port == port) {
 			usb_debugf("  -> device with address %u", usb_devices[i].bAddress);
 
 			// check if this is a hub (parent of some other device)
 			// and release its kids first
-			uint8_t j;
-			for(j=0; j<USB_NUMDEVICES; j++) {
+			for(uint8_t j=0; j<USB_NUMDEVICES; j++) {
 				if(usb_devices[j].parent == usb_devices[i].bAddress)
 					usb_release_device(usb_devices[i].bAddress, usb_devices[j].port);
 			}
 
 			uint8_t rcode = 0;
 			if(usb_devices[i].class)
-				rcode = usb_devices[i].class->release(usb_devices+i);
+				rcode = usb_devices[i].class->release(&usb_devices[i]);
 
 			usb_devices[i].bAddress = 0;
 			return rcode;

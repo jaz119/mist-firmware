@@ -319,7 +319,10 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 
 	// Set Configuration Value
 	rcode = usb_set_conf(dev, conf_desc.bConfigurationValue);
-	if (rcode) hid_debugf("hid_set_conf error: %d", rcode);
+	if (rcode) {
+		iprintf("hid: set device config, error 0x%02x", rcode);
+		return rcode;
+	}
 
 	// apply device init quirks
 	const hid_dev_info_t* hid_dev = get_hid_dev(vid, pid);
@@ -668,6 +671,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	if (!info->bPollEnable)
 		return 0;
 
+	uint8_t rcode = 0;
 	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ + 4];
 
 	for (int i=0; i<info->bNumIfaces; i++)
@@ -684,12 +688,13 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		memset(buf, 0, REPORT_BUF_SZ);
 
 		uint16_t read = MIN(iface->conf.report_size, sizeof(buf));
-		uint8_t rcode = usb_in_transfer(dev, &(iface->ep_in), &read, buf);
+		rcode = usb_in_transfer(dev, &(iface->ep_in), &read, buf);
 
 		if (rcode) {
-			if (rcode != hrNAK)
+			if (rcode != hrNAK) {
 				hid_debugf("%s(%d): error 0x%02X",
 					__FUNCTION__, dev->bAddress, rcode);
+			} else rcode = 0;
 		} else {
 			usb_process_iface(dev, iface, read, buf);
 		}
@@ -697,7 +702,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		iface->qLastPollTime = timer_get_msec();
 	}
 
-	return 0;
+	return rcode;
 }
 
 void hid_set_kbd_led(unsigned char led, bool on) {

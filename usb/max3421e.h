@@ -184,7 +184,7 @@
 #define MAX3421E_SE0       0x00    //SE0 - disconnect state
 #define MAX3421E_SE1       0xc0    //SE1 - illegal state
 
-/* Host error MAX3421E_esult codes, the 4 LSB's in the HRSL register */
+/* Host error MAX3421E_result codes, the 4 LSB's in the HRSL register */
 #define hrSUCCESS   0x00
 #define hrBUSY      0x01
 #define hrBADREQ    0x02
@@ -208,6 +208,7 @@
 // interface used by usb.c
 void max3421e_init();
 uint8_t max3421e_poll(uint8_t *);
+void max3421e_clear_fifo(int8_t count);
 void max3421e_write_u08(uint8_t reg, uint8_t data);
 uint8_t max3421e_read_u08(uint8_t reg);
 const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data);
