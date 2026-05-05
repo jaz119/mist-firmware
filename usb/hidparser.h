@@ -20,6 +20,11 @@ typedef struct {
   } logical;
 } hid_axis_t;
 
+typedef struct {
+    uint8_t byte_offset;
+    uint8_t bitmask;
+} hid_button_t;
+
 // currently only joysticks are supported
 typedef struct {
   uint8_t type: 2;             // REPORT_TYPE_...
@@ -29,27 +34,21 @@ typedef struct {
   union {
     struct {
       hid_axis_t axis[MAX_AXES]; // x and y axis + wheel or right hat
+      hid_button_t button[MAX_BUTTONS];
+      uint8_t button_count;
 
       struct {
-				uint8_t byte_offset;
-				uint8_t bitmask;
-      } button[MAX_BUTTONS];
-
-      struct {
-				uint16_t offset;
-				uint8_t size;
-				struct {
-					int16_t min;
-					uint16_t max;
-				} logical;
-				struct {
-					int16_t min;
-					uint16_t max;
-				} physical;
+        uint16_t offset;
+        uint8_t size;
+        struct {
+          int16_t min;
+          uint16_t max;
+        } logical;
+        struct {
+          int16_t min;
+          uint16_t max;
+        } physical;
       } hat;                    // 1 hat (joystick only)
-
-			uint8_t button_count;
-
     } joystick_mouse;
   };
 } hid_report_t;

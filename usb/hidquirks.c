@@ -3,6 +3,8 @@
 #include "user_io.h"
 #include "joystick.h"
 #include "usb/timer.h"
+#include "state.h"
+#include "debug.h"
 
 uint8_t hid_set_report(usb_device_t *, uint8_t iface,
     uint8_t report_type, uint8_t report_id, uint16_t nbytes, uint8_t *);
@@ -16,15 +18,20 @@ static bool x360_check_iface(const usb_interface_descriptor_t *iface)
 }
 
 // Xbox360 controller: init
-static void x360_init(usb_device_t *dev)
+static bool x360_init(usb_device_t *dev)
 {
     usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
 
     // LED command: 1 flashes, then on
-    const uint8_t led_cmd[] = { 0x01, 0x03, 0x02 };
-    usb_out_transfer(dev, &iface->ep_out, sizeof(led_cmd), led_cmd);
+    static const uint8_t led_cmd[] = { 0x01, 0x03, 0x02 };
 
-    // new HID report struct
+    uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(led_cmd), led_cmd);
+    if (rcode) {
+        hid_debugf("%s: handshake error 0x%02x", __FUNCTION__, rcode);
+        return false;
+    }
+
+    // actual HID report
     // buttons mapping is native for 8BitDo M30
     static const hid_report_t x360_report = {
         .type = REPORT_TYPE_JOYSTICK,
@@ -65,10 +72,22 @@ static void x360_init(usb_device_t *dev)
 
     memcpy(&iface->conf, &x360_report, sizeof(hid_report_t));
     iface->report_desc_size = 0x14;
+
+    return true;
+}
+
+// Xbox360 controller: MENU key polling
+static void x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
+{
+    const hid_button_t *home = &iface->conf.joystick_mouse.button[11];
+
+    StateJoySetMenu(
+        report[home->byte_offset] & home->bitmask,
+        joystick_index(iface->jindex));
 }
 
 // Nintendo Pro Controller: wakeup
-static void procon_wakeup(usb_device_t *dev)
+static bool procon_wakeup(usb_device_t *dev)
 {
     usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
 
@@ -99,16 +118,23 @@ static void procon_wakeup(usb_device_t *dev)
 
         timer_delay_msec(20);
 
-        if (usb_out_transfer(dev, &iface->ep_out, 64, report) != 0)
-            break;
+        uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, 64, report);
+        if (rcode) {
+            hid_debugf("%s: handshake, OUT error 0x%02x", __FUNCTION__, rcode);
+            return false;
+        }
 
         timer_delay_msec(5);
-
         rpt_size = 64;
-        usb_in_transfer(dev, &iface->ep_in, &rpt_size, report);
+
+        rcode = usb_in_transfer(dev, &iface->ep_in, &rpt_size, report);
+        if (rcode) {
+            hid_debugf("%s: handshake, IN error 0x%02x", __FUNCTION__, rcode);
+            return false;
+        }
     }
 
-    // new HID report struct
+    // actual HID report
     // buttons mapping is native for 8BitDo M30
     static const hid_report_t report_0x30 = {
         .type = REPORT_TYPE_JOYSTICK,
@@ -148,27 +174,43 @@ static void procon_wakeup(usb_device_t *dev)
     };
 
     memcpy(&iface->conf, &report_0x30, sizeof(hid_report_t));
+    return true;
+}
+
+// Nintendo Pro Controller: MENU key polling
+static void procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
+{
+    const hid_button_t *home = &iface->conf.joystick_mouse.button[9];
+
+    StateJoySetMenu(
+        report[home->byte_offset] & home->bitmask,
+        joystick_index(iface->jindex));
 }
 
 // Logitech K400r: set F1-F12 as primary functions
-static void init_logi_K400r(usb_device_t *dev)
+static bool init_logi_K400r(usb_device_t *dev)
 {
     hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x03\x15\x00\x00\x00"); timer_delay_msec(100);
     hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x0F\x15\x01\x00\x00"); timer_delay_msec(100);
     hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x10\x15\x00\x00\x00"); timer_delay_msec(100);
+
+    return true;
 }
 
-static void init_5200daptor(usb_device_t *dev)
+static bool init_5200daptor(usb_device_t *dev)
 {
-    usb_hid_info_t *info = &(dev->hid_info);
-    hid_report_t *conf = &info->iface[0].conf;
+    hid_report_t *conf = &dev->hid_info.iface[0].conf;
 
-    iprintf("hacking 5200daptor\n");
+    hid_button_t *reset = &conf->joystick_mouse.button[2];
+    hid_button_t *start = &conf->joystick_mouse.button[3];
 
-    conf->joystick_mouse.button[2].byte_offset = 4;
-    conf->joystick_mouse.button[2].bitmask = 0x40;  // "Reset"
-    conf->joystick_mouse.button[3].byte_offset = 4;
-    conf->joystick_mouse.button[3].bitmask = 0x10;  // "Start"
+    reset->byte_offset = 4;
+    reset->bitmask = 0x40;
+
+    start->byte_offset = 4;
+    start->bitmask = 0x10;
+
+    return true;
 }
 
 // special 5200daptor button processing
@@ -232,18 +274,18 @@ static const hid_dev_info_t hid_devs[] = {
     { 0x0079, 0x0011, "Retrolink NES" },
     { 0x040b, 0x6533, "Competition Pro" },
     { 0x0411, 0x00C6, "iBuffalo SFC BSGP801" },
-    { 0x045E, 0x028E, "Xbox 360 Controller", x360_init, NULL, x360_check_iface },
-    { 0x0E6F, 0x0213, "Xbox 360 Controller", x360_init, NULL, x360_check_iface },
-    { 0x0E6F, 0x0401, "Xbox 360 Controller", x360_init, NULL, x360_check_iface },
-    { 0x162E, 0xBEEF, "Xbox 360 Controller", x360_init, NULL, x360_check_iface },
-    { 0x1BAD, 0xF016, "Xbox 360 Controller", x360_init, NULL, x360_check_iface },
+    { 0x045E, 0x028E, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x0E6F, 0x0213, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x0E6F, 0x0401, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x162E, 0xBEEF, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x1BAD, 0xF016, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x046D, 0xC52B, "Unifying Receiver", init_logi_K400r },
     { 0x04D8, 0xF421, "NEOGEO-daptor" },
     { 0x04D8, 0xF672, "Vision-daptor" },
     { 0x04D8, 0xF6EC, "NEOGEO-daptor", init_5200daptor, handle_5200daptor },
     { 0x04D8, 0xF947, "2600-daptor II" },
-    { 0x057E, 0x2009, "Nintendo Switch Pro", procon_wakeup },
-    { 0x057E, 0x200E, "Nintendo Switch JoyCon", procon_wakeup },
+    { 0x057E, 0x2009, "Nintendo Switch Pro", procon_wakeup, procon_poll },
+    { 0x057E, 0x200E, "Nintendo Switch JoyCon", procon_wakeup, procon_poll },
     { 0x0583, 0x2060, "iBuffalo SFC BSGP801" },
     { 0x0738, 0x2217, "Competition Pro" },
     { 0x081F, 0xE401, "SNES Generic Pad" },
@@ -252,6 +294,7 @@ static const hid_dev_info_t hid_devs[] = {
     { 0x1002, 0x9000, "8BitDo FC30" },
     { 0x1235, 0xab11, "8BitDo SFC30" },
     { 0x1235, 0xab21, "8BitDo SFC30"},
+    { 0x054C, 0x0CE6, "Sony DualSense" },
     { 0x1F4F, 0x0003, "ROYDS Stick.EX" },
     { 0x1345, 0x1030, "Retro Freak gamepad" },
     { 0x1C59, 0x0026, "Retro Games gamepad" },

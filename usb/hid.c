@@ -185,7 +185,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 			if (info->bNumIfaces >= MAX_IFACES
 				|| p->iface_desc.bInterfaceClass != USB_CLASS_HID) {
-				if (!known_dev || !(known_dev->have && known_dev->have(&p->iface_desc))) {
+				if (!known_dev || !(known_dev->has && known_dev->has(&p->iface_desc))) {
 					break;
 				}
 			}
@@ -228,7 +228,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			ep->epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
 			ep->epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 			ep->maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
-			cur_iface->interval = p->ep_desc.bInterval;
+			cur_iface->interval = MAX(8, p->ep_desc.bInterval);
 
 			iprintf(" -> %s endpoint %d, %s, interval: %d ms\n", (is_in) ? "IN" : "OUT",
 				ep->epAddr, hid_device_name[cur_iface->conf.type], cur_iface->interval);
@@ -274,7 +274,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 	}
 
 	if (len != 0) {
-		hid_debugf("Config underrun: %d", len);
+		hid_debugf("config underrun: %d", len);
 		return USB_ERROR_CONFIGURATION_SIZE_MISMATCH;
 	}
 
@@ -287,9 +287,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 
 	uint8_t rcode;
 	uint16_t vid, pid;
-
 	usb_hid_info_t *info = &(dev->hid_info);
-	static usb_configuration_descriptor_t conf_desc;
 
 	// reset status
 	info->bPollEnable = false;
@@ -299,6 +297,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	vid = dev_desc->idVendor;
 	pid = dev_desc->idProduct;
 
+	usb_configuration_descriptor_t conf_desc;
 	uint32_t num_of_conf = dev_desc->bNumConfigurations;
 
 	for (uint32_t i=0; i<num_of_conf; i++) {
@@ -317,51 +316,54 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 		return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 	}
 
-	// Set Configuration Value
+	// set configuration value
 	rcode = usb_set_conf(dev, conf_desc.bConfigurationValue);
 	if (rcode) {
-		iprintf("hid: set device config, error 0x%02x", rcode);
+		hid_debugf("hid: set device config, error 0x%02x", rcode);
 		return rcode;
 	}
 
 	// apply device init quirks
 	const hid_dev_info_t* hid_dev = get_hid_dev(vid, pid);
-	if (hid_dev && hid_dev->init_quirk)
-		hid_dev->init_quirk(dev);
+	if (hid_dev && hid_dev->init_quirk) {
+		if (!hid_dev->init_quirk(dev))
+			return USB_ERROR_NO_SUCH_DEVICE;
+	}
 
 	// process all supported interfaces
 	for (uint32_t i=0; i<info->bNumIfaces; i++) {
+		usb_hid_iface_info_t *iface = &info->iface[i];
 
-		if (info->iface[i].conf.type == HID_DEVICE_MOUSE) {
-			info->iface[i].jindex = mice++;
+		if (iface->conf.type == HID_DEVICE_MOUSE) {
+			iface->jindex = mice++;
 		}
-		else if (info->iface[i].conf.type == HID_DEVICE_KEYBOARD) {
-			hid_set_report(dev, info->iface[i].iface_idx, 2, 0, 1, &kbd_led_state);
+		else if (iface->conf.type == HID_DEVICE_KEYBOARD) {
+			hid_set_report(dev, iface->iface_idx, 2, 0, 1, &kbd_led_state);
 			keyboards++;
 		}
-		else if (info->iface[i].conf.type == REPORT_TYPE_JOYSTICK) {
-			info->iface[i].device_type = HID_DEVICE_JOYSTICK;
-			info->iface[i].jindex = joystick_add();
+		else if (iface->conf.type == REPORT_TYPE_JOYSTICK) {
+			iface->device_type = HID_DEVICE_JOYSTICK;
+			iface->jindex = joystick_add();
 		}
 
 		iprintf("%s: report ID = 0x%02x, size = %d\n",
-			hid_device_name[info->iface[i].conf.type],
-			info->iface[i].conf.report_id,
-			info->iface[i].conf.report_size);
+			hid_device_name[iface->conf.type], iface->conf.report_id,
+			iface->conf.report_size);
 
-		if (info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
-
-			for (int k=0; k<MAX_AXES; k++)
+		if (iface->device_type == HID_DEVICE_JOYSTICK) {
+			for (int k=0; k<MAX_AXES; k++) {
 				iprintf("Axis%d: %d@%d %d->%d\n", k,
-					info->iface[i].conf.joystick_mouse.axis[k].size,
-					info->iface[i].conf.joystick_mouse.axis[k].offset/8,
-					info->iface[i].conf.joystick_mouse.axis[k].logical.min,
-					info->iface[i].conf.joystick_mouse.axis[k].logical.max);
+					iface->conf.joystick_mouse.axis[k].size,
+					iface->conf.joystick_mouse.axis[k].offset / 8,
+					iface->conf.joystick_mouse.axis[k].logical.min,
+					iface->conf.joystick_mouse.axis[k].logical.max);
+			}
 
-			for (int k=0; k<info->iface[i].conf.joystick_mouse.button_count; k++)
+			for (int k=0; k<iface->conf.joystick_mouse.button_count; k++) {
 				iprintf("Button%d: @%d/%d\n", k,
-					info->iface[i].conf.joystick_mouse.button[k].byte_offset,
-					info->iface[i].conf.joystick_mouse.button[k].bitmask);
+					iface->conf.joystick_mouse.button[k].byte_offset,
+					iface->conf.joystick_mouse.button[k].bitmask);
+			}
 		}
 
 		// apply remap information from mist.ini if present
@@ -376,31 +378,30 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 			}
 		}
 
-		rcode = hid_set_idle(dev, info->iface[i].iface_idx, 0, 0);
+		// set zero Idle time for all reports
+		rcode = hid_set_idle(dev, iface->iface_idx, 0, 0);
 		if (rcode && rcode != hrSTALL) {
-			hid_debugf("%s: set IDLE error 0x%x",
-				hid_device_name[info->iface[i].device_type], rcode);
-			if (info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
-				uint8_t c_jindex = joystick_index(info->iface[i].jindex);
+			hid_debugf("%s: set Idle error 0x%x",
+				hid_device_name[iface->device_type], rcode);
+			if (iface->device_type == HID_DEVICE_JOYSTICK) {
+				uint8_t c_jindex = joystick_index(iface->jindex);
 				hid_debugf("releasing joystick #%d, renumbering", c_jindex);
 				joystick_release(c_jindex);
 			}
 			return rcode;
 		}
 
-		// enable boot mode if its not diabled
-		if (info->iface[i].has_boot_mode && !info->iface[i].ignore_boot_mode) {
-			iprintf("%s: enabling BOOT mode\n",
-				hid_device_name[info->iface[i].device_type]);
-			hid_set_protocol(dev, info->iface[i].iface_idx, HID_BOOT_PROTOCOL);
+		// enable Boot mode if its not diabled
+		if (iface->has_boot_mode && !iface->ignore_boot_mode) {
+			iprintf("%s: enabling BOOT mode\n", hid_device_name[iface->device_type]);
+			hid_set_protocol(dev, iface->iface_idx, HID_BOOT_PROTOCOL);
 		} else {
-			hid_set_protocol(dev, info->iface[i].iface_idx, HID_RPT_PROTOCOL);
+			hid_set_protocol(dev, iface->iface_idx, HID_RPT_PROTOCOL);
 		}
 	}
 
 	hid_debugf("all configured");
 	info->bPollEnable = true;
-
 	return 0;
 }
 
@@ -419,6 +420,7 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 
 		// check if a keyboard is released
 		if(info->iface[i].device_type == HID_DEVICE_KEYBOARD) {
+			hid_debugf("releasing keyboard #%d", keyboards);
 			keyboards--;
 		}
 
@@ -435,8 +437,8 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 						if(dev[j].hid_info.iface[k].device_type == HID_DEVICE_MOUSE) {
 							uint8_t jindex = dev[j].hid_info.iface[k].jindex;
 							if(jindex > c_jindex) {
-								hid_debugf("decreasing jindex of mouse #%d from %d to %d", j,
-									jindex, jindex-1);
+								hid_debugf("decreasing jindex of mouse #%ld from %d to %d",
+									j, jindex, jindex - 1);
 								dev[j].hid_info.iface[k].jindex--;
 							}
 						}
@@ -452,16 +454,16 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 
 // collect bits from byte stream and assemble them into a signed word
 FORCE_ARM static int32_t collect_bits(
-	uint8_t *p, uint16_t offset, uint8_t size, bool is_signed) {
+	uint8_t *p, uint16_t limit, uint16_t offset, uint8_t size, bool is_signed) {
 	if (!size || size > 32) return 0;
 
 	uint32_t idx = offset >> 3;
 	uint32_t shift = offset & 7;
 
 	uint32_t val = p[idx];
-	if (idx + 1 < REPORT_BUF_SZ) val |= (uint32_t)p[idx + 1] << 8;
-	if (idx + 2 < REPORT_BUF_SZ) val |= (uint32_t)p[idx + 2] << 16;
-	if (idx + 3 < REPORT_BUF_SZ) val |= (uint32_t)p[idx + 3] << 24;
+	if (idx + 1 < limit) val |= (uint32_t)p[idx + 1] << 8;
+	if (idx + 2 < limit) val |= (uint32_t)p[idx + 2] << 16;
+	if (idx + 3 < limit) val |= (uint32_t)p[idx + 3] << 24;
 
 	val >>= shift;
 	uint32_t s_shift = 32 - size;
@@ -501,7 +503,8 @@ FORCE_ARM static void usb_process_iface(
 	for (uint32_t i=0; i<MAX_AXES; i++) {
 		if (conf->joystick_mouse.axis[i].size) {
 			bool is_signed = (int16_t)conf->joystick_mouse.axis[i].logical.min < 0;
-			a[i] = collect_bits(buf, conf->joystick_mouse.axis[i].offset,
+			a[i] = collect_bits(buf, read,
+				conf->joystick_mouse.axis[i].offset,
 				conf->joystick_mouse.axis[i].size, is_signed);
 		} else {
 			a[i] = (iface->device_type == HID_DEVICE_JOYSTICK)
@@ -577,7 +580,8 @@ FORCE_ARM static void usb_process_iface(
 
 	// handle HAT if present and overwrite any axis value
 	if (conf->joystick_mouse.hat.size && !mist_cfg.joystick_ignore_hat) {
-		uint8_t hat = collect_bits(buf, conf->joystick_mouse.hat.offset,
+		uint8_t hat = collect_bits(buf, read,
+			conf->joystick_mouse.hat.offset,
 			conf->joystick_mouse.hat.size, false);
 
 		ALIGNED(4) static const uint8_t hat2x[] = { 128,255,255,255,128,  0,  0,  0 };
@@ -684,8 +688,6 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		// poll at requested rate
 		if (!timer_check(iface->qLastPollTime, iface->interval))
 			continue;
-
-		memset(buf, 0, REPORT_BUF_SZ);
 
 		uint16_t read = MIN(iface->conf.report_size, sizeof(buf));
 		rcode = usb_in_transfer(dev, &(iface->ep_in), &read, buf);
