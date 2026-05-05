@@ -38,8 +38,6 @@ static uint8_t usb_wait_irq() {
 		if( hirq & MAX3421E_HXFRDNIRQ ) {
 			// get transfer result
 			res = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
-			// sync delay
-			delay_usec(1);
 			break;
 		}
 	}
@@ -146,9 +144,6 @@ static uint8_t usb_InTransfer(
 				// resync for toggles
 				pep->bmRcvToggle = !!( max3421e_read_u08(MAX3421E_HRSL) & MAX3421E_RCVTOGRD );
 				max3421e_clear_fifo( max3421e_read_u08(MAX3421E_RCVBC) );
-			} else if( rcode == hrJERR ) {
-				// waiting for bus to calm down
-				timer_delay_msec(1);
 			}
 			return rcode;
 		}
