@@ -353,16 +353,16 @@ unsigned char LoadConfiguration(char *filename, int printconfig)
 
   // wait up to 3 seconds for keyboard to appear. If it appears wait another
   // two seconds for the user to press a key
-  bool keyboard_present = 0;
+  bool keyboard_present = false;
   for(i=0;i<3;i++) {
     unsigned long to = GetTimer(1000);
     while(!CheckTimer(to))
       usb_poll();
 
     // check if keyboard just appeared
-    if(!keyboard_present && hid_keyboard_present()) {
+    if(!keyboard_present && get_keyboards() > 0) {
       // BootPrintEx("Press F1 for NTSC, F2 for PAL");
-      keyboard_present = 1;
+      keyboard_present = true;
       i = 0;
     }
   }

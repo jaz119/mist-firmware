@@ -15,8 +15,8 @@ usb_device_t *usb_get_devices() {
 usb_device_t *usb_get_device(usb_dev_type_t type) {
 	usb_device_t *devs = usb_get_devices();
 
-	for(int i=USB_NUMDEVICES-1;i>=0;i--)
-		if(devs[i].bAddress && devs[i].class && devs[i].class->type == type)
+	for (int i=USB_NUMDEVICES-1; i>=0; i--)
+		if (devs[i].bAddress && devs[i].class && devs[i].class->type == type)
 			return &devs[i];
 
 	return NULL;
@@ -27,8 +27,7 @@ usb_device_t *usb_get_next_device(bool with_poll) {
 	usb_device_t *devs = usb_get_devices();
 	static int cur_index = -1;
 
-	for (int n = 0; n < USB_NUMDEVICES; n++)
-	{
+	for (int n = 0; n < USB_NUMDEVICES; n++) {
 		cur_index++;
 
 		if (cur_index >= USB_NUMDEVICES) {
@@ -50,7 +49,7 @@ usb_device_t *usb_get_next_device(bool with_poll) {
 void usb_init() {
 	usb_debugf("%s()", __FUNCTION__);
 
-	for(int i=0; i<USB_NUMDEVICES; i++)
+	for (int i=0; i<USB_NUMDEVICES; i++)
 		usb_devices[i].bAddress = 0;
 
 	usb_hw_init();
@@ -199,51 +198,58 @@ uint8_t usb_release_device(uint8_t parent, uint8_t port) {
 	return 0;
 }
 
-uint8_t usb_get_dev_descr( usb_device_t *dev, uint16_t nbytes, usb_device_descriptor_t* p )  {
-  return( usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
-	       0x00, USB_DESCRIPTOR_DEVICE, 0x0000, nbytes, (uint8_t*)p));
+uint8_t usb_get_dev_descr( usb_device_t *dev, uint16_t nbytes, usb_device_descriptor_t* p ) {
+  return usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
+	0x00, USB_DESCRIPTOR_DEVICE, 0x0000, nbytes, (uint8_t*)p );
 }
 
-uint8_t usb_get_dev_qualifier_descr( usb_device_t *dev, uint16_t nbytes, usb_device_qualifier_descriptor_t* p )  {
-  return( usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
-                        0x00, USB_DESCRIPTOR_DEVICE_QUALIFIER, 0x0000, nbytes, (uint8_t*)p));
+uint8_t usb_get_dev_qualifier_descr( usb_device_t *dev,
+	uint16_t nbytes, usb_device_qualifier_descriptor_t* p ) {
+
+	return usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
+		0x00, USB_DESCRIPTOR_DEVICE_QUALIFIER, 0x0000, nbytes, (uint8_t*)p );
 }
 
-//get configuration descriptor
-uint8_t usb_get_conf_descr( usb_device_t *dev, uint16_t nbytes,
-			    uint8_t conf, usb_configuration_descriptor_t* p )  {
-	return( usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
-	        conf, USB_DESCRIPTOR_CONFIGURATION, 0x0000, nbytes, (uint8_t*)p));
+// get configuration descriptor
+uint8_t usb_get_conf_descr( usb_device_t *dev,
+	uint16_t nbytes, uint8_t conf, usb_configuration_descriptor_t* p ) {
+
+	return usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
+		conf, USB_DESCRIPTOR_CONFIGURATION, 0x0000, nbytes, (uint8_t*)p );
 }
 
-uint8_t usb_get_other_speed_descr( usb_device_t *dev, uint16_t nbytes,
-                                   uint8_t conf, usb_configuration_descriptor_t* p )  {
-  return( usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
-                        conf, USB_DESCRIPTOR_OTHER_SPEED, 0x0000, nbytes, (uint8_t*)p));
+uint8_t usb_get_other_speed_descr( usb_device_t *dev,
+	uint16_t nbytes, uint8_t conf, usb_configuration_descriptor_t* p ) {
+
+	return usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
+		conf, USB_DESCRIPTOR_OTHER_SPEED, 0x0000, nbytes, (uint8_t*)p );
 }
 
-uint8_t usb_set_addr( usb_device_t *dev, uint8_t newaddr )  {
+uint8_t usb_set_addr( usb_device_t *dev, uint8_t newaddr ) {
 	usb_debugf("%s(%u)", __FUNCTION__, newaddr);
 
-	uint8_t rcode = usb_ctrl_req( dev, USB_REQ_SET, USB_REQUEST_SET_ADDRESS, newaddr,
-	                              0x00, 0x0000, 0x0000, NULL);
-	if(!rcode) dev->bAddress = newaddr;
+	uint8_t rcode = usb_ctrl_req( dev, USB_REQ_SET, USB_REQUEST_SET_ADDRESS,
+		newaddr, 0x00, 0x0000, 0x0000, NULL );
+
+	dev->bAddress = (rcode) ? 0 : newaddr;
 	return rcode;
 }
 
-//get configuration
-uint8_t usb_get_conf( usb_device_t *dev, uint8_t *conf_value )  {
-  return( usb_ctrl_req( dev, USB_REQ_GET, USB_REQUEST_GET_CONFIGURATION,
-	                0x00, 0x00, 0x0000, 1, conf_value));
+// get configuration
+uint8_t usb_get_conf( usb_device_t *dev, uint8_t *conf_value ) {
+	return usb_ctrl_req( dev, USB_REQ_GET, USB_REQUEST_GET_CONFIGURATION,
+		0x00, 0x00, 0x0000, 1, conf_value );
 }
 
-//set configuration
-uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value )  {
-  return( usb_ctrl_req( dev, USB_REQ_SET, USB_REQUEST_SET_CONFIGURATION,
-	                conf_value, 0x00, 0x0000, 0x0000, NULL));
+// set configuration
+uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value ) {
+	return usb_ctrl_req( dev, USB_REQ_SET, USB_REQUEST_SET_CONFIGURATION,
+		conf_value, 0x00, 0x0000, 0x0000, NULL );
 }
 
-uint8_t usb_get_string_descr( usb_device_t *dev, uint16_t nbytes, uint8_t index, uint16_t lang_id, usb_string_descriptor_t* dataptr ) {
-  return( usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
-	       index, USB_DESCRIPTOR_STRING, lang_id, nbytes, (uint8_t*)dataptr));
+uint8_t usb_get_string_descr( usb_device_t *dev, uint16_t nbytes,
+	uint8_t index, uint16_t lang_id, usb_string_descriptor_t* dataptr ) {
+
+	return usb_ctrl_req( dev, USB_REQ_GET_DESCR, USB_REQUEST_GET_DESCRIPTOR,
+		index, USB_DESCRIPTOR_STRING, lang_id, nbytes, (uint8_t*)dataptr );
 }

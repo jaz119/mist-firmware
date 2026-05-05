@@ -88,7 +88,7 @@ static uint8_t usb_hub_parse_conf(
   }
 
   if (len != 0) {
-    iprintf("hub: config underrun: %d\n", len);
+    usb_debugf("config underrun: %d", len);
     return USB_ERROR_CONFIGURATION_SIZE_MISMATCH;
   }
 
@@ -108,7 +108,7 @@ static uint8_t usb_hub_init(
     usb_hub_descriptor_t hub_desc;
   } buf;
 
-  // reset status
+  // Reset status
   info->nrPorts = 0;
   info->lastPollTime = 0;
   info->pollEnable = false;
@@ -172,7 +172,7 @@ static uint8_t usb_hub_init(
 static uint8_t usb_hub_release(usb_device_t *dev) {
   usb_debugf("%s()", __FUNCTION__);
 
-  // root hub unplugged
+  // Root hub unplugged
   if (!dev->parent)
     usb_ResetHubPreMask();
 

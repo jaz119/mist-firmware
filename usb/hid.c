@@ -37,7 +37,7 @@ static const char hid_device_name[4][10] = {
 #define MAX_JOYSTICK_BUTTON_REMAP 8
 
 /*****************************************************************************/
-//NOTE: the below mapping is hardware buttons to USB,
+// NOTE: the below mapping is hardware buttons to USB,
 //      not to be confused with USB HID -> Virtual Keyboard
 //      The purpose of the below is to overcome hardware problems e.g. :
 //      - some controllers have buttons that are always on, so this allows to ignore them
@@ -45,11 +45,11 @@ static const char hid_device_name[4][10] = {
 //      In general it's easier to use virtual joystick mapping, but this gives a lower-level of control if needed.
 //
 
-ALIGNED(4) static struct {
-  uint16_t vid;   // vendor id
-  uint16_t pid;   // product id
-  uint8_t offset; // bit index within report
-  uint8_t button; // joystick button to be reported
+static struct {
+	uint16_t vid;   // vendor id
+	uint16_t pid;   // product id
+	uint8_t offset; // bit index within report
+	uint8_t button; // joystick button to be reported
 } joystick_button_remap[MAX_JOYSTICK_BUTTON_REMAP];
 
 void hid_joystick_button_remap_init(void) {
@@ -57,20 +57,18 @@ void hid_joystick_button_remap_init(void) {
 }
 
 char hid_joystick_button_remap(char *s, char action, int tag) {
-	uint32_t i;
-
 	hid_debugf("%s(%s)", __FUNCTION__, s);
 
 	if (action == INI_SAVE) return 0;
 
-	if(strlen(s) < 13) {
+	if (strlen(s) < 13) {
 		hid_debugf("malformed entry");
 		return 0;
 	}
 
 	// parse remap request
-	for(i=0; i<MAX_JOYSTICK_BUTTON_REMAP; i++) {
-		if(!joystick_button_remap[i].vid) {
+	for (uint32_t i=0; i<MAX_JOYSTICK_BUTTON_REMAP; i++) {
+		if (!joystick_button_remap[i].vid) {
 			// first two entries are comma seperated
 			joystick_button_remap[i].vid = strtol(s, NULL, 16);
 			joystick_button_remap[i].pid = strtol(s+5, NULL, 16);
@@ -86,6 +84,7 @@ char hid_joystick_button_remap(char *s, char action, int tag) {
 			return 0;
 		}
 	}
+
 	return 0;
 }
 
@@ -121,12 +120,16 @@ static bool hid_get_report_descr(usb_device_t *dev, usb_hid_iface_info_t *iface,
 	return true;
 }
 
-static uint8_t hid_get_idle(usb_device_t *dev, uint8_t iface, uint8_t reportID, uint8_t *duration ) {
+static uint8_t hid_get_idle(usb_device_t *dev,
+	uint8_t iface, uint8_t reportID, uint8_t *duration ) {
+
 	return usb_ctrl_req( dev, HID_REQ_HIDIN, HID_REQUEST_GET_IDLE,
 		reportID, 0, iface, 0x0001, duration);
 }
 
-static uint8_t hid_set_idle(usb_device_t *dev, uint8_t iface, uint8_t reportID, uint8_t duration ) {
+static uint8_t hid_set_idle(usb_device_t *dev,
+	uint8_t iface, uint8_t reportID, uint8_t duration ) {
+
 	return usb_ctrl_req( dev, HID_REQ_HIDOUT, HID_REQUEST_SET_IDLE,
 		reportID, duration, iface, 0x0000, NULL);
 }
@@ -496,8 +499,8 @@ FORCE_ARM static void usb_process_iface(
 		return;
 	}
 
-	ALIGNED(4) int16_t a[MAX_AXES];
-	ALIGNED(4) static int16_t rem[MAX_AXES];
+	int16_t a[MAX_AXES];
+	static int16_t rem[MAX_AXES];
 
 	// several axes ...
 	for (uint32_t i=0; i<MAX_AXES; i++) {
@@ -713,35 +716,25 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 
 void hid_set_kbd_led(unsigned char led, bool on) {
 	// check if led state has changed
-	if( (on && !(kbd_led_state&led)) || (!on && (kbd_led_state&led))) {
-		if(on) kbd_led_state |=  led;
-		else   kbd_led_state &= ~led;
+	if ((on && !(kbd_led_state & led)) || (!on && (kbd_led_state & led))) {
+
+		if (on) kbd_led_state |=  led;
+		else    kbd_led_state &= ~led;
 
 		// search for all keyboard interfaces on all hid devices
 		usb_device_t *dev = usb_get_devices();
-		for(int i=0; i<USB_NUMDEVICES; i++) {
-			if(dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
+
+		for (int i=0; i<USB_NUMDEVICES; i++) {
+			if (dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
 				// search for keyboard interfaces
-				for(int j=0; j<MAX_IFACES; j++)
-					if(dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD)
-				hid_set_report(dev+i, dev[i].hid_info.iface[j].iface_idx, 2, 0, 1, &kbd_led_state);
+				for (int j=0; j<MAX_IFACES; j++) {
+					if (dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD) {
+						hid_set_report(dev + i, dev[i].hid_info.iface[j].iface_idx, 2, 0, 1, &kbd_led_state);
+					}
+				}
 			}
 		}
 	}
-}
-
-int8_t hid_keyboard_present(void) {
-	// check all USB devices for keyboards
-	usb_device_t *dev = usb_get_devices();
-	for(int i=0; i<USB_NUMDEVICES; i++) {
-		if(dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
-			// search for keyboard interfaces
-			for(int j=0; j<MAX_IFACES; j++)
-				if(dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD)
-			return 1;
-		}
-	}
-	return 0;
 }
 
 const usb_device_class_config_t usb_hid_class = {

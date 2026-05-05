@@ -40,10 +40,10 @@
 #define MAX_IFACES            2  // max supported interfaces per device. 2 to support kbd/mouse combos
 #define REPORT_BUF_SZ         64
 
-#define HID_DEVICE_UNKNOWN  0
-#define HID_DEVICE_MOUSE    1
-#define HID_DEVICE_KEYBOARD 2
-#define HID_DEVICE_JOYSTICK 3
+#define HID_DEVICE_UNKNOWN    0
+#define HID_DEVICE_MOUSE      1
+#define HID_DEVICE_KEYBOARD   2
+#define HID_DEVICE_JOYSTICK   3
 
 // when the joystick axis counts as trigger a direction for binary
 #define JOYSTICK_AXIS_MIN           0
@@ -61,14 +61,14 @@ typedef struct {
   uint16_t report_desc_size;
 
   uint8_t device_type;
-  bool ignore_boot_mode: 1;  // don't use boot mode even if device supports it
-  bool has_boot_mode: 1;     // device supports boot mode
-  uint16_t key_state;        // needed to detect key state changes in 5200daptor
+  bool ignore_boot_mode: 1;   // don't use boot mode even if device supports it
+  bool has_boot_mode: 1;      // device supports boot mode
+  uint16_t key_state;         // needed to detect key state changes in 5200daptor
 
   // additional info extracted from the report descriptor
   // (currently only used for joysticks)
-  uint32_t jmap;           // last reported joystick state
-  uint16_t jindex;         // joystick index
+  uint32_t jmap;              // last reported joystick state
+  uint16_t jindex;            // joystick index
   hid_report_t conf;
 
   uint8_t interval;
@@ -77,9 +77,8 @@ typedef struct {
 } usb_hid_iface_info_t;
 
 typedef struct {
-  bool	   bPollEnable;	      // poll enable flag
+  bool bPollEnable;           // poll enable flag
   uint8_t  bNumIfaces;
-
   usb_hid_iface_info_t iface[MAX_IFACES];
 } usb_hid_info_t;
 
@@ -97,15 +96,16 @@ typedef struct  {
 // interface to usb core
 extern const usb_device_class_config_t usb_hid_class;
 
-void hid_set_kbd_led(unsigned char led, bool on);
 uint8_t hid_get_joysticks(void);
-int8_t hid_keyboard_present(void);
 unsigned char get_keyboards(void);
 unsigned char get_mice(void);
+
+void hid_set_kbd_led(unsigned char led, bool on);
 
 // HID low-level remapping - do not confuse with virtual joystick in joymapping.h
 void hid_joystick_button_remap_init(void);
 char hid_joystick_button_remap(char *, char, int);
+
 void joy_key_map_init(void); // older function, prefer to use joymapping.h function
 
 #endif // HID_H
