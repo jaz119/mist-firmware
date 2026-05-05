@@ -71,7 +71,7 @@ static const uint16_t default_joystick_mapping [16] = {
 	}
 }*/
 
-static char idx = 0;
+static int idx = 0;
 
 void virtual_joystick_remap_init(char save) {
   if(save)

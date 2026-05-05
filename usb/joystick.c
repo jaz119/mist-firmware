@@ -50,17 +50,15 @@ uint8_t joystick_release(uint8_t c_jindex) {
 
 	// search for all joystick interfaces on all hid devices
 	usb_device_t *dev = usb_get_devices();
-	uint8_t j;
-	for(j=0;j<USB_NUMDEVICES;j++) {
+	for(uint8_t j=0; j<USB_NUMDEVICES; j++) {
 		if(dev[j].bAddress && (dev[j].class == &usb_hid_class)) {
 			// search for joystick interfaces
-			uint8_t k;
-			for(k=0;k<MAX_IFACES;k++) {
+			for(uint8_t k=0; k<MAX_IFACES; k++) {
 				if(dev[j].hid_info.iface[k].device_type == HID_DEVICE_JOYSTICK) {
 					uint8_t jindex = joystick_index(dev[j].hid_info.iface[k].jindex);
 					if(jindex > c_jindex) {
-						iprintf("decreasing joystick index of dev #%d from %d to %d\n", j,
-							jindex, jindex-1);
+						hid_debugf("decreasing joystick index of dev #%d from %d to %d",
+							j, jindex, jindex - 1);
 						dev[j].hid_info.iface[k].jindex--;
 						StateUsbIdSet( dev[j].vid, dev[j].pid, dev[j].hid_info.iface[k].conf.joystick_mouse.button_count, dev[j].hid_info.iface[k].jindex);
 					}
@@ -69,11 +67,14 @@ uint8_t joystick_release(uint8_t c_jindex) {
 		}
 
 	}
+
 	// one less joystick in the system ...
 	joysticks--;
-	StateNumJoysticksSet(joysticks);
-	if (joysticks < 6)
-		StateUsbIdSet(0, 0, 0, joysticks);
+
+	if (joysticks >= 0 && joysticks < 6) {
+		StateNumJoysticksSet(joysticks);
+		memset(&mist_joysticks[joysticks], 0, sizeof(mist_joystick_t));
+	}
 
 	return 0;
 }

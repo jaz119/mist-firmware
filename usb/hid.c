@@ -552,42 +552,46 @@ FORCE_ARM static void usb_process_iface(
 			continue;
 		}
 
+		int32_t val = a[i];
 		int32_t l_min = (int16_t)axis->logical.min;
 		int32_t l_max = (int16_t)axis->logical.max;
-		int32_t range = l_max - l_min;
+		int32_t range, offset;
+
+		if (l_max > l_min) {
+			range  = l_max - l_min;
+			offset = val - l_min;
+		} else {
+			range  = l_min - l_max;
+			offset = l_min - val;
+		}
 
 		if (range == 0) {
 			a[i] = JOYSTICK_AXIS_MID;
 			continue;
 		}
 
-		int32_t val = a[i];
+		int32_t res = (offset * JOYSTICK_AXIS_MAX + (range / 2)) / range;
 
-		if (l_min < l_max) {
-			if (val < l_min) val = l_min;
-			if (val > l_max) val = l_max;
-		} else {
-			if (val > l_min) val = l_min;
-			if (val < l_max) val = l_max;
+		if (res < JOYSTICK_AXIS_MIN) res = JOYSTICK_AXIS_MIN;
+		if (res > JOYSTICK_AXIS_MAX) res = JOYSTICK_AXIS_MAX;
+
+		if ((uint32_t)labs(res - JOYSTICK_AXIS_MID) < mist_cfg.joystick_dead_range) {
+			res = JOYSTICK_AXIS_MID;
 		}
 
-		a[i] = (val - l_min) * 255 / range;
-
-		if ((uint32_t)labs(a[i] - JOYSTICK_AXIS_MID) < mist_cfg.joystick_dead_range) {
-			a[i] = JOYSTICK_AXIS_MID;
-		}
-	}
+		a[i] = res;
+    }
 
 	// handle HAT if present and overwrite any axis value
 	if (conf->joystick_mouse.hat.size && !mist_cfg.joystick_ignore_hat) {
-		uint8_t hat = collect_bits(buf, read,
+		uint32_t hat = collect_bits(buf, read,
 			conf->joystick_mouse.hat.offset,
 			conf->joystick_mouse.hat.size, false);
 
-		ALIGNED(4) static const uint8_t hat2x[] = { 128,255,255,255,128,  0,  0,  0 };
-		ALIGNED(4) static const uint8_t hat2y[] = {   0,  0,128,255,255,255,128,  0 };
+		static const uint8_t hat2x[] = { 128, 255, 255, 255, 128,   0,   0,   0 };
+		static const uint8_t hat2y[] = {   0,   0, 128, 255, 255, 255, 128,   0 };
 
-		if (hat <= conf->joystick_mouse.hat.logical.max) {
+		if (hat <= (uint32_t)conf->joystick_mouse.hat.logical.max) {
 			uint8_t idx = (hat - conf->joystick_mouse.hat.logical.min) & 0x07;
 			uint8_t x_val = hat2x[idx], y_val = hat2y[idx];
 
