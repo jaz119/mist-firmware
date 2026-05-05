@@ -3,24 +3,23 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
+
 #include "usb.h"
 #include "hid.h"
 #include "state.h"
 #include "mist_cfg.h"
 
-mist_cfg_t mist_cfg;
-uint32_t core_type = 0xff;
 uint8_t adc_state = 0;
+uint32_t core_type = 0xff;
+bool osd_is_visible = false;
+mist_cfg_t mist_cfg;
 
 // Usb device descriptor, and report descriptor(s) list
 static uint8_t usb_desc_buf[8][USB_MAX_CONFIG_DESC_SIZE];
 
 const usb_device_class_config_t usb_hub_class = {
   USB_HUB, NULL, NULL, NULL
-};
-
-const usb_device_class_config_t usb_xbox_class = {
-  USB_HID, NULL, NULL, NULL
 };
 
 const usb_rtc_class_config_t usb_rtc_tiny_class = {
@@ -31,32 +30,70 @@ const usb_rtc_class_config_t usb_rtc_mcp2221_class = {
     .base = { USB_RTC, NULL, NULL, NULL },
 };
 
-void timer_delay_msec(uint32_t t) { }
-
-void user_io_digital_joystick_ext(unsigned char joystick, uint32_t map) { }
-void user_io_digital_joystick(unsigned char joystick, unsigned char map) { }
-void user_io_analog_joystick(unsigned char joystick, int X, int Y, int X2, int Y2) { }
-void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid) { }
-void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z) { }
-
-uint8_t joystick_count() { return 0; }
-uint8_t joystick_index(uint8_t index) { return index; }
-uint8_t joystick_release(uint8_t) { return 0; }
-uint8_t joystick_add() { return 1; }
-
-bool virtual_joystick_keyboard( uint16_t vjoy ) { return false; }
-uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_t joy_input ) { return 0; }
-
+void InitRTTC() { }
 void usb_hw_init() { }
 
-uint8_t usb_in_transfer(usb_device_t *, ep_t *, uint16_t *, uint8_t *)
+unsigned long GetRTTC() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (ts.tv_sec * 1000L) + (ts.tv_nsec / 1000000L);
+}
+
+void timer_delay_msec(uint32_t delay) {
+    usleep(delay * 1000);
+}
+
+void user_io_kbd(unsigned char m,
+    unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid)
 {
-    return 0;
+    printf("> KEY = 0x%x\n", *k);
+}
+
+void user_io_mouse(unsigned char index, unsigned char btn, char x, char y, char z)
+{
+    printf("> Mouse%d: X = %d, Y = %d, Z = %d, BTN = %d\n", index, x, y, z, btn);
+}
+
+void user_io_digital_joystick(unsigned char index, unsigned char map)
+{
+    printf("> Joy%d: MAP = 0x%x\n", index, map);
+}
+
+void user_io_digital_joystick_ext(unsigned char index, uint32_t map)
+{
+    printf("> Joy%d: MAP_EXT = 0x%x\n", index, map);
+}
+
+void user_io_analog_joystick(unsigned char index, int X, int Y, int X2, int Y2)
+{
+    printf("> Joy%d: X = 0x%x, Y = 0x%x, X2 = 0x%x, Y2 = 0x%x\n", index, X, Y, X2, Y2);
+}
+
+uint8_t usb_in_transfer(usb_device_t *dev, ep_t *ep, uint16_t *size, uint8_t *buf)
+{
+    const usb_hid_info_t *info = &(dev->hid_info);
+
+    for (int i = 0; i < info->bNumIfaces; i++)
+    {
+        const usb_hid_iface_info_t *iface = &info->iface[i];
+
+        if (ep == &(iface->ep_in) && *size <= iface->conf.report_size)
+        {
+            // send empty report
+            memset(buf, 0xA5, *size);
+            buf[0] = iface->conf.report_id;
+            printf("%s: EP%d, report ID = 0x%02x\n", __FUNCTION__, ep->epAddr, buf[0]);
+            // hexdump(buf, *size, 0);
+            return 0;
+        }
+    }
+
+    return 0x02; // hrBADREQ
 }
 
 uint8_t usb_out_transfer(usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t* data)
 {
-    printf("%s: ep%d, report id = 0x%02x\n", __FUNCTION__, ep->epAddr, data[0]);
+    printf("%s: EP%d, report ID = 0x%02x\n", __FUNCTION__, ep->epAddr, data[0]);
     hexdump(data, nbytes, 0);
     return 0;
 }
@@ -145,7 +182,6 @@ uint8_t usb_ctrl_req(
 static bool load_report(uint8_t *buf, const char* fname)
 {
     int fd = open(fname, 0, O_RDONLY);
-
     if (fd != -1)
     {
         read(fd, buf, USB_MAX_CONFIG_DESC_SIZE);
@@ -158,8 +194,7 @@ static bool load_report(uint8_t *buf, const char* fname)
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
-    {
+    if (argc < 2) {
         printf("Usage: %s usb_dev_desc.dump usb_rpt0_desc.dump [ .. usb_rpt7_desc.dump ]\n", argv[0]);
         return 0;
     }
@@ -167,8 +202,7 @@ int main(int argc, char *argv[])
     // USB HID: loading a list of files with device & report(s) descriptors
     for (int n = 0; n < ARRAY_SIZE(usb_desc_buf) && (n + 1) < argc; n++)
     {
-        if (!load_report(usb_desc_buf[n], argv[n + 1]))
-        {
+        if (!load_report(usb_desc_buf[n], argv[n + 1])) {
             printf("Cannot open %s file: %s\n", argv[n + 1], strerror(errno));
             return errno;
         }
@@ -181,28 +215,47 @@ int main(int argc, char *argv[])
     uint8_t rcode;
 
     memset(&dev, 0, sizeof(usb_device_t));
-    dev.ep0.maxPktSize = 8;
     dev.ep0.bmNakPower = USB_NAK_DEFAULT;
+    dev.ep0.maxPktSize = 8;
 
     if ((rcode = usb_get_dev_descr(&dev, sizeof(usb_device_descriptor_t), &dev_desc))) {
+        printf("Get USB device descriptor, error 0x%x\n", rcode);
         return rcode;
     }
 
     dev.ep0.maxPktSize = dev_desc.bMaxPacketSize0;
     usb_dump_device_descriptor(&dev_desc);
 
-    printf("USB vendor ID: %04X, product ID: %04X\n", dev_desc.idVendor, dev_desc.idProduct);
+    printf("USB vendor ID: %04x, product ID: %04x\n", dev_desc.idVendor, dev_desc.idProduct);
 
-    // save VID/PID
+    // Save VID/PID
     dev.vid = dev_desc.idVendor;
     dev.pid = dev_desc.idProduct;
 
+    // Driver init
     rcode = usb_hid_class.init(&dev, &dev_desc);
-
-    if (!rcode) {
-        return 0;
+    if (rcode) {
+        printf("USB device NOT accepted, error 0x%02x\n", rcode);
+        return rcode;
     }
 
-    printf("USB device NOT accepted, error 0x%X\n", rcode);
-    return rcode;
+    // Polling loop
+    for (int n = 0; n < 3; n++)
+    {
+        timer_delay_msec(12);
+        rcode = usb_hid_class.poll(&dev);
+
+        if (rcode) {
+            printf("USB device POLL, error 0x%02x\n", rcode);
+        }
+    }
+
+    // Driver unload
+    rcode = usb_hid_class.release(&dev);
+    if (rcode) {
+        printf("USB device RELEASE, error 0x%02x\n", rcode);
+            return rcode;
+    }
+
+    return 0;
 }

@@ -1,13 +1,17 @@
-PRJ = hidtest
-SRC = hid_test.c usb/usb.c usb/usbdebug.c usb/hid.c usb/hidparser.c usb/hidquirks.c state.c utils.c
+PRJ  = hidtest
+
+SRC  = usb/usb.c usb/usbdebug.c usb/hid.c usb/hidparser.c usb/hidquirks.c
+SRC += usb/joystick.c usb/joymapping.c state.c utils.c hid_test.c
 
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 
 DFLAGS = -DDEBUG_HID -DDEBUG_HIDP
-DFLAGS += -Diprintf=printf -D_strnicmp=strncasecmp
-DFLAGS += -DFF_LFN_BUF=255 -DSECTOR_BUFFER_SIZE=4096 -DFORCE_ARM="" -DRAMFUNC=""
-CFLAGS  = $(DFLAGS) -Wall -Wno-pointer-sign -Wno-attributes -fsanitize=address -fno-omit-frame-pointer -I. -Iusb -Ihw/AT91SAM -g -O0
+DFLAGS += -Diprintf=printf -Dsiprintf=sprintf -D_strnicmp=strncasecmp
+DFLAGS += -DFF_LFN_BUF=255 -DSECTOR_BUFFER_SIZE=4096 -DFORCE_ARM="" -DRAMFUNC="" -DHARDWARE_H -DSPI_H
+
+CFLAGS  = $(DFLAGS) -Wall -Wno-pointer-sign -Wno-attributes -Wno-implicit-function-declaration
+CFLAGS += -fsanitize=address -fno-omit-frame-pointer -I. -Iusb -Ihw/AT91SAM -g -O0
 
 # Our target.
 all: $(PRJ)
