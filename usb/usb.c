@@ -114,11 +114,10 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		usb_debugf("EP0 max packet size: %d", dev->ep0.maxPktSize);
 
 		// Assign new address to the device
-		// (address is simply the number of the free slot + 1)
-		rcode = usb_set_addr(dev, i + 1);
+		static uint8_t dev_count = 0;
+		rcode = usb_set_addr(dev, ((i << 2) | (dev_count++ & 3)) + 1);
 		if(rcode) {
-			iprintf("usb: failed to assign address (rcode=%d)\n", rcode);
-			dev->bAddress = 0;
+			iprintf("usb: failed to assign address, error %02x\n", rcode);
 			return rcode;
 		}
 
@@ -156,7 +155,10 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 
 			if (!rcode) {
 				dev->class = class_list[c];
-				iprintf("USB device %d accepted, %lu ms\n", i, GetRTTC() - time);
+
+				iprintf("USB %s device %d accepted, address %d, %lu ms\n",
+					(dev->lowspeed) ? "LS" : "FS", i, dev->bAddress, GetRTTC() - time);
+
 				return 0;
 			}
 		}

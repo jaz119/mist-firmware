@@ -26,25 +26,36 @@ void usb_hw_init() {
 
 static uint8_t usb_wait_irq() {
 	unsigned long start = timer_get_msec();
-	uint8_t res = USB_ERROR_TRANSFER_TIMEOUT;
 
 	// wait for transfer completion
 	while( !timer_check(start, USB_ACK_TIMEOUT) ) {
+
 		// wait for low on INT pin
 		if( !usb_irq_active() )
 			continue;
 
 		uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
 		if( hirq & MAX3421E_HXFRDNIRQ ) {
+
 			// get transfer result
-			res = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
-			break;
+			uint8_t res = ( max3421e_read_u08( MAX3421E_HRSL ) & 0x0f );
+
+			// clear the interrupt
+			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
+			return res;
 		}
 	}
 
-	// clear the interrupt
-	max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
-	return res;
+	// reset SIE & FIFO
+	max3421e_write_u08( MAX3421E_HCTL, MAX3421E_FRMRST );
+	max3421e_write_u08( MAX3421E_HCTL, 0 );
+	max3421e_clear_fifo( 64 );
+
+	// clear the interrupts
+	max3421e_write_u08( MAX3421E_HIRQ,
+		MAX3421E_HXFRDNIRQ | MAX3421E_RCVDAVIRQ | MAX3421E_SNDBAVIRQ );
+
+	return USB_ERROR_TRANSFER_TIMEOUT;
 }
 
 static uint8_t usb_set_address(
@@ -108,6 +119,10 @@ static uint8_t usb_dispatchPkt( uint8_t token, uint8_t ep, uint16_t nak_limit ) 
 			delay_usec( USB_RETRY_DELAY );
 			break;
 
+		case hrBUSY:
+			delay_usec( 100 );
+			break;
+
 		case hrSUCCESS:
 			if( ep == 0 ) delay_usec( 100 );
 			return rcode;
@@ -151,8 +166,10 @@ static uint8_t usb_InTransfer(
 		/* check for RCVDAVIRQ and generate error if not present */
 		/* the only case when absense of RCVDAVIRQ makes sense is when */
 		/* toggle error occured. Need to add handling for that */
-		if( (max3421e_read_u08( MAX3421E_HIRQ ) & MAX3421E_RCVDAVIRQ) == 0 )
+		if( (max3421e_read_u08( MAX3421E_HIRQ ) & MAX3421E_RCVDAVIRQ) == 0 ) {
+			max3421e_clear_fifo( 64 );
 			return 0xf0; // receive error
+		}
 
 		pktsize = max3421e_read_u08( MAX3421E_RCVBC ); // number of received bytes
 		int16_t mem_left = (int16_t)nbytes - *((int16_t*)nbytesptr);
