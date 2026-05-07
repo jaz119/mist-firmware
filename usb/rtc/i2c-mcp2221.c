@@ -14,7 +14,7 @@
 #include "timer.h"
 #include "debug.h"
 
-#define TIMEOUT_MS      USB_ACK_TIMEOUT + 4
+#define TIMEOUT_MS      USB_ACK_TIMEOUT + 5
 #define REPORT_SIZE     64
 
 #define MCP2221_VID     0x04d8
@@ -124,8 +124,8 @@ static uint8_t mcp_get_status(
     usb_device_t *, uint8_t *, bool);
 
 static const i2c_bus_t mcp_i2c_bus = {
-  .bulk_read = mcp_i2c_bulk_read,
-  .bulk_write = mcp_i2c_bulk_write
+    .bulk_read = mcp_i2c_bulk_read,
+    .bulk_write = mcp_i2c_bulk_write
 };
 
 // all of supported RTCs list
@@ -299,7 +299,6 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint16_t len)
                 ep_t *ep = (p->ep_desc.bEndpointAddress & 0x80)
                     ? &info->ep_in : &info->ep_out;
 
-                memset(ep, 0, sizeof(ep_t));
                 ep->epAddr = (p->ep_desc.bEndpointAddress & 0x0f);
                 ep->epType = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
                 ep->maxPktSize = p->ep_desc.wMaxPacketSize[0];
@@ -338,6 +337,7 @@ static uint8_t mcp_init(
     } buf;
 
     uint8_t rcode;
+    usb_mcp_info_t *info = &(dev->mcp_info);
 
     // Use first config (actually there is only one)
     if ((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), 0, &buf.conf_desc))) {
@@ -345,10 +345,8 @@ static uint8_t mcp_init(
         return rcode;
     }
 
-    usb_mcp_info_t *info = &(dev->mcp_info);
-
     // Reset runtime info
-    info->chip_type = info->i2c_clock = -1;
+    memset(info, 0, sizeof(usb_mcp_info_t));
 
     // Parse HID descriptor
     if ((rcode = usb_hid_parse_conf(dev, buf.conf_desc.wTotalLength))) {
@@ -492,24 +490,39 @@ static bool mcp_i2c_bulk_write(
         && mcp_i2c_wait_for(dev, rpt.raw, I2C_IDLE, TIMEOUT_MS);
 }
 
-static bool mcp_get_time(struct usb_device_entry *dev, ctime_t date)
+static bool mcp_get_time(struct usb_device_entry *dev, ctime_t time)
 {
-    usb_mcp_info_t *info = &(dev->mcp_info);
-    const rtc_chip_t *rtc = rtc_chips[info->chip_type];
+    const usb_mcp_info_t *info = &(dev->mcp_info);
 
-    return rtc->get_time(dev, &mcp_i2c_bus, date);
+    memcpy(time, info->time.value, sizeof(ctime_t));
+    return info->time.is_valid;
 }
 
-static bool mcp_set_time(struct usb_device_entry *dev, const ctime_t date)
+static bool mcp_set_time(struct usb_device_entry *dev, const ctime_t time)
 {
     const usb_mcp_info_t *info = &(dev->mcp_info);
     const rtc_chip_t *rtc = rtc_chips[info->chip_type];
 
-    return rtc->set_time(dev, &mcp_i2c_bus, date);
+    return rtc->set_time(dev, &mcp_i2c_bus, time);
+}
+
+static uint8_t mcp_poll(usb_device_t *dev)
+{
+    usb_mcp_info_t *info = &(dev->mcp_info);
+
+    if (timer_check(info->time.updated, 500))
+    {
+        const rtc_chip_t *rtc = rtc_chips[info->chip_type];
+
+        info->time.updated = timer_get_msec();
+        info->time.is_valid = rtc->get_time(dev, &mcp_i2c_bus, info->time.value);
+    }
+
+    return (info->time.is_valid) ? 0 : USB_ERROR_NO_SUCH_DEVICE;
 }
 
 const usb_rtc_class_config_t usb_rtc_mcp2221_class = {
-    .base = { USB_RTC, mcp_init, mcp_release, NULL },
+    .base = { USB_RTC, mcp_init, mcp_release, mcp_poll },
     .get_time = mcp_get_time,
     .set_time = mcp_set_time,
 };

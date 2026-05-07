@@ -14,6 +14,11 @@ typedef struct {
     ep_t ep_out;
     uint16_t i2c_clock;         // i2c bus clock rate
     uint8_t chip_type;          // rtc chip type in use
+    struct {
+        uint8_t is_valid;       // time is valid
+        uint32_t updated;       // last polling
+        ctime_t value;          // current time
+    } time;
 } usb_mcp_info_t;
 
 extern const usb_rtc_class_config_t usb_rtc_mcp2221_class;
