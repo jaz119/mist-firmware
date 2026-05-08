@@ -4,6 +4,10 @@
 
 #include <stdio.h>
 
+#define errorf(a, ...)      iprintf("\033[0;31m" a "\033[0m\n", ##__VA_ARGS__)
+#define warningf(a, ...)    iprintf("\033[0;33m" a "\033[0m\n", ##__VA_ARGS__)
+#define infof(a, ...)       iprintf("\033[0;36m" a "\033[0m\n", ##__VA_ARGS__)
+
 // ------------ generic debugging -----------
 #if DEBUG
 #define debugf(a, ...) iprintf("\033[0;37m" a "\033[0m\n", ##__VA_ARGS__)

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "hardware.h"
 #include "idxfile.h"
+#include "debug.h"
 
 ALIGNED(4) IDXFile sd_image[SD_IMAGES];
 
@@ -16,12 +17,12 @@ void IDXIndex(IDXFile *idx, int entry) {
   DISKLED_OFF;
 
   if (res == FR_OK) {
-    iprintf("Index #%d: created in %lu ms\n", entry, GetRTTC() - time);
+    infof("Index #%d: created in %lu ms", entry, GetRTTC() - time);
     idx->valid = 1;
     return;
   }
 
-  iprintf("indexing error: %d, continuing without indices\n", res);
+  errorf("indexing error: %d, continuing without indices", res);
   idx->file.cltbl = 0;
 }
 

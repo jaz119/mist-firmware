@@ -81,7 +81,7 @@ static void InsertFloppy(adfTYPE *drive, const unsigned char *name)
 	// calculate number of tracks in the ADF image file
 	tracks = f_size(&drive->file) / (512*11);
 	if (tracks > MAX_TRACKS) {
-		iprintf("UNSUPPORTED ADF SIZE!!! Too many tracks: %lu\r", tracks);
+		errorf("UNSUPPORTED ADF SIZE!!! Too many tracks: %lu", tracks);
 		tracks = MAX_TRACKS;
 	}
 	drive->tracks = (unsigned char)tracks;

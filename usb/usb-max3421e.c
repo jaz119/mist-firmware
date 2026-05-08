@@ -46,9 +46,7 @@ static uint8_t usb_wait_irq() {
 		}
 	}
 
-	// reset SIE & FIFO
-	max3421e_write_u08( MAX3421E_HCTL, MAX3421E_FRMRST );
-	max3421e_write_u08( MAX3421E_HCTL, 0 );
+	max3421e_reset_sie();
 	max3421e_clear_fifo( 64 );
 
 	// clear the interrupts
@@ -391,9 +389,19 @@ uint8_t usb_poll() {
 			max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_FRAMEIRQ ); // clear SOF irq
 		}
 		if( usb_task_state == USB_STATE_RUNNING ) {
-			usb_device_t *it = usb_get_next_device(true);
+			usb_device_t *it = usb_get_next_device( true );
 			if( it ) {
-				rcode = it->class->poll(it);
+				rcode = it->class->poll( it );
+				if( rcode ) {
+					if( rcode != hrNAK ) {
+						if( rcode == hrJERR ) {
+							it->class->release( it );
+						} else {
+							errorf("%s(%d): error 0x%02x",
+								__FUNCTION__, it->bAddress, rcode);
+						}
+					}
+				}
 			}
 		}
 	}

@@ -334,10 +334,10 @@ char cue_parse(const char *filename, IDXFile *image)
     toc.valid = 1;
   }
 
-  iprintf("Tracks in the CUE file %s : %d\n", filename, toc.last);
+  debugf("Tracks in the CUE file %s : %d", filename, toc.last);
   for (int i = 0; i < toc.last ; i++) {
     LBA2MSF(toc.tracks[i].start, &msf);
-    iprintf("Track %i, start: %d - %02d:%02d:%02d (%d) end: %d sector size:%d\n",
+    debugf("Track %i, start: %d - %02d:%02d:%02d (%d) end: %d sector size: %d",
       i+1, toc.tracks[i].start, msf.m, msf.s, msf.f, toc.tracks[i].offset, toc.tracks[i].end, toc.tracks[i].sector_size);
   }
   return error;

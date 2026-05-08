@@ -175,7 +175,7 @@ void user_io_init() {
 	iprintf("Debug mode: %s\n",
 		DEBUG_MODE ? "on" : "off");
 
-	iprintf("DIP switches (1/2): %s/%s\n",
+	warningf("DIP switches (1/2): %s/%s",
 		is_dip_switch1_on() ? "on" : "off",
 		is_dip_switch2_on() ? "on" : "off");
 }
@@ -216,7 +216,7 @@ static void user_io_read_core_name() {
 		core_name[sizeof(core_name)-1] = 0;
 	}
 
-	iprintf("Core name from FPGA is \"%s\"\n", core_name);
+	debugf("Core name from FPGA is \"%s\"", core_name);
 }
 
 void user_io_set_core_mod(int64_t mod) {
@@ -224,7 +224,7 @@ void user_io_set_core_mod(int64_t mod) {
 }
 
 static void user_io_send_core_mod() {
-	iprintf("Sending core mod = 0x" PRIu64_llx "\n",
+	infof("Sending core mod = 0x" PRIu64_llx,
 		PRIu64_LOW(core_mod), PRIu64_HIGH(core_mod));
 
 	spi_uio_cmd8(UIO_SET_MOD, core_mod & 0x7f);
@@ -328,7 +328,7 @@ void user_io_detect_core_type() {
 		break;
 
 	default:
-		iprintf("Unable to identify core: 0x%lx\n", core_type);
+		errorf("Unable to identify core: 0x%lx", core_type);
 		core_type = CORE_TYPE_UNKNOWN;
 	}
 }
@@ -393,7 +393,7 @@ void user_io_init_core() {
 		for (int i = 0; i < ARRAY_SIZE(sd_image); i++) {
 			hardfile[i] = &hardfiles[i];
 			if ((core_features & (FEAT_IDE0 << (2*i))) == (FEAT_IDE0_CDROM << (2*i))) {
-				iprintf("IDE %d: ATAPI CDROM\n", i);
+				debugf("IDE %d: ATAPI CDROM", i);
 				hardfiles[i].enabled = HDF_CDROM;
 				OpenHardfile(i, false);
 			}
@@ -412,7 +412,7 @@ void user_io_init_core() {
 						s[strlen(s)-1] = '0'+i;
 						debugf("Looking for %s", s);
 						if ((core_features & (FEAT_IDE0 << (2*i))) == (FEAT_IDE0_ATA << (2*i))) {
-							iprintf("IDE %d: ATA Hard Disk\n", i);
+							debugf("IDE %d: ATA Hard Disk", i);
 							hardfiles[i].enabled = HDF_FILE;
 							sniprintf(hardfiles[i].path, sizeof(hardfiles[0].path), "%s", s);
 							OpenHardfile(i, false);
@@ -808,12 +808,12 @@ bool user_io_file_mount(const unsigned char *name, int index) {
 		FRESULT res = IDXOpen(idxfile, name, FA_READ | FA_WRITE);
 		if (res != FR_OK) res = IDXOpen(idxfile, name, FA_READ);
 		if (res == FR_OK) {
-			iprintf("%s: %lu byte(s) into slot: %d\n",
+			infof("%s: %lu byte(s) into slot: %d",
 				__FUNCTION__, (uint32_t) f_size(&idxfile->file), slot);
 			// build index for fast random access
 			IDXIndex(idxfile, slot);
 		} else {
-			debugf("%s: file: %s, error %d", __FUNCTION__, name, res);
+			errorf("%s: file: %s, error %d", __FUNCTION__, name, res);
 			return false;
 		}
 	} else {
@@ -1032,7 +1032,7 @@ static void handle_ps2_kbd_commands()
 	cmd = spi_in();
 	DisableIO();
 	if (c == UIO_KEYBOARD_IN) { // receiving echo of the command code shows the core supports this message
-		iprintf("PS2 keyboard cmd: %02x\n", cmd);
+		debugf("PS2 keyboard cmd: %02x", cmd);
 		switch (ps2_kbd_state) {
 			case PS2_KBD_IDLE:
 				switch (cmd) {
@@ -1137,7 +1137,7 @@ static void handle_ps2_mouse_commands()
 	cmd = spi_in();
 	DisableIO();
 	if (c == UIO_MOUSE_IN) { // receiving echo of the command code shows the core supports this message
-		iprintf("PS2 mouse cmd: 0x%02x\n", cmd);
+		debugf("PS2 mouse cmd: 0x%02x", cmd);
 		switch (ps2_mouse_state) {
 			case PS2_MOUSE_IDLE:
 				switch (cmd) {
@@ -1471,17 +1471,15 @@ void user_io_poll() {
 		// valid sd commands start with "5x" (old API), or "6x" (new API)
 		// to avoid problems with cores that don't implement this command
 		if((c & 0xf0) == 0x50 || (c & 0xf0) == 0x60) {
-
 #if 0
 			// debug: If the io controller reports and non-sdhc card, then
 			// the core should never set the sdhc flag
 			if((c & 3) && !MMC_IsSDHC() && (c & 0x04))
-				iprintf("WARNING: SDHC access to non-SDHC card\n");
+				warningf("SDHC access to non-SDHC card");
 #endif
-
 			// check if core requests configuration
 			if(c & 0x08) {
-				iprintf("Core requests SD config\n");
+				debugf("Core requests SD config");
 				user_io_sd_set_config();
 			}
 
@@ -1516,7 +1514,7 @@ void user_io_poll() {
 				// if the core uses sdhc
 				if((!MMC_IsSDHC()) || (c & 0x04)) {
 					if(is_dip_switch1_on())
-						iprintf("SD WR (%d) %lu/%d\n", drive_index, lba, 512<<blksz);
+						debugf("SD WR (%d) %lu/%d", drive_index, lba, 512<<blksz);
 
 					// if we write the sector stored in the read buffer, then
 					// invalidate the cache
@@ -1550,7 +1548,7 @@ void user_io_poll() {
 			if((c & 0x03) == 0x01) {
 
 				if(is_dip_switch1_on())
-					iprintf("SD RD (%d) %lu/%d\n", drive_index, lba, 512<<blksz);
+					debugf("SD RD (%d) %lu/%d", drive_index, lba, 512<<blksz);
 
 				// invalidate cache if it stores data from another drive
 				if (drive_index != buffer_drive_index)
@@ -1677,7 +1675,7 @@ void user_io_poll() {
 
 					// collect movement info and send at predefined rate
 					if(!(ps2_mouse[0]==0x08 && ps2_mouse[1]==0 && ps2_mouse[2]==0 && ps2_mouse[3]==0) && is_dip_switch1_on())
-						iprintf("PS2 MOUSE(%d): %x %d %d %d\n", idx, ps2_mouse[0], ps2_mouse[1], ps2_mouse[2], ps2_mouse[3]);
+						debugf("PS2 MOUSE(%d): %x %d %d %d", idx, ps2_mouse[0], ps2_mouse[1], ps2_mouse[2], ps2_mouse[3]);
 
 					// old message sends the movements for all mice
 					spi_uio_cmd_cont(UIO_MOUSE);
@@ -1848,20 +1846,20 @@ static void send_keycode(unsigned short code) {
 					0xe1, 0x14, 0x77, 0xe1, 0xf0, 0x14, 0xf0, 0x77, 0x00 };
 				const unsigned char *p = c;
 
-				iprintf("PS2 KBD ");
+				// iprintf("PS2 KBD ");
 				while(*p) {
-					iprintf("%x ", *p);
+					// iprintf("%x ", *p);
 					spi8(*p++);
 				}
-				iprintf("\n");
+				// iprintf("\n");
 			}
 		} else {
-			if (is_dip_switch1_on()) {
+			/*if (is_dip_switch1_on()) {
 				iprintf("PS2 KBD ");
 				if(code & EXT)   iprintf("e0 ");
 				if(code & BREAK) iprintf("f0 ");
 				iprintf("%x\n", code & 0xff);
-			}
+			}*/
 
 			if(code & EXT)    // prepend extended code flag if required
 				spi8(0xe0);
@@ -2353,7 +2351,7 @@ void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned s
 			if(pressed[i] && code != MISS)
 			{
 				if (is_dip_switch1_on())
-					iprintf("key 0x%X break: 0x%X\n", pressed[i], code);
+					debugf("key 0x%X break: 0x%X", pressed[i], code);
 
 				int j;
 				for(j=0; j<6 && pressed[i] != k[j]; j++);
@@ -2413,7 +2411,7 @@ void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned s
 				if(j == 6)
 				{
 					if (is_dip_switch1_on())
-						iprintf("key 0x%X make: 0x%X\n", k[i], code);
+						debugf("key 0x%X make: 0x%X", k[i], code);
 
 					// If OSD is visible, then all keys are sent into the OSD
 					// using Amiga key codes since the OSD itself uses Amiga key codes

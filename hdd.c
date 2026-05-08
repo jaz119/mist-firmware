@@ -892,7 +892,7 @@ static void PKT_ModeSelect(unsigned char unit, unsigned short bytelimit, char se
       return;
     }
     cdrom.blocksize = pBuffer[7] | (pBuffer[6] << 8);
-    iprintf("CDROM blocksize changed to: %d\n", cdrom.blocksize);
+    hdd_debugf("CDROM blocksize changed to: %d", cdrom.blocksize);
     pBuffer+=8;
     blen-=8;
     bytelimit-=8;
@@ -1107,7 +1107,7 @@ static void ATA_Packet(unsigned char *tfr, unsigned char unit, unsigned short by
       PKT_StartStopUnit(cmdpkt, unit);
       break;
     default:
-      iprintf("HDD%d: Unknown PACKET command: %02x\n", unit, cmdpkt[0]);
+      warningf("HDD%d: Unknown PACKET command: %02x", unit, cmdpkt[0]);
       cdrom_setsense(SENSEKEY_ILLEGAL_REQUEST, 0x3a, 0);
       cdrom_send_error(unit);
       break;

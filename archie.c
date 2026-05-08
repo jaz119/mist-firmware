@@ -581,7 +581,7 @@ static char archie_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 
 void archie_setup_menu()
 {
-  iprintf("Setting up Archie menu\n");
+  archie_debugf("Setting up Archie menu");
   SetupMenu(archie_getmenupage, archie_getmenuitem, NULL);
 }
 

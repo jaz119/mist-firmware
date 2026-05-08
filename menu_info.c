@@ -142,7 +142,7 @@ void menu_info_open(const char *core_id)
 		if (f_open(&infofile, info_filename, FA_READ) == FR_OK) {
 			SetupMenu(&getmenupage, &getmenuitem, NULL);
 		} else {
-			iprintf("Unable to open info file %s\n", info_filename);
+			errorf("Unable to open info file %s", info_filename);
 		}
 	}
 }

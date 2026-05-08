@@ -104,7 +104,7 @@ static bool hid_get_report_descr(usb_device_t *dev, usb_hid_iface_info_t *iface,
 	uint8_t rcode = get_report_desc(dev, iface->iface_idx, buf, size);
 
 	if (rcode) {
-		iprintf("usb: get report descriptor, error 0x%x\n", rcode);
+		errorf("usb: get report descriptor, error 0x%02x", rcode);
 		return false;
 	}
 
@@ -349,7 +349,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 			iface->jindex = joystick_add();
 		}
 
-		iprintf("%s: report ID = 0x%02x, size = %d\n",
+		infof("%s: report 0x%02x, size %d",
 			hid_device_name[iface->conf.type], iface->conf.report_id,
 			iface->conf.report_size);
 
@@ -384,7 +384,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 		// set zero Idle time for all reports
 		rcode = hid_set_idle(dev, iface->iface_idx, 0, 0);
 		if (rcode && rcode != hrSTALL) {
-			hid_debugf("%s: set Idle error 0x%x",
+			errorf("%s: set Idle error 0x%02x",
 				hid_device_name[iface->device_type], rcode);
 			if (iface->device_type == HID_DEVICE_JOYSTICK) {
 				uint8_t c_jindex = joystick_index(iface->jindex);
@@ -396,7 +396,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 
 		// enable Boot mode if its not diabled
 		if (iface->has_boot_mode && !iface->ignore_boot_mode) {
-			iprintf("%s: enabling BOOT mode\n", hid_device_name[iface->device_type]);
+			warningf("%s: enabling BOOT mode", hid_device_name[iface->device_type]);
 			hid_set_protocol(dev, iface->iface_idx, HID_BOOT_PROTOCOL);
 		} else {
 			hid_set_protocol(dev, iface->iface_idx, HID_RPT_PROTOCOL);
@@ -699,12 +699,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		uint16_t read = MIN(iface->conf.report_size, sizeof(buf));
 		rcode = usb_in_transfer(dev, &(iface->ep_in), &read, buf);
 
-		if (rcode) {
-			if (rcode != hrNAK) {
-				hid_debugf("%s(%d): error 0x%02X",
-					__FUNCTION__, dev->bAddress, rcode);
-			} else rcode = 0;
-		} else {
+		if (rcode == 0) {
 			usb_process_iface(dev, iface, read, buf);
 		}
 

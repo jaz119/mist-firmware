@@ -294,7 +294,7 @@ static void get_dma_state() {
   if (dev) {
     HDC_HandleCommandPacket(&AcsiBus);
     if (AcsiBus.status != HD_STATUS_OK) {
-      iprintf("ACSI: opcode=0x%x, target=%i, status=0x%x, error=0x%x\n",
+      errorf("ACSI: opcode=0x%x, target=%i, status=0x%x, error=0x%x",
         AcsiBus.opcode, AcsiBus.target, AcsiBus.status, dev->nLastError);
     }
     dma_ack(AcsiBus.status);
@@ -478,7 +478,7 @@ static void tos_select_hdd_image(int i, const char *name) {
         acsi_dev->is_readonly |= !(idxfile->file.flag & FA_WRITE);
       }
     } else {
-      iprintf("Cannot open %s file, error %d\n", name, res);
+      errorf("Cannot open %s file, error %d", name, res);
     }
   } else {
     config.acsi[i].path[0] = 0;
@@ -970,7 +970,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         // Page 1 - Storage
         case 7:
         case 8:
-          iprintf("Select image for disk %d\n", 2+idx-7);
+          debugf("Select image for disk %d", 2+idx-7);
           if(user_io_is_mounted(2+idx-7))
             tos_select_hdd_image(idx-7, NULL);
           else

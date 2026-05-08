@@ -144,7 +144,7 @@ unsigned char ConfigureFpga(const char *name)
     {
         if (--t == 0)
         {
-            iprintf("FPGA init is NOT high!\r");
+            errorf("FPGA init is NOT high!");
             FatalError(3);
         }
     }
@@ -164,7 +164,7 @@ unsigned char ConfigureFpga(const char *name)
     // open bitstream file
     if (f_open(&file, name, FA_READ) != FR_OK)
     {
-        iprintf("No FPGA configuration file found!\r");
+        errorf("No FPGA configuration file found!");
         FatalError(4);
     }
 
@@ -263,7 +263,7 @@ unsigned char ConfigureFpga(const char *name)
 
     // open bitstream file
     if (f_open(&file, name, FA_READ) != FR_OK) {
-        iprintf("No FPGA configuration file found!\r");
+        errorf("No FPGA configuration file found!");
         return ERROR_BITSTREAM_OPEN;
     }
 
@@ -297,7 +297,7 @@ unsigned char ConfigureFpga(const char *name)
     {
         if (--i == 0) {
             ALTERA_STOP_CONFIG
-            iprintf("FPGA NSTATUS is NOT high!\r");
+            errorf("FPGA NSTATUS is NOT high!");
             f_close(&file);
             return ERROR_UPDATE_INIT_FAILED;
         }
@@ -357,7 +357,7 @@ unsigned char ConfigureFpga(const char *name)
 
     // check if DONE is high
     if (!ALTERA_DONE_STATE) {
-      iprintf("FPGA Configuration done but contains error... CONF_DONE is LOW\r");
+      errorf("FPGA Configuration done but contains error... CONF_DONE is LOW");
       return ERROR_UPDATE_FAILED;
     }
 
@@ -377,7 +377,7 @@ unsigned char ConfigureFpga(const char *name)
 
     /* Initialization end */
     if ( !ALTERA_NSTATUS_STATE || !ALTERA_DONE_STATE ) {
-      iprintf("FPGA Initialization finish but contains error: NSTATUS is %s and CONF_DONE is %s.\r",
+      errorf("FPGA Initialization finish but contains error: NSTATUS is %s and CONF_DONE is %s",
         ALTERA_NSTATUS_STATE ? "HIGH" : "LOW", ALTERA_DONE_STATE ? "HIGH" : "LOW" );
       return ERROR_UPDATE_FAILED;
     }
@@ -639,7 +639,7 @@ unsigned char fpga_init(const char *name) {
     DisableIO();
   } while( ((ct == 0) || (ct == 0xff)) && !CheckTimer(time));
 
-  iprintf("Core id: 0x%X\n", ct);
+  warningf("Core Id: 0x%02x", ct);
 
   user_io_detect_core_type();
   user_io_init_core();

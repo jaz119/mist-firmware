@@ -98,9 +98,9 @@ bool FindDrive(void) {
 		iprintf("partitions count: %d\n", partitioncount);
 
 		for (int i=0; i<partitioncount; ++i) {
-			iprintf("partition %d:\n", i);
-			iprintf("  start: %lu\n", partitions[i].start_lba);
-			iprintf("  size:  %lu MiB\n", partitions[i].sectors >> 11);
+			debugf("partition %d:", i);
+			debugf("  start: %lu", partitions[i].start_lba);
+			debugf("  size:  %lu MiB", partitions[i].sectors >> 11);
 		}
 	}
 

@@ -76,7 +76,9 @@ static uint8_t usb_hub_parse_conf(
       break;
 
     default:
-      iprintf("hub: unsupported descriptor type %d size %d\n", p->raw[1], p->raw[0]);
+      usb_debugf("hub: unsupported descriptor type %d size %d",
+        p->raw[1], p->raw[0]);
+      break;
     }
 
     if (!p->conf_desc.bLength || p->conf_desc.bLength > len)
@@ -129,7 +131,7 @@ static uint8_t usb_hub_init(
   rcode = usb_hub_get_hub_descriptor(dev, 0, 9, &buf.hub_desc);
 
   if (rcode) {
-    puts("hub: failed to get descriptor");
+    usb_debugf("hub: failed to get descriptor, error 0x%02x", rcode);
     return rcode;
   }
 
@@ -139,7 +141,7 @@ static uint8_t usb_hub_init(
   // Read configuration Descriptor in Order To Obtain Proper Configuration Value
   rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), 0, &buf.conf_desc);
   if (rcode) {
-    puts("hub: failed to read configuration descriptor");
+    usb_debugf("hub: failed to read configuration descriptor, error 0x%02x", rcode);
     return rcode;
   }
 
@@ -147,14 +149,15 @@ static uint8_t usb_hub_init(
 
   rcode = usb_hub_parse_conf(dev, 0, buf.conf_desc.wTotalLength, &info->ep);
   if (rcode) {
-    iprintf("hub: failed to get endpoint data (%d)\n", rcode);
+    usb_debugf("hub: failed to get endpoint data, error 0x%02x", rcode);
     return rcode;
   }
 
   // Set Configuration Value
   rcode = usb_set_conf(dev, buf.conf_desc.bConfigurationValue);
   if (rcode) {
-    iprintf("hub: failed to set configuration to %d\n", buf.conf_desc.bConfigurationValue);
+    usb_debugf("hub: failed to set configuration to %d, error 0x%02x",
+      buf.conf_desc.bConfigurationValue, rcode);
     return rcode;
   }
 
@@ -209,28 +212,22 @@ static uint8_t usb_hub_port_status_change(
   usb_hub_info_t *info = &(dev->hub_info);
   uint8_t rcode = 0;
 
-  iprintf("hub: port %u: status 0x%x, change 0x%x\n",
+  warningf("hub: port %u: status 0x%x, change 0x%x",
     port, evt->bmStatus, evt->bmChange);
 
-  if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT)
+  if (!(evt->bmStatus & USB_HUB_PORT_STATUS_PORT_POWER))
+    usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_POWER, port, 0);
+
+  if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_OVER_CURRENT, port, 0);
-  if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_OVER_CURRENT) {
-    usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_OVER_CURRENT, port, 0);
-    if (!(info->resetMask & mask)) {
-      info->resetMask |= mask;
-      usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
-    }
-  }
 
   if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_ENABLE)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_ENABLE, port, 0);
+
   if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_SUSPEND)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_SUSPEND, port, 0);
-
   if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_SUSPEND)
     usb_hub_clear_port_feature(dev, HUB_FEATURE_PORT_SUSPEND, port, 0);
-  if (!(evt->bmStatus & USB_HUB_PORT_STATUS_PORT_POWER))
-    usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_POWER, port, 0);
 
   if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_CONNECTION, port, 0);
@@ -240,13 +237,13 @@ static uint8_t usb_hub_port_status_change(
       if (!(info->resetMask & mask)) {
         info->resetMask |= mask;
         iprintf("hub: port %d: CONNECT\n", port);
+        usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
         timer_delay_msec(USB_SETTLE_DELAY / 2); // FIXME
         usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
         return HUB_ERROR_PORT_HAS_BEEN_RESET;
       }
     } else {
       iprintf("hub: port %d: DISCONNECT\n", port);
-      usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
     }
   } else if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_RESET) {
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);

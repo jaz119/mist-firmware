@@ -63,8 +63,8 @@ void cdc_control_poll(void) {
 
       switch(tos_get_cdc_control_redirect()) {
       case CDC_REDIRECT_RS232:
-	iprintf("RS232 forward:\n");
-	hexdump(data, read, 0);
+	// iprintf("RS232 forward:\n");
+	// hexdump(data, read, 0);
 
 	user_io_serial_tx(data, read);
 	break;

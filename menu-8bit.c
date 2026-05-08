@@ -153,7 +153,7 @@ static char RomFileSelected(uint8_t, const char *SelectedName) {
 	IDXFile *index = &sd_image[selected_drive_slot & 3];
 	char ext_idx = user_io_ext_idx(SelectedName, fs_pFileExt);
 
-	iprintf("RomFileSelected romType=%d\n", romtype);
+	debugf("RomFileSelected romType=%d", romtype);
 	// this assumes that further file entries only exist if the first one also exists
 	if (IDXOpen(index, SelectedName, FA_READ) == FR_OK) {
 		IDXIndex(index, selected_drive_slot);
@@ -171,9 +171,9 @@ static char RomFileSelected(uint8_t, const char *SelectedName) {
 
 static char ImageFileSelected(uint8_t idx, const char *SelectedName) {
 	// select image for SD card
-	iprintf("Image selected: %s\n", SelectedName);
+	debugf("Image selected: %s", SelectedName);
 	if ((user_io_get_core_features() & (FEAT_IDE0 << (2*selected_drive_slot))) == (FEAT_IDE0_ATA << (2*selected_drive_slot))) {
-		iprintf("IDE %d: ATA Hard Disk\n", selected_drive_slot);
+		debugf("IDE %d: ATA Hard Disk", selected_drive_slot);
 		hardfiles[selected_drive_slot].enabled = HDF_FILE;
 		sniprintf(hardfiles[selected_drive_slot].path, sizeof(hardfiles[0].path), "%s", SelectedName);
 		OpenHardfile(selected_drive_slot, false);
@@ -188,7 +188,7 @@ static char ImageFileSelected(uint8_t idx, const char *SelectedName) {
 
 static char CueFileSelected(uint8_t idx, const char *SelectedName) {
 	char res;
-	iprintf("Cue file selected: %s\n", SelectedName);
+	debugf("Cue file selected: %s", SelectedName);
 	data_io_set_index(user_io_ext_idx(SelectedName, fs_pFileExt)<<6 | selected_drive_slot);
 	res = user_io_cue_mount(SelectedName, selected_drive_slot);
 	if (res) ErrorMessage(cue_error_msg[res-1], res);
@@ -538,6 +538,6 @@ void Setup8bitMenu() {
 	strcat(helptext_custom, helptexts[HELPTEXT_MAIN]);
 	helptext=helptext_custom;
 
-	iprintf("Setting up 8BIT menu\n");
+	debugf("Setting up 8BIT menu");
 	SetupMenu(GetMenuPage_8bit, GetMenuItem_8bit, KeyEvent_8bit);
 }

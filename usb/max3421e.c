@@ -65,6 +65,11 @@ uint16_t max3421e_reset() {
   return 0;
 }
 
+void max3421e_reset_sie() {
+  max3421e_write_u08( MAX3421E_HCTL, MAX3421E_FRMRST );
+  max3421e_write_u08( MAX3421E_HCTL, 0 );
+}
+
 void max3421e_clear_fifo(int8_t junk_count) {
   while( junk_count > 0 ) {
     max3421e_read_u08( MAX3421E_RCVFIFO );
@@ -121,7 +126,7 @@ void max3421e_init() {
   max3421e_write_u08( MAX3421E_PINCTL, MAX3421E_FDUPSPI | MAX3421E_INTLEVEL );
 
   if( max3421e_reset() == 0 ) {
-    iprintf("max3421e: pll init failed\n");
+    errorf("max3421e: pll init failed");
     return;
   }
 

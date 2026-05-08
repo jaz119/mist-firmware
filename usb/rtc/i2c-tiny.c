@@ -177,8 +177,8 @@ static uint8_t tiny_rtc_init(usb_device_t *dev, usb_device_descriptor_t *dev_des
   if(buf.time.mode12)
     usbrtc_debugf("Warning, clock in AM/PM mode");
 
-  iprintf("time: %02x:%02x:%02x\n", buf.time.hour_bcd, buf.time.min_bcd, buf.time.sec_bcd);
-  iprintf("date: %02x.%02x.%02x\n", buf.time.date_bcd, buf.time.month_bcd, buf.time.year_bcd);
+  usbrtc_debugf("time: %02x:%02x:%02x", buf.time.hour_bcd, buf.time.min_bcd, buf.time.sec_bcd);
+  usbrtc_debugf("date: %02x.%02x.%02x", buf.time.date_bcd, buf.time.month_bcd, buf.time.year_bcd);
 
   return 0;
 }

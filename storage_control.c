@@ -135,7 +135,7 @@ static uint8_t scsi_read(uint8_t *cmd) {
 		ret = disk_read(fs.pdrv, sector_buffer, lba, read);
 		DISKLED_OFF;
 		if (ret) {
-			iprintf("STORAGE: Error reading from MMC (lba=%lu, len=%d)\n", lba, len);
+			errorf("STORAGE: Error reading from MMC (lba=%lu, len=%d)", lba, len);
 			return 0;
 		}
 		lba+=read;
@@ -157,7 +157,7 @@ static uint8_t scsi_write(uint8_t *cmd) {
 		long to = GetTimer(100);  // wait max 100ms for host
 		while (total_read) {
 			if (CheckTimer(to)) {
-				iprintf("STORAGE: Timeout while waiting for USB host during write (lba=%lu, len=%d)\n", lba, len);
+				warningf("STORAGE: Timeout while waiting for USB host during write (lba=%lu, len=%d)", lba, len);
 				return 0;
 			}
 			read = usb_storage_read(buf, total_read);
@@ -263,7 +263,7 @@ void storage_control_poll(void) {
 				storage_control_send_csw(tag, 0);
 				break;
 			default:
-				iprintf("STORAGE: Unhandled cmd: %02x", cbw->CBWCB[0]);
+				warningf("STORAGE: Unhandled cmd: 0x%02x", cbw->CBWCB[0]);
 				make_sense(SENSEKEY_ILLEGAL_REQUEST, 0x20, 0x00);
 				storage_control_send_csw(tag, 1);
 				break;

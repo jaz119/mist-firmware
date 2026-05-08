@@ -178,7 +178,7 @@ static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     rcode = usb_out_transfer(dev, &info->ep_out, REPORT_SIZE, rpt);
     if (rcode)
     {
-        usbrtc_debugf("%s: OUT: ep%d failed for 0x%X, error 0x%X",
+        usbrtc_debugf("%s: OUT ep%d failed for 0x%x, error 0x%02x",
             __FUNCTION__, info->ep_out.epAddr, cmd, rcode);
         return rcode;
     }
@@ -192,19 +192,19 @@ static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     rcode = usb_in_transfer(dev, &info->ep_in, size, rpt);
     if (rcode)
     {
-        usbrtc_debugf("%s: IN: ep%d failed for 0x%X, error 0x%X",
+        usbrtc_debugf("%s: IN ep%d failed for 0x%x, error 0x%02x",
             __FUNCTION__, info->ep_in.epAddr, cmd, rcode);
         return rcode;
     }
     else if (resp->cmd_echo != cmd)
     {
-        usbrtc_debugf("%s: IN: ep%d failed for 0x%X, wrong echo 0x%X",
+        errorf("%s: IN ep%d failed for 0x%x, wrong echo 0x%x",
             __FUNCTION__, info->ep_in.epAddr, cmd, resp->cmd_echo);
         return hrBABBLE + 1;
     }
     else if (resp->cmd_status)
     {
-        usbrtc_debugf("%s: IN: ep%d failed for 0x%X, response 0x%X:0x%X:0x%X",
+        usbrtc_debugf("%s: IN ep%d failed for 0x%x, response 0x%x:0x%x:0x%x",
             __FUNCTION__, info->ep_in.epAddr, cmd, resp->cmd_status,
             resp->i2c_engine_state, resp->i2c_cur_state);
     }
@@ -341,7 +341,7 @@ static uint8_t mcp_init(
 
     // Use first config (actually there is only one)
     if ((rcode = usb_get_conf_descr(dev, sizeof(usb_configuration_descriptor_t), 0, &buf.conf_desc))) {
-        usbrtc_debugf("mcp2221: failed to get config0, error 0x%02X", rcode);
+        usbrtc_debugf("mcp2221: failed to get config0, error 0x%02x", rcode);
         return rcode;
     }
 
@@ -350,14 +350,14 @@ static uint8_t mcp_init(
 
     // Parse HID descriptor
     if ((rcode = usb_hid_parse_conf(dev, buf.conf_desc.wTotalLength))) {
-        usbrtc_debugf("mcp2221: failed to parse HID config, error 0x%02X", rcode);
+        usbrtc_debugf("mcp2221: failed to parse HID config, error 0x%02x", rcode);
         return rcode;
     }
 
     // Set Configuration Value
     rcode = usb_set_conf(dev, buf.conf_desc.bConfigurationValue);
     if (rcode) {
-        usbrtc_debugf("mcp2221: set config%d, error 0x%02X",
+        usbrtc_debugf("mcp2221: set config%d, error 0x%02x",
             buf.conf_desc.bConfigurationValue, rcode);
     }
 
@@ -376,13 +376,13 @@ static uint8_t mcp_init(
 
         if (!mcp_set_i2c_clock(dev, buf.raw, chip->clock_rate))
         {
-            iprintf("mcp2221: cannot set I2C clock rate to %u kHz\n",
+            errorf("mcp2221: cannot set I2C clock rate to %u kHz",
                 chip->clock_rate);
         }
 
         if (chip->probe(dev, &mcp_i2c_bus))
         {
-            iprintf("mcp2221: rtc %s found\n", chip->name);
+            warningf("mcp2221: rtc %s found", chip->name);
             info->chip_type = i;
             return 0;
         }
@@ -518,7 +518,7 @@ static uint8_t mcp_poll(usb_device_t *dev)
         info->time.is_valid = rtc->get_time(dev, &mcp_i2c_bus, info->time.value);
     }
 
-    return (info->time.is_valid) ? 0 : USB_ERROR_NO_SUCH_DEVICE;
+    return (info->time.is_valid) ? 0 : hrNAK;
 }
 
 const usb_rtc_class_config_t usb_rtc_mcp2221_class = {

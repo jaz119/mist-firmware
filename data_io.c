@@ -315,7 +315,7 @@ void data_io_rom_upload(char *rname, char mode) {
     data_io_file_tx_send(&file);
     f_close(&file);
   } else
-    iprintf("Error opening file %s (%d)!\n", fname, res);
+    errorf("Error opening file %s (%d)", fname, res);
 
   ChangeDirectoryName("/");
   ScanDirectory(SCAN_INIT, "RBF",  SCAN_LFN | SCAN_SYSDIR);

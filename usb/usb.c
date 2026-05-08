@@ -117,7 +117,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		static uint8_t dev_count = 0;
 		rcode = usb_set_addr(dev, ((i << 2) | (dev_count++ & 3)) + 1);
 		if(rcode) {
-			iprintf("usb: failed to assign address, error %02x\n", rcode);
+			errorf("usb: failed to assign address, error 0x%02x", rcode);
 			return rcode;
 		}
 
@@ -133,7 +133,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 
 		// --- enumerate device ---
 		usb_dump_device_descriptor(&dev_desc);
-		iprintf("USB device %04x:%04x detected\n",
+		infof("USB device %04x:%04x detected",
 			dev_desc.idVendor, dev_desc.idProduct);
 
 		// save vid/pid
@@ -156,20 +156,19 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 			if (!rcode) {
 				dev->class = class_list[c];
 
-				iprintf("USB %s device %d accepted, address %d, %lu ms\n",
+				infof("USB %s device %d, address %d, %lu ms",
 					(dev->lowspeed) ? "LS" : "FS", i, dev->bAddress, GetRTTC() - time);
 
 				return 0;
 			}
 		}
 
-		usb_debugf("device NOT accepted");
+		errorf("usb: unknown device");
 		dev->bAddress = 0;
 
 	} else
-		iprintf("no more free device entries\n");
+		errorf("usb: no more free device entries");
 
-	iprintf("usb: unknown device\n");
 	return 0;
 }
 
