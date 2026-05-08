@@ -43,9 +43,15 @@ void DisableOsd()
 }
 
 RAMFUNC void EnableCard() {
-    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS  | (0x01 << 16); // NPCS1
-    AT91C_BASE_PIOA->PIO_PDR = MMC_SEL;
+    *AT91C_SPI_MR = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS | (0x01 << 16); // NPCS1
     *AT91C_SPI_CR = AT91C_SPI_SPIEN;
+
+    volatile unsigned int dummy;
+    dummy = *AT91C_SPI_RDR;
+    dummy = *AT91C_SPI_SR;
+    (void)dummy;
+
+    AT91C_BASE_PIOA->PIO_PDR = MMC_SEL;
 }
 
 RAMFUNC void DisableCard() {

@@ -20,15 +20,15 @@ The purpose of this fork is to get rid of outdated code and further improve it.
 
         | text   | data | bss   | dec    | hex   | filename     |
         | :--    | :--  | :--   | :--    | :--   | :--          |
-        | 157285 | 0    | 44536 | 201821 | 3145d | firmware.elf |
+        | 152071 | 0    | 42988 | 195059 | 2f9f3 | firmware.elf |
 
-    - SD card hot swap (*it may require hardware modification*);
+    - FatFs updated to 0.16 version;
+    - 8BIT: used indexing for faster ROMs loading;
     - disks images and ROMs can be loaded from any directories for *Archie*;
     - *memory-consuming ASIX driver is disabled by default*;
     - *incomplete PL2303 driver is disabled by default*;
-    - 8BIT: used indexing for faster ROMs loading;
-    - FatFs updated to 0.16 version;
     - LFN now limited to 80 chars;
+    - SD card hot-swap;
 
 - *Minimig core*:
     - disk images and ROMs can be loaded from any directories;
