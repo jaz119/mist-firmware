@@ -71,7 +71,6 @@ static bool x360_init(usb_device_t *dev)
     };
 
     memcpy(&iface->conf, &x360_report, sizeof(hid_report_t));
-    iface->report_desc_size = 0x14;
     return true;
 }
 
@@ -209,10 +208,10 @@ static bool init_5200daptor(usb_device_t *dev)
     hid_button_t *start = &conf->joystick_mouse.button[3];
 
     reset->byte_offset = 4;
-    reset->bitmask = 0x40;
+    reset->bitmask = BIT(6);
 
     start->byte_offset = 4;
-    start->bitmask = 0x10;
+    start->bitmask = BIT(4);
 
     return true;
 }

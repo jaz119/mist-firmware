@@ -396,6 +396,7 @@ uint8_t usb_poll() {
 					if( rcode != hrNAK ) {
 						if( rcode == hrJERR ) {
 							it->class->release( it );
+							it->bAddress = 0;
 						} else {
 							errorf("%s(%d): error 0x%02x",
 								__FUNCTION__, it->bAddress, rcode);

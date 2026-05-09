@@ -80,7 +80,6 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	usb_debugf("%s(parent=0x%x, port=%d, lowspeed=%d)",
 		__FUNCTION__, parent, port, lowspeed);
 
-	usb_device_descriptor_t dev_desc;
 	ALIGNED(4) union {
 		usb_string0_descriptor_t str0_desc;
 		usb_string_descriptor_t str_desc;
@@ -88,6 +87,8 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	} str;
 
 	uint8_t rcode = 0, i;
+	unsigned long time = GetRTTC();
+	usb_device_descriptor_t dev_desc;
 
 	// find an empty device entry
 	for(i=0; i<USB_NUMDEVICES && usb_devices[i].bAddress; i++);
@@ -107,7 +108,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		dev->ep0.maxPktSize = 8;
 		dev->ep0.bmNakPower = USB_NAK_DEFAULT;
 
-		if((rcode = usb_get_dev_descr( dev, 8, &dev_desc )))
+		if((rcode = usb_get_dev_descr(dev, 8, &dev_desc)))
 			return rcode;
 
 		dev->ep0.maxPktSize = dev_desc.bMaxPacketSize0;
@@ -142,15 +143,13 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 
 		// The Retroflag Classic USB Gamepad doesn't report movement until the string descriptors are read,
 		// so read all of them here (and show them on the console)
-		if (!usb_get_string_descr(dev, sizeof(str), 0, 0, &str.str_desc)) { // supported languages descriptor
+		if(!usb_get_string_descr(dev, sizeof(str), 0, 0, &str.str_desc)) { // supported languages descriptor
 			usb_debugf("wLangId: 0x%04X", str.str0_desc.wLANGID[0]);
 		}
 
 		// try to connect device to one of the supported classes
 		for(int c=0; class_list[c]; c++) {
 			usb_debugf("trying to init class %d", c);
-
-			unsigned long time = GetRTTC();
 			rcode = class_list[c]->init(dev, &dev_desc);
 
 			if (!rcode) {
@@ -233,6 +232,7 @@ uint8_t usb_set_addr( usb_device_t *dev, uint8_t newaddr ) {
 		newaddr, 0x00, 0x0000, 0x0000, NULL );
 
 	dev->bAddress = (rcode) ? 0 : newaddr;
+	timer_delay_msec(2);
 	return rcode;
 }
 
@@ -248,6 +248,7 @@ uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value ) {
 		conf_value, 0x00, 0x0000, 0x0000, NULL );
 }
 
+// get string by index
 uint8_t usb_get_string_descr( usb_device_t *dev, uint16_t nbytes,
 	uint8_t index, uint16_t lang_id, usb_string_descriptor_t* dataptr ) {
 

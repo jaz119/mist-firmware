@@ -172,15 +172,15 @@ static bool mcp_i2c_wait_for(
 static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
 {
     // send command and check response
-    uint8_t rcode, cmd = rpt[0];
+    uint8_t cmd = rpt[0];
     usb_mcp_info_t *info = &(dev->mcp_info);
 
-    rcode = usb_out_transfer(dev, &info->ep_out, REPORT_SIZE, rpt);
-    if (rcode)
+    info->usb_error = usb_out_transfer(dev, &info->ep_out, REPORT_SIZE, rpt);
+    if (info->usb_error)
     {
         usbrtc_debugf("%s: OUT ep%d failed for 0x%x, error 0x%02x",
-            __FUNCTION__, info->ep_out.epAddr, cmd, rcode);
-        return rcode;
+            __FUNCTION__, info->ep_out.epAddr, cmd, info->last_error);
+        return info->usb_error;
     }
 
     *size = REPORT_SIZE;
@@ -189,18 +189,19 @@ static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     resp->cmd_echo = -1;
     resp->cmd_status = -1;
 
-    rcode = usb_in_transfer(dev, &info->ep_in, size, rpt);
-    if (rcode)
+    info->usb_error = usb_in_transfer(dev, &info->ep_in, size, rpt);
+    if (info->usb_error)
     {
         usbrtc_debugf("%s: IN ep%d failed for 0x%x, error 0x%02x",
-            __FUNCTION__, info->ep_in.epAddr, cmd, rcode);
-        return rcode;
+            __FUNCTION__, info->ep_in.epAddr, cmd, info->last_error);
+        return info->usb_error;
     }
     else if (resp->cmd_echo != cmd)
     {
-        errorf("%s: IN ep%d failed for 0x%x, wrong echo 0x%x",
+        usbrtc_debugf("%s: IN ep%d failed for 0x%x, wrong echo 0x%x",
             __FUNCTION__, info->ep_in.epAddr, cmd, resp->cmd_echo);
-        return hrBABBLE + 1;
+        info->usb_error = hrBABBLE + 1;
+        return info->usb_error;
     }
     else if (resp->cmd_status)
     {
@@ -382,7 +383,7 @@ static uint8_t mcp_init(
 
         if (chip->probe(dev, &mcp_i2c_bus))
         {
-            warningf("mcp2221: rtc %s found", chip->name);
+            iprintf("mcp2221: rtc %s found\n", chip->name);
             info->chip_type = i;
             return 0;
         }
@@ -518,7 +519,7 @@ static uint8_t mcp_poll(usb_device_t *dev)
         info->time.is_valid = rtc->get_time(dev, &mcp_i2c_bus, info->time.value);
     }
 
-    return (info->time.is_valid) ? 0 : hrNAK;
+    return (info->time.is_valid) ? 0 : info->usb_error;
 }
 
 const usb_rtc_class_config_t usb_rtc_mcp2221_class = {

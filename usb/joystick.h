@@ -19,17 +19,20 @@
 #define JOYSTICK_H
 
 #include <stdlib.h>
+#include "state.h"
 #include "mist_cfg.h"
 
-uint8_t joystick_count();
 uint8_t joystick_add();
+uint8_t joystick_release(uint8_t index);
+
+static inline uint8_t joystick_count() {
+  return StateNumJoysticks();
+}
 
 static inline uint8_t joystick_index(uint8_t jindex) {
   // If DB9 joystick are preferred: USB joysticks are shifted to 2,3...
   return (mist_cfg.joystick_db9_fixed_index)
     ? (jindex + 2) : jindex;
 }
-
-uint8_t joystick_release(uint8_t c_jindex);
 
 #endif

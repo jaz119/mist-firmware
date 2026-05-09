@@ -138,13 +138,16 @@ typedef struct {
 // entry used for list of connected devices
 typedef struct usb_device_entry {
   const usb_device_class_config_t *class; // pointer to class handlers
-  ep_t ep0;                               // information about endpoint 0
+
+  uint16_t vid;
+  uint16_t pid;
+
   uint8_t bAddress;	                      // device address
   uint8_t parent;                         // parent device address
   uint8_t port;
-  uint16_t vid;
-  uint16_t pid;
   bool lowspeed;
+
+  ep_t ep0;                               // information about endpoint 0
 
   union {
     usb_hub_info_t hub_info;

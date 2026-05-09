@@ -10,15 +10,18 @@
 
 // usb device context
 typedef struct {
-    ep_t ep_in;
-    ep_t ep_out;
-    uint16_t i2c_clock;         // i2c bus clock rate
-    uint8_t chip_type;          // rtc chip type in use
     struct {
-        uint8_t is_valid;       // time is valid
         uint32_t updated;       // last polling
         ctime_t value;          // current time
+        uint8_t is_valid;       // time is valid
     } time;
+
+    ep_t ep_in;
+    ep_t ep_out;
+
+    uint16_t i2c_clock;         // i2c bus clock rate
+    uint8_t chip_type;          // rtc chip type in use
+    uint8_t usb_error;          // last usb error
 } usb_mcp_info_t;
 
 extern const usb_rtc_class_config_t usb_rtc_mcp2221_class;
@@ -31,7 +34,7 @@ typedef struct {
 
 // clock chip interface
 typedef struct {
-    char name[12];              // rtc chip name
+    const char *name;           // rtc chip name
     uint16_t clock_rate;        // i2c operating freq, in kHz
     bool (*probe)(usb_device_t *, const i2c_bus_t *);
     bool (*get_time)(usb_device_t *, const i2c_bus_t *, ctime_t);

@@ -23,49 +23,45 @@
 #include "usb.h"
 #include "debug.h"
 #include "utils.h"
-#include "state.h"
-
-static unsigned char joysticks = 0;      // number of detected usb joysticks
-
-uint8_t joystick_count() {
-	return joysticks;
-}
 
 uint8_t joystick_add() {
-	StateNumJoysticksSet(joysticks+1);
-	return joysticks++;
+	uint8_t index = joystick_count();
+	StateNumJoysticksSet(index + 1);
+	return index;
 }
 
-uint8_t joystick_release(uint8_t c_jindex) {
-	// walk through all devices and search for sticks with a higher id
-
-	// search for all joystick interfaces on all hid devices
+uint8_t joystick_release(uint8_t raw_jindex) {
 	usb_device_t *dev = usb_get_devices();
-	for(uint8_t j=0; j<USB_NUMDEVICES; j++) {
-		if(dev[j].bAddress && (dev[j].class == &usb_hid_class)) {
-			// search for joystick interfaces
-			for(uint8_t k=0; k<MAX_IFACES; k++) {
-				if(dev[j].hid_info.iface[k].device_type == HID_DEVICE_JOYSTICK) {
-					uint8_t jindex = joystick_index(dev[j].hid_info.iface[k].jindex);
-					if(jindex > c_jindex) {
+	uint8_t count = joystick_count();
+	if (!count) return 0;
+
+	// walk through all devices and search for sticks with a higher id
+	for (uint8_t j=0; j < USB_NUMDEVICES; j++) {
+		// search for all joystick interfaces on all hid devices
+		if (dev[j].bAddress && (dev[j].class == &usb_hid_class)) {
+			for (uint8_t k=0; k < MAX_IFACES; k++) {
+				usb_hid_iface_info_t *iface = &dev[j].hid_info.iface[k];
+				// search for joystick interfaces
+				if (iface->device_type == HID_DEVICE_JOYSTICK) {
+					if (iface->jindex > raw_jindex) {
 						hid_debugf("decreasing joystick index of dev #%d from %d to %d",
 							j, jindex, jindex - 1);
-						dev[j].hid_info.iface[k].jindex--;
-						StateUsbIdSet( dev[j].vid, dev[j].pid, dev[j].hid_info.iface[k].conf.joystick_mouse.button_count, dev[j].hid_info.iface[k].jindex);
+						iface->jindex--;
+						StateUsbIdSet(dev[j].vid, dev[j].pid,
+							iface->conf.joystick_mouse.button_count,
+							iface->jindex);
 					}
 				}
 			}
 		}
-
 	}
 
 	// one less joystick in the system ...
-	joysticks--;
+	StateNumJoysticksSet(--count);
 
-	if (joysticks >= 0 && joysticks < 6) {
-		StateNumJoysticksSet(joysticks);
-		memset(&mist_joysticks[joysticks], 0, sizeof(mist_joystick_t));
-	}
+	raw_jindex = joystick_index(count);
+	if (raw_jindex < 6)
+		memset(&mist_joysticks[raw_jindex], 0, sizeof(mist_joystick_t));
 
 	return 0;
 }

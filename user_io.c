@@ -90,7 +90,7 @@ bool caps_status = 0;
 bool num_status = 0;
 bool scrl_status = 0;
 
-#define RTC_FREQ 500   // 0.5 sec
+#define RTC_FREQ 333   // 1/3 sec
 static unsigned long rtc_timer;
 
 static unsigned char modifier = 0, pressed[6] = { 0,0,0,0,0,0 };

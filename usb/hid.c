@@ -29,7 +29,7 @@ unsigned char get_mice(void) {
 	return mice;
 }
 
-static const char hid_device_name[4][10] = {
+static const char *hid_device_name[4] = {
 	"NONE", "MOUSE", "KEYBOARD", "JOYSTICK"
 };
 
@@ -202,8 +202,6 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			cur_iface->ignore_boot_mode = false;
 			cur_iface->iface_idx = p->iface_desc.bInterfaceNumber;
 			cur_iface->has_boot_mode = (p->iface_desc.bInterfaceSubClass == HID_BOOT_INTF_SUBCLASS);
-			cur_iface->device_type = HID_DEVICE_UNKNOWN;
-			cur_iface->conf.type = REPORT_TYPE_NONE;
 
 			if (p->iface_desc.bInterfaceProtocol == HID_PROTOCOL_KEYBOARD) {
 				cur_iface->device_type = HID_DEVICE_KEYBOARD;
@@ -224,7 +222,6 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 				break;
 
 			ep_t *ep = (is_in) ? &cur_iface->ep_in : &cur_iface->ep_out;
-			memset(ep, 0, sizeof(ep_t));
 
 			// fill the endpoint info structure
 			ep->bmNakPower = USB_NAK_NOWAIT;
@@ -246,8 +243,6 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 			uint16_t desc_size = p->hid_desc.wDescriptorLength[0] | (p->hid_desc.wDescriptorLength[1] << 8);
 			iprintf(" -> report descriptor, size = %d\n", desc_size);
-
-			cur_iface->report_desc_size = desc_size;
 
 			// verify report descriptor
 			if (hid_get_report_descr(dev, cur_iface, desc_size)) {
@@ -293,8 +288,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	usb_hid_info_t *info = &(dev->hid_info);
 
 	// reset status
-	info->bPollEnable = false;
-	info->bNumIfaces = 0;
+	memset(info, 0, sizeof(usb_hid_info_t));
 
 	// save vid/pid for automatic hack later
 	vid = dev_desc->idVendor;
@@ -375,7 +369,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 				uint8_t but = joystick_button_remap[j].button;
 				info->iface[0].conf.joystick_mouse.button[but].byte_offset = joystick_button_remap[j].offset >> 3;
 				info->iface[0].conf.joystick_mouse.button[but].bitmask = 0x80 >> (joystick_button_remap[j].offset & 7);
-				iprintf("hacking from ini file %d %d -> %d\n",
+				infof("Hacking from INI file: @%d/%d -> %d",
 					info->iface[0].conf.joystick_mouse.button[but].byte_offset,
 					info->iface[0].conf.joystick_mouse.button[but].bitmask, but);
 			}
@@ -384,7 +378,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 		// set zero Idle time for all reports
 		rcode = hid_set_idle(dev, iface->iface_idx, 0, 0);
 		if (rcode && rcode != hrSTALL) {
-			errorf("%s: set Idle error 0x%02x",
+			hid_debugf("%s: set Idle error 0x%02x",
 				hid_device_name[iface->device_type], rcode);
 			if (iface->device_type == HID_DEVICE_JOYSTICK) {
 				uint8_t c_jindex = joystick_index(iface->jindex);
@@ -396,7 +390,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 
 		// enable Boot mode if its not diabled
 		if (iface->has_boot_mode && !iface->ignore_boot_mode) {
-			warningf("%s: enabling BOOT mode", hid_device_name[iface->device_type]);
+			infof("%s: enabling BOOT mode", hid_device_name[iface->device_type]);
 			hid_set_protocol(dev, iface->iface_idx, HID_BOOT_PROTOCOL);
 		} else {
 			hid_set_protocol(dev, iface->iface_idx, HID_RPT_PROTOCOL);
@@ -418,7 +412,8 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 		if(info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
 			uint8_t c_jindex = joystick_index(info->iface[i].jindex);
 			hid_debugf("releasing joystick #%d, renumbering", c_jindex);
-			joystick_release(c_jindex);
+			joystick_release(info->iface[i].jindex);
+			virtual_joystick_keyboard(0);
 		}
 
 		// check if a keyboard is released
@@ -477,8 +472,6 @@ FORCE_ARM static int32_t collect_bits(
 
 	return val & (0xFFFFFFFFU >> s_shift);
 }
-
-static usb_hid_iface_info_t *virt_joy_kbd_iface = NULL;
 
 /* processes a single USB interface */
 FORCE_ARM static void usb_process_iface(
@@ -607,7 +600,7 @@ FORCE_ARM static void usb_process_iface(
 	if (a[0] > JOYSTICK_AXIS_TRIGGER_MAX) jmap |= JOY_RIGHT;
 	if (a[1] < JOYSTICK_AXIS_TRIGGER_MIN) jmap |= JOY_UP;
 	if (a[1] > JOYSTICK_AXIS_TRIGGER_MAX) jmap |= JOY_DOWN;
-	jmap |= btn << JOY_BTN_SHIFT; // add buttons
+	jmap |= (btn << JOY_BTN_SHIFT); // add buttons
 
 	// report joystick 1 to OSD
 	uint8_t idx = joystick_index(iface->jindex);
@@ -616,7 +609,7 @@ FORCE_ARM static void usb_process_iface(
 
 	// map virtual joypad
 	uint32_t vjoy = jmap;
-	vjoy |= btn_extra << 8;
+	vjoy |= (btn_extra << 8);
 	vjoy = virtual_joystick_mapping(dev->vid, dev->pid, vjoy);
 
 	// now go back to original variables for downstream processing
@@ -637,7 +630,13 @@ FORCE_ARM static void usb_process_iface(
 	StateJoySetAnalogue(a[0], a[1], a[2], a[3], idx);
 
 	// add it to vjoy (no remapping)
-	vjoy |= jmap<<16;
+	vjoy |= (jmap << 16);
+
+	// don't run if not changed
+	if (vjoy == iface->jmap)
+		return;
+
+	iface->jmap = vjoy;
 
 	// swap joystick 0 and 1 since 1 is the one
 	// used primarily on most systems
@@ -650,30 +649,21 @@ FORCE_ARM static void usb_process_iface(
 	// if real DB9 mouse is preffered, switch the id back to 1
 	idx = (idx == 0) && mist_cfg.joystick0_prefer_db9 ? 1 : idx;
 
-	// don't run if not changed
-	if (vjoy != iface->jmap) {
-		user_io_digital_joystick(idx, vjoy & 0xFF);
-		// new API with all extra buttons
-		user_io_digital_joystick_ext(idx, vjoy);
-	}
-
-	iface->jmap = vjoy;
-
 	// also send analog values
 	user_io_analog_joystick(idx, a[0], a[1], a[2], a[3]);
 
+	user_io_digital_joystick(idx, vjoy & 0xFF);
+	// new API with all extra buttons
+	user_io_digital_joystick_ext(idx, vjoy);
+
 	// apply device poll quirks
 	const hid_dev_info_t* hid_dev = get_hid_dev(dev->vid, dev->pid);
-	if (hid_dev && hid_dev->poll_quirk)
+	if (hid_dev && hid_dev->poll_quirk) {
 		hid_dev->poll_quirk(dev, iface, buf);
+	}
 
 	// apply keyboard mappings
-	if ((!virt_joy_kbd_iface) || (virt_joy_kbd_iface == iface)) {
-		bool ret = virtual_joystick_keyboard( vjoy );
-		virt_joy_kbd_iface = NULL;
-		if (ret)
-			virt_joy_kbd_iface = iface;
-	}
+	virtual_joystick_keyboard(vjoy);
 }
 
 FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {

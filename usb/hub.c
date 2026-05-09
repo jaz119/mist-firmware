@@ -212,7 +212,7 @@ static uint8_t usb_hub_port_status_change(
   usb_hub_info_t *info = &(dev->hub_info);
   uint8_t rcode = 0;
 
-  warningf("hub: port %u: status 0x%x, change 0x%x",
+  iprintf("hub: port %u: status 0x%x, change 0x%x\n",
     port, evt->bmStatus, evt->bmChange);
 
   if (!(evt->bmStatus & USB_HUB_PORT_STATUS_PORT_POWER))
@@ -236,23 +236,26 @@ static uint8_t usb_hub_port_status_change(
     if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
       if (!(info->resetMask & mask)) {
         info->resetMask |= mask;
-        iprintf("hub: port %d: CONNECT\n", port);
+        warningf("hub: port %d: CONNECT", port);
         usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
         timer_delay_msec(USB_SETTLE_DELAY / 2); // FIXME
         usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
         return HUB_ERROR_PORT_HAS_BEEN_RESET;
       }
     } else {
-      iprintf("hub: port %d: DISCONNECT\n", port);
+      warningf("hub: port %d: DISCONNECT", port);
     }
   } else if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_RESET) {
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
-    iprintf("hub: port %d: RESET\n", port);
+    warningf("hub: port %d: RESET", port);
 
     if (evt->bmStatus & USB_HUB_PORT_STATUS_PORT_CONNECTION) {
       timer_delay_msec(20);
       bool isLS = !!(evt->bmStatus & USB_HUB_PORT_STATUS_PORT_LOW_SPEED);
       rcode = usb_configure(dev->bAddress, port, isLS);
+      if (rcode) {
+        errorf("hub: port %d: configure error 0x%02x", port, rcode);
+      }
     }
   }
 

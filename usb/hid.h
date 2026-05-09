@@ -57,8 +57,9 @@ typedef struct {
   ep_t ep_in;
   ep_t ep_out;
 
+  uint8_t interval;
   uint8_t iface_idx;
-  uint16_t report_desc_size;
+  uint32_t qLastPollTime;     // last poll time
 
   uint8_t device_type;
   bool ignore_boot_mode: 1;   // don't use boot mode even if device supports it
@@ -69,10 +70,7 @@ typedef struct {
   // (currently only used for joysticks)
   uint32_t jmap;              // last reported joystick state
   uint16_t jindex;            // joystick index
-  hid_report_t conf;
-
-  uint8_t interval;
-  uint32_t qLastPollTime;     // last poll time
+  hid_report_t conf;          // HID report struct
 
 } usb_hid_iface_info_t;
 
