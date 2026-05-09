@@ -1,6 +1,6 @@
-#include "hidquirks.h"
-#include <string.h>
 #include "user_io.h"
+#include <string.h>
+#include "hidquirks.h"
 #include "joystick.h"
 #include "usb/timer.h"
 #include "state.h"
@@ -13,7 +13,7 @@ uint8_t hid_set_report(usb_device_t *, uint8_t iface,
 static bool x360_check_iface(const usb_interface_descriptor_t *iface)
 {
     return (iface->bInterfaceClass == USB_CLASS_VENDOR_SPECIFIC)
-        && (iface->bInterfaceSubClass == 0x5d || iface->bInterfaceSubClass == 0x58)
+        && (iface->bInterfaceSubClass == 0x5d)
         && (iface->bInterfaceProtocol == 0x01);
 }
 
@@ -22,7 +22,7 @@ static bool x360_init(usb_device_t *dev)
 {
     usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
 
-    // LED command: 1 flashes, then on
+    // LED command: top-left blink, then on
     static const uint8_t led_cmd[] = { 0x01, 0x03, 0x02 };
 
     uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(led_cmd), led_cmd);
@@ -41,24 +41,24 @@ static bool x360_init(usb_device_t *dev)
         .joystick_mouse = {
             .button_count = 16,
 
-            .button[0] = { .byte_offset = 3, .bitmask = 0x10 }, // A
-            .button[1] = { .byte_offset = 3, .bitmask = 0x20 }, // B
-            .button[2] = { .byte_offset = 5, .bitmask = 0x80 }, // C (Select)
-            .button[3] = { .byte_offset = 2, .bitmask = 0x10 }, // Start
-            .button[4] = { .byte_offset = 3, .bitmask = 0x40 }, // X
-            .button[5] = { .byte_offset = 3, .bitmask = 0x80 }, // Y
-            .button[6] = { .byte_offset = 3, .bitmask = 0x01 }, // L
-            .button[7] = { .byte_offset = 4, .bitmask = 0x80 }, // R
-            .button[8] = { .byte_offset = 3, .bitmask = 0x02 }, // Z
-            .button[9] = { .byte_offset = 2, .bitmask = 0x80 }, // R3
-            .button[10]= { .byte_offset = 2, .bitmask = 0x20 }, // Minus
-            .button[11]= { .byte_offset = 3, .bitmask = 0x04 }, // Home
+            .button[0] = { .byte_offset = 3, .bitmask = BIT(4) }, // A
+            .button[1] = { .byte_offset = 3, .bitmask = BIT(5) }, // B
+            .button[2] = { .byte_offset = 5, .bitmask = BIT(7) }, // C (Select)
+            .button[3] = { .byte_offset = 2, .bitmask = BIT(4) }, // Start
+            .button[4] = { .byte_offset = 3, .bitmask = BIT(6) }, // X
+            .button[5] = { .byte_offset = 3, .bitmask = BIT(7) }, // Y
+            .button[6] = { .byte_offset = 3, .bitmask = BIT(0) }, // L
+            .button[7] = { .byte_offset = 4, .bitmask = BIT(7) }, // R
+            .button[8] = { .byte_offset = 3, .bitmask = BIT(1) }, // Z
+            .button[9] = { .byte_offset = 2, .bitmask = BIT(7) }, // R3
+            .button[10]= { .byte_offset = 2, .bitmask = BIT(5) }, // Minus
+            .button[11]= { .byte_offset = 3, .bitmask = BIT(2) }, // Home
 
             // D-Pad
-            .button[12] = { .byte_offset = 2, .bitmask = 0x01 }, // Up
-            .button[13] = { .byte_offset = 2, .bitmask = 0x02 }, // Down
-            .button[14] = { .byte_offset = 2, .bitmask = 0x04 }, // Left
-            .button[15] = { .byte_offset = 2, .bitmask = 0x08 }, // Right
+            .button[12] = { .byte_offset = 2, .bitmask = BIT(0) }, // Up
+            .button[13] = { .byte_offset = 2, .bitmask = BIT(1) }, // Down
+            .button[14] = { .byte_offset = 2, .bitmask = BIT(2) }, // Left
+            .button[15] = { .byte_offset = 2, .bitmask = BIT(3) }, // Right
 
             .axis = {
                 { .offset = 48, .size = 16, .logical = {.min = -32768, .max = 32767} }, // LX
@@ -72,12 +72,11 @@ static bool x360_init(usb_device_t *dev)
 
     memcpy(&iface->conf, &x360_report, sizeof(hid_report_t));
     iface->report_desc_size = 0x14;
-
     return true;
 }
 
 // Xbox360 controller: MENU key polling
-static void x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
+static void FORCE_ARM x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
 {
     const hid_button_t *home = &iface->conf.joystick_mouse.button[11];
 
@@ -144,24 +143,24 @@ static bool procon_wakeup(usb_device_t *dev)
         .joystick_mouse = {
             .button_count = 16,
 
-            .button[0] = { .byte_offset = 3, .bitmask = 0x08 }, // A
-            .button[1] = { .byte_offset = 3, .bitmask = 0x04 }, // B
-            .button[2] = { .byte_offset = 3, .bitmask = 0x40 }, // C (Select)
-            .button[3] = { .byte_offset = 4, .bitmask = 0x02 }, // Start
-            .button[4] = { .byte_offset = 3, .bitmask = 0x02 }, // X
-            .button[5] = { .byte_offset = 3, .bitmask = 0x01 }, // Y
-            .button[6] = { .byte_offset = 5, .bitmask = 0x80 }, // L
-            .button[7] = { .byte_offset = 3, .bitmask = 0x80 }, // R
-            .button[8] = { .byte_offset = 5, .bitmask = 0x40 }, // Z
-            .button[9] = { .byte_offset = 4, .bitmask = 0x10 }, // Home
-            .button[10]= { .byte_offset = 4, .bitmask = 0x80 }, // ZR
-            .button[11]= { .byte_offset = 4, .bitmask = 0x01 }, // Minus
+            .button[0] = { .byte_offset = 3, .bitmask = BIT(3) }, // A
+            .button[1] = { .byte_offset = 3, .bitmask = BIT(2) }, // B
+            .button[2] = { .byte_offset = 3, .bitmask = BIT(6) }, // C (Select)
+            .button[3] = { .byte_offset = 4, .bitmask = BIT(1) }, // Start
+            .button[4] = { .byte_offset = 3, .bitmask = BIT(1) }, // X
+            .button[5] = { .byte_offset = 3, .bitmask = BIT(0) }, // Y
+            .button[6] = { .byte_offset = 5, .bitmask = BIT(7) }, // L
+            .button[7] = { .byte_offset = 3, .bitmask = BIT(7) }, // R
+            .button[8] = { .byte_offset = 5, .bitmask = BIT(6) }, // Z
+            .button[9] = { .byte_offset = 4, .bitmask = BIT(4) }, // Home
+            .button[10]= { .byte_offset = 4, .bitmask = BIT(7) }, // ZR
+            .button[11]= { .byte_offset = 4, .bitmask = BIT(0) }, // Minus
 
             // D-Pad
-            .button[12] = { .byte_offset = 5, .bitmask = 0x01 }, // Down
-            .button[13] = { .byte_offset = 5, .bitmask = 0x02 }, // Up
-            .button[14] = { .byte_offset = 5, .bitmask = 0x04 }, // Right
-            .button[15] = { .byte_offset = 5, .bitmask = 0x08 }, // Left
+            .button[12] = { .byte_offset = 5, .bitmask = BIT(0) }, // Down
+            .button[13] = { .byte_offset = 5, .bitmask = BIT(1) }, // Up
+            .button[14] = { .byte_offset = 5, .bitmask = BIT(2) }, // Right
+            .button[15] = { .byte_offset = 5, .bitmask = BIT(3) }, // Left
 
             .axis = {
                 { .offset = 48, .size = 12, .logical = { .min = 0, .max = 4095 } }, // LX
@@ -178,7 +177,7 @@ static bool procon_wakeup(usb_device_t *dev)
 }
 
 // Nintendo Pro Controller: MENU key polling
-static void procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
+static void FORCE_ARM procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
 {
     const hid_button_t *home = &iface->conf.joystick_mouse.button[9];
 
@@ -188,11 +187,16 @@ static void procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *re
 }
 
 // Logitech K400r: set F1-F12 as primary functions
-static bool init_logi_K400r(usb_device_t *dev)
+static bool logi_K400r_init(usb_device_t *dev)
 {
-    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x03\x15\x00\x00\x00"); timer_delay_msec(100);
-    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x0F\x15\x01\x00\x00"); timer_delay_msec(100);
-    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x10\x15\x00\x00\x00"); timer_delay_msec(100);
+    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x03\x15\x00\x00\x00");
+    timer_delay_msec(100);
+
+    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x0F\x15\x01\x00\x00");
+    timer_delay_msec(100);
+
+    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x10\x15\x00\x00\x00");
+    timer_delay_msec(100);
 
     return true;
 }
@@ -214,7 +218,7 @@ static bool init_5200daptor(usb_device_t *dev)
 }
 
 // special 5200daptor button processing
-static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf)
+static void poll_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     // list of buttons that are reported as keys
     static const struct {
@@ -269,44 +273,56 @@ static void handle_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, ui
     }
 }
 
-static const hid_dev_info_t hid_devs[] = {
-    { 0x0079, 0x0006, "Retrolink N64/GC" },
-    { 0x0079, 0x0011, "Retrolink NES" },
-    { 0x040b, 0x6533, "Competition Pro" },
-    { 0x0411, 0x00C6, "iBuffalo SFC BSGP801" },
+ALIGNED(4) static const hid_dev_info_t hid_devs[] = {
+    { 0x057E, 0x2009, "Nintendo Switch Pro", procon_wakeup, procon_poll },
+    { 0x057E, 0x200E, "Nintendo Switch Joy-Con", procon_wakeup, procon_poll },
     { 0x045E, 0x028E, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x045E, 0x028F, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x0E6F, 0x0133, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x0E6F, 0x0213, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x0E6F, 0x021F, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x0E6F, 0x0401, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x162E, 0xBEEF, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x1BAD, 0xF016, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x046D, 0xC52B, "Unifying Receiver", init_logi_K400r },
+    { 0x17EF, 0x6182, "Lenovo Legion Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x1BAD, 0xFD00, "Razer Onza TE", x360_init, x360_poll, x360_check_iface },
+    { 0x1BAD, 0xFD01, "Razer Onza", x360_init, x360_poll, x360_check_iface },
+    { 0x1532, 0x0A57, "Razer Wolverine V3 Pro", x360_init, x360_poll, x360_check_iface },
+    { 0x1532, 0x0A59, "Razer Wolverine V3 Pro", x360_init, x360_poll, x360_check_iface },
+    { 0x2DC8, 0x6001, "8BitDo SN30 Pro", x360_init, x360_poll, x360_check_iface },
+    { 0x0CA3, 0x0024, "8BitDo M30 2.4g" },
+    { 0x1002, 0x9000, "8BitDo FC30" },
+    { 0x1235, 0xAB11, "8BitDo SFC30" },
+    { 0x1235, 0xAB21, "8BitDo SFC30"},
+    { 0x054C, 0x0CE6, "Sony DualSense" },
+    { 0x040B, 0x6533, "Competition Pro" },
+    { 0x0738, 0x2217, "Competition Pro" },
+    { 0x046D, 0xC52B, "Unifying Receiver", logi_K400r_init },
+    { 0x04D8, 0xF6EC, "NEOGEO-daptor", init_5200daptor, poll_5200daptor },
     { 0x04D8, 0xF421, "NEOGEO-daptor" },
     { 0x04D8, 0xF672, "Vision-daptor" },
-    { 0x04D8, 0xF6EC, "NEOGEO-daptor", init_5200daptor, handle_5200daptor },
     { 0x04D8, 0xF947, "2600-daptor II" },
-    { 0x057E, 0x2009, "Nintendo Switch Pro", procon_wakeup, procon_poll },
-    { 0x057E, 0x200E, "Nintendo Switch JoyCon", procon_wakeup, procon_poll },
+    { 0x0411, 0x00C6, "iBuffalo SFC BSGP801" },
     { 0x0583, 0x2060, "iBuffalo SFC BSGP801" },
-    { 0x0738, 0x2217, "Competition Pro" },
     { 0x081F, 0xE401, "SNES Generic Pad" },
     { 0x0F30, 0x1012, "Qanba Q4RAF" },
-    { 0x0CA3, 0x0024, "8BitDo M30 2.4G" },
-    { 0x1002, 0x9000, "8BitDo FC30" },
-    { 0x1235, 0xab11, "8BitDo SFC30" },
-    { 0x1235, 0xab21, "8BitDo SFC30"},
-    { 0x054C, 0x0CE6, "Sony DualSense" },
     { 0x1F4F, 0x0003, "ROYDS Stick.EX" },
+    { 0x0079, 0x0006, "Retrolink N64/GC" },
+    { 0x0079, 0x0011, "Retrolink NES" },
     { 0x1345, 0x1030, "Retro Freak gamepad" },
     { 0x1C59, 0x0026, "Retro Games gamepad" },
 };
 
-const hid_dev_info_t* get_hid_dev(uint16_t vid, uint16_t pid)
+FAST const hid_dev_info_t* get_hid_dev(uint16_t vid, uint16_t pid)
 {
-    for (uint32_t n = 0; n < ARRAY_SIZE(hid_devs); n++)
+    const hid_dev_info_t *it = hid_devs;
+    const hid_dev_info_t *end = &hid_devs[ARRAY_SIZE(hid_devs)];
+
+    for (; it < end; it++)
     {
-        if (hid_devs[n].vid == vid && hid_devs[n].pid == pid)
+        if (it->vid == vid && it->pid == pid)
         {
-            return &hid_devs[n];
+            return it;
         }
     }
 

@@ -19,10 +19,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "joystick.h"
 #include "usb.h"
 #include "debug.h"
 #include "utils.h"
-#include "mist_cfg.h"
 #include "state.h"
 
 static unsigned char joysticks = 0;      // number of detected usb joysticks
@@ -34,15 +34,6 @@ uint8_t joystick_count() {
 uint8_t joystick_add() {
 	StateNumJoysticksSet(joysticks+1);
 	return joysticks++;
-}
-
-uint8_t joystick_index(uint8_t jindex) {
-	// If DB9 joystick are preferred: USB joysticks are shifted to 2,3...
-	if(mist_cfg.joystick_db9_fixed_index) {
-		jindex += 2;
-	}
-
-	return jindex;
 }
 
 uint8_t joystick_release(uint8_t c_jindex) {
