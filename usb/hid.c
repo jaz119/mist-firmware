@@ -710,13 +710,24 @@ void hid_set_kbd_led(unsigned char led, bool on) {
 		usb_device_t *dev = usb_get_devices();
 
 		for (int i=0; i<USB_NUMDEVICES; i++) {
-			if (dev[i].bAddress && (dev[i].class == &usb_hid_class)) {
-				// search for keyboard interfaces
-				for (int j=0; j<MAX_IFACES; j++) {
-					if (dev[i].hid_info.iface[j].device_type == HID_DEVICE_KEYBOARD) {
-						hid_set_report(dev + i, dev[i].hid_info.iface[j].iface_idx, 2, 0, 1, &kbd_led_state);
-					}
+			if (!dev[i].bAddress || (dev[i].class != &usb_hid_class))
+				continue;
+			// search for keyboard interfaces
+			for (int j=0; j<MAX_IFACES; j++) {
+				usb_hid_iface_info_t *iface = &dev[i].hid_info.iface[j];
+				if (iface->device_type != HID_DEVICE_KEYBOARD)
+					continue;
+				uint8_t size = 1;
+				uint8_t rid = iface->conf.report_id;
+				ALIGNED(4) uint8_t report[2];
+				if (rid != 0) {
+					report[0] = rid;
+					report[1] = kbd_led_state;
+					size = 2;
+				} else {
+					report[0] = kbd_led_state;
 				}
+				hid_set_report(&dev[i], iface->iface_idx, 2, rid, size, report);
 			}
 		}
 	}
