@@ -510,6 +510,7 @@ static bool mcp_set_time(struct usb_device_entry *dev, const ctime_t time)
 static uint8_t mcp_poll(usb_device_t *dev)
 {
     usb_mcp_info_t *info = &(dev->mcp_info);
+    info->usb_error = 0;
 
     if (timer_check(info->time.updated, 500))
     {
