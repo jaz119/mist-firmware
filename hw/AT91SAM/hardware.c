@@ -124,96 +124,125 @@ volatile static unsigned char rx_buf[256] ALIGNED(4);
 volatile static unsigned char rx_rptr, rx_wptr;
 
 static void Usart0IrqHandler(void) {
-  // Read USART status
-  unsigned char status = AT91C_BASE_US0->US_CSR;
+    volatile AT91PS_USART USART = AT91C_BASE_US0;
 
-  // received something?
-  if(status & AT91C_US_RXRDY) {
-    // read byte from usart
-    unsigned char c = AT91C_BASE_US0->US_RHR;
+    // read USART status
+    uint32_t status = USART->US_CSR;
+    uint32_t mask = USART->US_IMR;
+    uint32_t active_irq = status & mask;
 
-    // only store byte if rx buffer is not full
-    if((unsigned char)(rx_wptr + 1) != rx_rptr) {
-      // there's space in buffer: use it
-      rx_buf[rx_wptr++] = c;
+    // reset errors
+    if(status & (AT91C_US_OVRE | AT91C_US_FRAME | AT91C_US_PARE)) {
+        USART->US_CR = AT91C_US_RSTSTA;
     }
-  }
 
-  // ready to transmit further bytes?
-  if(status & AT91C_US_TXRDY) {
+    // received something?
+    if(active_irq & AT91C_US_RXRDY) {
+        // read byte from usart
+        unsigned char c = USART->US_RHR;
 
-    // further bytes to send in buffer?
-    if(tx_wptr != tx_rptr)
-      // yes, simply send it and leave irq enabled
-      AT91C_BASE_US0->US_THR = tx_buf[tx_rptr++];
-    else
-      // nothing else to send, disable interrupt
-      AT91C_BASE_US0->US_IDR = AT91C_US_TXRDY;
-  }
+        // only store byte if rx buffer is not full
+        unsigned char next_wptr = (rx_wptr + 1);
+        if(next_wptr != rx_rptr) {
+            // there's space in buffer: use it
+            rx_buf[rx_wptr] = c;
+            rx_wptr = next_wptr;
+        }
+    }
+
+    // ready to transmit further bytes?
+    if(active_irq & AT91C_US_TXRDY) {
+        unsigned char rptr = tx_rptr;
+        // further bytes to send in buffer?
+        if(tx_wptr != rptr) {
+            // yes, simply send it and leave irq enabled
+            USART->US_THR = tx_buf[rptr++];
+            tx_rptr = rptr;
+        } else {
+            // nothing else to send, disable interrupt
+            USART->US_IDR = AT91C_US_TXRDY;
+        }
+    }
 }
 
 // check usart rx buffer for data
 void USART_Poll(void) {
-  if(is_dip_switch1_on())
-    xmodem_poll();
+    bool debug_mode = is_dip_switch1_on();
 
-  while(rx_wptr != rx_rptr) {
-    // this can a little be optimized by sending whole buffer parts
-    // at once and not just single bytes. But that's probably not
-    // worth the effort.
-    char chr = rx_buf[rx_rptr++];
-
-    if(is_dip_switch1_on()) {
-      // if in debug mode use xmodem for file reception
-      xmodem_rx_byte(chr);
-    } else {
-      debugf("USART RX %d (%c)", chr, chr);
-
-      // data available -> send via user_io to core
-      user_io_serial_tx(&chr, 1);
+    if (debug_mode) {
+        xmodem_poll();
     }
-  }
+
+    unsigned char wptr = rx_wptr,
+                  rptr = rx_rptr;
+
+    if (rptr != wptr) {
+        if (debug_mode) {
+            // if in debug mode use xmodem for file reception
+            while (rptr != wptr) {
+                xmodem_rx_byte(rx_buf[rptr++]);
+            }
+        } else {
+            // data available -> send via user_io to core
+            if (wptr > rptr) {
+                // continuous data block
+                user_io_serial_tx((char*)&rx_buf[rptr], wptr - rptr);
+            } else {
+                // first data block at end
+                user_io_serial_tx((char*)&rx_buf[rptr], 256 - rptr);
+                // second data part at begin
+                if (wptr > 0) {
+                    user_io_serial_tx((char*)rx_buf, wptr);
+                }
+            }
+            rptr = wptr;
+        }
+        rx_rptr = rptr;
+    }
 }
 
 void USART_Write(unsigned char c) {
-#if 0
-  while(!(AT91C_BASE_US0->US_CSR & AT91C_US_TXRDY));
-  AT91C_BASE_US0->US_THR = c;
-#else
-  if((AT91C_BASE_US0->US_CSR & AT91C_US_TXRDY) && (tx_wptr == tx_rptr)) {
-    // transmitter ready and buffer empty? -> send directly
-    AT91C_BASE_US0->US_THR = c;
-  } else {
+    unsigned char wptr = tx_wptr,
+                  next_wptr = wptr + 1;
+
     // transmitter is not ready: block until space in buffer
-    while((unsigned char)(tx_wptr + 1) == tx_rptr);
+    while (next_wptr == tx_rptr);
 
     // there's space in buffer: use it
-    tx_buf[tx_wptr++] = c;
-  }
+    tx_buf[wptr] = c;
 
-  AT91C_BASE_US0->US_IER = AT91C_US_TXRDY;  // enable interrupt
-#endif
+    // moving of buffer position
+    __asm__ volatile ("" : : : "memory");
+    tx_wptr = next_wptr;
+
+    // enable interrupt
+    if (!(AT91C_BASE_US0->US_IMR & AT91C_US_TXRDY)) {
+        AT91C_BASE_US0->US_IER = AT91C_US_TXRDY;
+    }
 }
 
 void USART_Init(unsigned long baudrate) {
+    volatile AT91PS_USART US0 = AT91C_BASE_US0;
+
     // Configure PA5 and PA6 for USART0 use
     AT91C_BASE_PIOA->PIO_PDR = AT91C_PA5_RXD0 | AT91C_PA6_TXD0;
+    AT91C_BASE_PIOA->PIO_ASR = AT91C_PA5_RXD0 | AT91C_PA6_TXD0;
 
     // Enable the peripheral clock in the PMC
     AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_US0;
 
     // Reset and disable receiver & transmitter
-    AT91C_BASE_US0->US_CR = AT91C_US_RSTRX | AT91C_US_RSTTX | AT91C_US_RXDIS | AT91C_US_TXDIS;
+    US0->US_CR = AT91C_US_RSTRX | AT91C_US_RSTTX | AT91C_US_RXDIS | AT91C_US_TXDIS;
 
     // Configure USART0 mode
-    AT91C_BASE_US0->US_MR = AT91C_US_USMODE_NORMAL | AT91C_US_CLKS_CLOCK | AT91C_US_CHRL_8_BITS |
-      AT91C_US_PAR_NONE | AT91C_US_NBSTOP_1_BIT | AT91C_US_CHMODE_NORMAL;
+    US0->US_MR = AT91C_US_USMODE_NORMAL | AT91C_US_CLKS_CLOCK | AT91C_US_CHRL_8_BITS
+      | AT91C_US_PAR_NONE | AT91C_US_NBSTOP_1_BIT | AT91C_US_CHMODE_NORMAL;
 
     // Configure USART0 rate
-    AT91C_BASE_US0->US_BRGR = MCLK / 16 / baudrate;
+    US0->US_BRGR = (MCLK + (baudrate * 8)) / (baudrate * 16);
 
     // Enable receiver & transmitter
-    AT91C_BASE_US0->US_CR = AT91C_US_RXEN | AT91C_US_TXEN;
+    US0->US_CR = AT91C_US_RXEN | AT91C_US_TXEN;
 
     // tx buffer is initially empty
     tx_rptr = tx_wptr = 0;
@@ -222,13 +251,16 @@ void USART_Init(unsigned long baudrate) {
     rx_rptr = rx_wptr = 0;
 
     // Set the USART0 IRQ handler address in AIC Source
+    AT91C_BASE_AIC->AIC_SMR[AT91C_ID_US0] = AT91C_AIC_SRCTYPE_INT_HIGH_LEVEL | 0;
     AT91C_BASE_AIC->AIC_SVR[AT91C_ID_US0] = (unsigned int)Usart0IrqHandler;
-    AT91C_BASE_AIC->AIC_IECR = (1<<AT91C_ID_US0);
 
-    AT91C_BASE_US0->US_IER = AT91C_US_RXRDY;  // enable rx interrupt
+    AT91C_BASE_AIC->AIC_ICCR = (1 << AT91C_ID_US0); // clear pending interrupt
+    US0->US_IER = AT91C_US_RXRDY;  // enable rx interrupt
+
+    AT91C_BASE_AIC->AIC_IECR = (1 << AT91C_ID_US0);
 }
 
-static void timer0_c_irq_handler(void) {
+static void Timer0IrqHandler(void) {
   //* Acknowledge interrupt status
   unsigned int dummy = AT91C_BASE_TC0->TC_SR;
 }
@@ -257,7 +289,7 @@ void Timer_Init(void) {
   //* Disable the interrupt on the interrupt controller
   AT91C_BASE_AIC->AIC_IDCR = 1 << AT91C_ID_TC0;
   //* Save the interrupt handler routine pointer and the interrupt priority
-  AT91C_BASE_AIC->AIC_SVR[AT91C_ID_TC0] = (unsigned int)timer0_c_irq_handler;
+  AT91C_BASE_AIC->AIC_SVR[AT91C_ID_TC0] = (unsigned int)Timer0IrqHandler;
   //* Store the Source Mode Register
   AT91C_BASE_AIC->AIC_SMR[AT91C_ID_TC0] = 1 | AT91C_AIC_SRCTYPE_INT_HIGH_LEVEL;
   //* Clear the interrupt on the interrupt controller
