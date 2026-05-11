@@ -84,24 +84,27 @@ unsigned char MMC_Init(void)
       return(CARDTYPE_NONE);
     }
 
-    WaitTimer(100); // 100ms delay
-    spi_slow();     // set slow clock
-    EnableCard();
-
-    volatile unsigned int dummy;
-    dummy = *AT91C_SPI_RDR;
-    (void)dummy;
-
-    for (n=0; n<20; n++) SPI(0xff); // 80 dummy clocks, DI = 1
-
     CardType = CARDTYPE_NONE;
 
+    spi_slow();     // set slow clock
+    WaitTimer(200); // 200ms delay
+
+    volatile uint32_t dummy = *AT91C_SPI_RDR;
+    while (*AT91C_SPI_SR & AT91C_SPI_RDRF) {
+        dummy = *AT91C_SPI_RDR;
+    }
+
+    DisableCard();
+    for (n=0; n<20; n++) SPI(0xff); // 80 dummy clocks, DI = 1
+    EnableCard();
+
     for (n=0; n<100; n++) {
-        EnableCard();
         uint8_t res = MMC_Command(CMD0, 0);
         DisableCard();
+        SPI(0xFF);
         if (res == 0x01) break;
-        WaitTimer(10);
+        WaitTimer(20);
+        EnableCard();
     }
 
     if (n >= 100) {
@@ -119,40 +122,49 @@ unsigned char MMC_Init(void)
             for (n = 0; n < 4; n++)
                 ocr[n] = SPI(0xFF); // get the rest of R7 response
             if (ocr[2] == 0x01 && ocr[3] == 0xAA)
-            { // the card can work at 2.7-3.6V
-                // iprintf("SDHC card detected\r");
+            {
+                uint8_t r55 = 0xff, r41 = 0xff;
+                // the card can work at 2.7-3.6V
                 while (!CheckTimer(timeout))
-                { // now we must wait until CMD41 returns 0 (or timeout elapses)
-                    if (MMC_Command(CMD55, 0) == 0x01)
-                    { // CMD55 must precede any ACMD command
-                        if (MMC_Command(CMD41, 1 << 30) == 0x00) // ACMD41 with HCS bit
-                        { // initialization completed
-                            if (MMC_Command(CMD58, 0) == 0x00)
-                            { // check CCS (Card Capacity Status) bit in the OCR
-                                for (n = 0; n < 4; n++)
-                                    ocr[n] = SPI(0xFF);
-                                CardType = (ocr[0] & 0x40) ? CARDTYPE_SDHC : CARDTYPE_SD; // if CCS set then the card is SDHC compatible
-                            }
-                            else
-                                errorf("CMD58 (READ_OCR) failed");
-
-                            DisableCard();
-                            SPI(0xFF);
-
-                            // set appropriate SPI speed
-                            spi_fast();
-
-                            return(CardType);
-                        }
+                {
+                    // now we must wait until CMD41 returns 0 (or timeout elapses)
+                    EnableCard();
+                    r55 = MMC_Command(CMD55, 0);
+                    if (r55 <= 0x01)
+                    {
+                        // CMD55 must precede any ACMD command
+                        r41 = MMC_Command(CMD41, 1ul << 30);
                     }
                     DisableCard();
-                    WaitTimer(10);
-                    EnableCard();
-                }
-                DisableCard();
-                SPI(0xFF);
+                    SPI(0xFF);
+                    WaitTimer(20);
+                    if (r41 == 0x00)
+                    {
+                        EnableCard();
+                        CardType = CARDTYPE_SDHC;
+                        // initialization completed
+                        if (MMC_Command(CMD58, 0) == 0x00)
+                        {
+                            // check CCS (Card Capacity Status) bit in the OCR
+                            for (n = 0; n < 4; n++)
+                                ocr[n] = SPI(0xFF);
+                            // if CCS set then the card is SDHC compatible
+                            CardType = (ocr[0] & 0x40) ? CARDTYPE_SDHC : CARDTYPE_SD;
+                        }
+                        else
+                        {
+                            errorf("CMD58 (READ_OCR) failed");
+                        }
+                        DisableCard();
+                        SPI(0xFF);
 
-                errorf("SDHC card initialization timed out");
+                        // set appropriate SPI speed
+                        spi_fast();
+                        return(CardType);
+                    }
+                }
+
+                errorf("SDHC initialization timeout, error 0x%02x/0x%02x", r55, r41);
                 return(CARDTYPE_NONE);
             }
         }
@@ -183,13 +195,13 @@ unsigned char MMC_Init(void)
                         }
                     }
                     DisableCard();
-                    WaitTimer(10);
+                    WaitTimer(20);
                     EnableCard();
                 }
                 DisableCard();
                 SPI(0xFF);
 
-                errorf("SD card initialization timed out");
+                errorf("SD initialization timeout");
                 return(CARDTYPE_NONE);
             }
         }
@@ -214,17 +226,15 @@ unsigned char MMC_Init(void)
                 return(CardType);
             }
             DisableCard();
-            WaitTimer(10);
+            WaitTimer(20);
             EnableCard();
         }
-
         DisableCard();
         SPI(0xFF);
 
-        errorf("MMC card initialization timed out");
+        errorf("MMC initialization timeout");
         return(CARDTYPE_NONE);
     }
-
     DisableCard();
     SPI(0xFF);
 
