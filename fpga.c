@@ -168,8 +168,7 @@ unsigned char ConfigureFpga(const char *name)
         FatalError(4);
     }
 
-    iprintf("FPGA bitstream file %s opened, file size = %lu\n", name, (uint32_t) f_size(&file));
-    iprintf("[");
+    iprintf("FPGA bitstream %s opened, size = %lu\n", name, (uint32_t) f_size(&file));
 
     // using fast seek
     clmt[0] = ARRAY_SIZE(clmt);
@@ -186,14 +185,6 @@ unsigned char ConfigureFpga(const char *name)
         // read sector if 512 (64*8) bytes done
         if ((t & 0x3F) == 0)
         {
-            if (t & (1<<10))
-                DISKLED_OFF
-            else
-                DISKLED_ON
-
-            if ((t & 0x1FF) == 0)
-                iprintf("*");
-
             if (f_read(&file, sector_buffer, 512, &br) != FR_OK) {
                 f_close(&file);
                 return(0);
@@ -221,9 +212,7 @@ unsigned char ConfigureFpga(const char *name)
     // return outputs to a state suitable for user_io.c
     *AT91C_PIOA_SODR = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B;
 
-    iprintf("]\n");
     // iprintf("FPGA bitstream loaded\n");
-    DISKLED_OFF;
 
     // check if DONE is high
     if (*AT91C_PIOA_PDSR & XILINX_DONE)
@@ -267,8 +256,7 @@ unsigned char ConfigureFpga(const char *name)
         return ERROR_BITSTREAM_OPEN;
     }
 
-    iprintf("FPGA bitstream file %s opened, file size = %lu\n", name, (uint32_t) f_size(&file));
-    iprintf("[");
+    iprintf("FPGA bitstream %s opened, size = %lu\n", name, (uint32_t) f_size(&file));
 
     // set outputs
     ALTERA_DCLK_SET;
@@ -303,7 +291,6 @@ unsigned char ConfigureFpga(const char *name)
         }
     }
 
-    DISKLED_ON;
     int fsize = f_size(&file), n = fsize >> 3;
 
     /* Loop through every single byte */
@@ -312,14 +299,6 @@ unsigned char ConfigureFpga(const char *name)
         // read sector if SECTOR_BUFFER_SIZE bytes done
         if ((i & (SECTOR_BUFFER_SIZE-1)) == 0)
         {
-            if (i & (1 << 13))
-                DISKLED_OFF;
-            else
-                DISKLED_ON;
-
-            if ((i & (SECTOR_BUFFER_SIZE*4-1)) == 0)
-                iprintf("*");
-
             if (f_read(&file, sector_buffer, SECTOR_BUFFER_SIZE, &br) != FR_OK) {
                 f_close(&file);
                 return ERROR_READ_BITSTREAM_FAILED;
@@ -349,9 +328,7 @@ unsigned char ConfigureFpga(const char *name)
     }
 
     ALTERA_STOP_CONFIG
-    DISKLED_OFF;
 
-    iprintf("]\n");
     // iprintf("FPGA bitstream loaded\n");
     f_close(&file);
 
@@ -377,9 +354,9 @@ unsigned char ConfigureFpga(const char *name)
 
     /* Initialization end */
     if ( !ALTERA_NSTATUS_STATE || !ALTERA_DONE_STATE ) {
-      errorf("FPGA Initialization finish but contains error: NSTATUS is %s and CONF_DONE is %s",
-        ALTERA_NSTATUS_STATE ? "HIGH" : "LOW", ALTERA_DONE_STATE ? "HIGH" : "LOW" );
-      return ERROR_UPDATE_FAILED;
+        errorf("FPGA Initialization finish but contains error: NSTATUS is %s and CONF_DONE is %s",
+            ALTERA_NSTATUS_STATE ? "HIGH" : "LOW", ALTERA_DONE_STATE ? "HIGH" : "LOW");
+        return ERROR_UPDATE_FAILED;
     }
 
     return ERROR_NONE;

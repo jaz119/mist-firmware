@@ -111,6 +111,7 @@ DRESULT disk_read (
 //	switch (pdrv) {
 	switch (fat_device) {
 	case DEV_MMC :
+		DISKLED_ON;
 		if(enable_cache && sector >= database) {
 			result = MMC_ReadMultiple(sector, sector_buffer, SECTOR_BUFFER_SIZE/512);
 			memcpy(buff, sector_buffer, count*512);
@@ -120,6 +121,7 @@ DRESULT disk_read (
 		} else {
 			result = MMC_ReadMultiple(sector, buff, count);
 		}
+		DISKLED_OFF;
 
 		// translate the reslut code here
 		res = result ? RES_OK : RES_ERROR;
@@ -128,7 +130,9 @@ DRESULT disk_read (
 	case DEV_USB :
 		// translate the arguments here
 
+		DISKLED_ON;
 		result = usb_host_storage_read(sector, buff, count);
+		DISKLED_OFF;
 
 		// translate the reslut code here
 		res = result ? RES_OK : RES_ERROR;
@@ -163,11 +167,13 @@ DRESULT disk_write (
 //	switch (pdrv) {
 	switch (fat_device) {
 	case DEV_MMC :
+		DISKLED_ON;
 		// translate the arguments here
 		if (count == 1)
 			result = MMC_Write(sector, buff);
 		else
 			result = MMC_WriteMultiple(sector, buff, count);
+		DISKLED_OFF;
 
 		// translate the reslut code here
 		res = result ? RES_OK : RES_ERROR;
@@ -176,7 +182,9 @@ DRESULT disk_write (
 	case DEV_USB :
 		// translate the arguments here
 
+		DISKLED_ON;
 		result = usb_host_storage_write(sector, buff, count);
+		DISKLED_OFF;
 
 		// translate the reslut code here
 		res = result ? RES_OK : RES_ERROR;

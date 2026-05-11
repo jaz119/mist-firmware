@@ -421,7 +421,6 @@ static void cdrom_playaudio()
     cdrom.audiostatus = AUDIO_ERROR;
     return;
   }
-  DISKLED_ON;
   int offset = (cdrom.currentlba - toc.tracks[track].start) * toc.tracks[track].sector_size + toc.tracks[track].offset;
   f_lseek(&toc.file->file, offset);
   f_read(&toc.file->file, sector_buffer, 2352, &br);
@@ -434,7 +433,6 @@ static void cdrom_playaudio()
   SPI(0x00);
   spi_write(sector_buffer, 2352);
   DisableFpga();
-  DISKLED_OFF;
   if (cdrom.currentlba == cdrom.endlba)
     cdrom.audiostatus = AUDIO_COMPLETE;
   else
@@ -1524,7 +1522,6 @@ void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
   unsigned int   cs1 = 0;
 
   if (c1 & CMD_IDECMD) {
-    DISKLED_ON;
     EnableFpga();
     SPI(CMD_IDE_REGS_RD); // read task file registers
     SPI(0x00);
@@ -1544,7 +1541,6 @@ void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
     if (!hardfile[unit]->present) {
       hdd_debugf("IDE%d: not present", unit);
       WriteStatus(IDE_STATUS_END | IDE_STATUS_IRQ | IDE_STATUS_ERR);
-      DISKLED_OFF;
       return;
     }
     sector = tfr[3];
@@ -1592,7 +1588,6 @@ void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena)
       WriteTaskFile(0x04, tfr[2], tfr[3], tfr[4], tfr[5], tfr[6]);
       WriteStatus(IDE_STATUS_END | IDE_STATUS_IRQ | IDE_STATUS_ERR);
     }
-    DISKLED_OFF;
   }
 
   // CDDA

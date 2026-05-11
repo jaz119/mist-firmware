@@ -12,9 +12,7 @@ void IDXIndex(IDXFile *idx, int entry) {
   idx->clmt[0] = SZ_TBL;
   idx->file.cltbl = idx->clmt;
 
-  DISKLED_ON;
   FRESULT res = f_lseek(&(idx->file), CREATE_LINKMAP);
-  DISKLED_OFF;
 
   if (res == FR_OK) {
     infof("Index #%d: created in %lu ms", entry, GetRTTC() - time);

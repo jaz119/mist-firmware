@@ -137,7 +137,6 @@ static void SendData(char *buf, uint16_t len, unsigned char dm) {
 
 static void SendSector(uint16_t len, unsigned char dm) {
 	UINT br;
-	DISKLED_ON;
 	if (toc.tracks[pcecdd.index].type && (pcecdd.lba >= 0)) {
 		// data sector
 
@@ -157,7 +156,6 @@ static void SendSector(uint16_t len, unsigned char dm) {
 		f_read(&toc.file->file, sector_buffer, 2352, &br);
 		SendData(sector_buffer, 2352, dm);
 	}
-	DISKLED_OFF;
 }
 
 static char CheckDisk() {

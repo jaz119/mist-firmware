@@ -131,9 +131,7 @@ static uint8_t scsi_read(uint8_t *cmd) {
 	while (len) {
 		uint8_t ret;
 		uint16_t read = MIN(len, SECTOR_BUFFER_SIZE/512);
-		DISKLED_ON;
 		ret = disk_read(fs.pdrv, sector_buffer, lba, read);
-		DISKLED_OFF;
 		if (ret) {
 			errorf("STORAGE: Error reading from MMC (lba=%lu, len=%d)", lba, len);
 			return 0;
@@ -165,9 +163,7 @@ static uint8_t scsi_write(uint8_t *cmd) {
 			buf += read;
 		}
 		//hexdump(sector_buffer, write*512, 0);
-		DISKLED_ON;
 		ret = disk_write(fs.pdrv, sector_buffer, lba, write);
-		DISKLED_OFF;
 		if (ret) return 0;
 		lba+=write;
 		len-=write;

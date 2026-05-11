@@ -193,9 +193,7 @@ static unsigned int send_tap_data(FSIZE_t program_size, unsigned int offset)
         UINT bytes_to_read = (bytes_to_send > SECTOR_BUFFER_SIZE) ?
                              SECTOR_BUFFER_SIZE : (UINT)bytes_to_send;
 
-        DISKLED_ON;
         res = f_read(&tapfile, sector_buffer, bytes_to_read, &br);
-        DISKLED_OFF;
 
         if (res != FR_OK || br == 0) {
             iprintf("IDX: ERROR - read failed at chunk %d (res=%d, br=%d)\n",
@@ -290,9 +288,7 @@ static char idx_getmenuitem(uint8_t idx, char action, menu_item_t *item)
 
         // Rewind to beginning to read the header
         f_lseek(&tapfile, 0);
-        DISKLED_ON;
         res = f_read(&tapfile, sector_buffer, TAP_HEADER_SIZE, &br);
-        DISKLED_OFF;
 
         if (res != FR_OK || br != TAP_HEADER_SIZE) {
             iprintf("IDX: ERROR - header read failed (res=%d, br=%d)\n", res, br);

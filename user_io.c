@@ -1528,7 +1528,6 @@ void user_io_poll() {
 					DisableIO();
 
 					// ... and write it to disk
-					DISKLED_ON;
 #if 1
 					if(sd_image[sd_index(drive_index)].valid) {
 						if(((f_size(&sd_image[sd_index(drive_index)].file)-1) >> (9+blksz)) >= lba) {
@@ -1540,7 +1539,6 @@ void user_io_poll() {
 #else
 					hexdump(sector_buffer, 32, 0);
 #endif
-					DISKLED_OFF;
 				}
 			}
 
@@ -1562,7 +1560,6 @@ void user_io_poll() {
 				// are we using a file as the sd card image?
 				// (C64 floppy does that ...)
 				if(buffer_lba != lba) {
-					DISKLED_ON;
 					if(sd_image[sd_index(drive_index)].valid) {
 						if(((f_size(&sd_image[sd_index(drive_index)].file)-1) >> (9+blksz)) >= lba) {
 							IDXSeek(&sd_image[sd_index(drive_index)], lba<<blksz);
@@ -1575,7 +1572,6 @@ void user_io_poll() {
 						disk_read(fs.pdrv, cache_buffer, lba, 1<<blksz);
 					}
 					buffer_lba = lba;
-					DISKLED_OFF;
 				}
 				if(buffer_lba == lba) {
 					// hexdump(cache_buffer, 512<<blksz, 0);
@@ -1591,7 +1587,6 @@ void user_io_poll() {
 
 				// just load the next sector now, so it may be prefetched
 				// for the next request already
-				DISKLED_ON;
 				if(sd_image[sd_index(drive_index)].valid) {
 					// but check if it would overrun on the file
 					if(((f_size(&sd_image[sd_index(drive_index)].file)-1) >> (9+blksz)) > lba) {
@@ -1607,7 +1602,6 @@ void user_io_poll() {
 					buffer_lba = lba+1;
 				}
 				buffer_drive_index = drive_index;
-				DISKLED_OFF;
 #ifdef HAVE_PSX
 				}
 #endif

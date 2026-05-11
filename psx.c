@@ -94,10 +94,8 @@ static void psx_read_sector(char* buffer, unsigned int lba)
 		// unsupported sector size by the core
 		memset(buffer, 0, 2352);
 	} else {
-		DISKLED_ON;
 		f_lseek(&toc.file->file, offset);
 		f_read(&toc.file->file, buffer, 2352, &br);
-		DISKLED_OFF;
 	}
 	return;
 }

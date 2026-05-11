@@ -166,7 +166,6 @@ static void dma_nak(void) {
 static int acsi_disk_read(int target, uint32_t lba, size_t length) {
   int read = 0;
   UINT br = 0;
-  DISKLED_ON;
 
 #ifndef SD_NO_DIRECT_MODE
   if (fat_uses_mmc()) {
@@ -197,7 +196,6 @@ static int acsi_disk_read(int target, uint32_t lba, size_t length) {
   }
 #endif
 
-  DISKLED_OFF;
   return read;
 }
 
@@ -206,7 +204,6 @@ static int acsi_disk_write(int target, uint32_t lba, size_t length) {
   unsigned char *buf;
   int written = 0;
   UINT bw = 0;
-  DISKLED_ON;
 
   while (length) {
     blocklen = (length > SECTOR_BUFFER_SIZE / 512) ? SECTOR_BUFFER_SIZE / 512 : length;
@@ -227,7 +224,6 @@ static int acsi_disk_write(int target, uint32_t lba, size_t length) {
     length -= blocklen;
   }
 
-  DISKLED_OFF;
   return written;
 }
 
