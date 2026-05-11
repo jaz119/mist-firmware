@@ -45,7 +45,7 @@ uint8_t joystick_release(uint8_t raw_jindex) {
 				if (iface->device_type == HID_DEVICE_JOYSTICK) {
 					if (iface->jindex > raw_jindex) {
 						hid_debugf("decreasing joystick index of dev #%d from %d to %d",
-							j, jindex, jindex - 1);
+							j, iface->jindex, iface->jindex - 1);
 						iface->jindex--;
 						StateUsbIdSet(dev[j].vid, dev[j].pid,
 							iface->conf.joystick_mouse.button_count,

@@ -9,7 +9,7 @@
 /* before giving up and returning 0x4 is stored in bmNakPower as a power of 2.*/
 /* The actual nak_limit is then calculated as nak_limit = ( 2^bmNakPower - 1) */
 #define USB_NAK_MAX_POWER     16    // NAK binary order maximum value
-#define USB_NAK_DEFAULT       7     // default 127 NAKs before giving up
+#define USB_NAK_DEFAULT       8     // default 255 NAKs before giving up
 #define USB_NAK_NOWAIT        1     // Single NAK stops transfer
 #define USB_NAK_NONAK         0     // Do not count NAKs, stop retrying after USB Timeout
 

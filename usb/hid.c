@@ -154,7 +154,7 @@ uint8_t hid_set_report(usb_device_t *dev, uint8_t iface,
 static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len) {
 	usb_hid_info_t *info = &(dev->hid_info);
 	usb_hid_iface_info_t *cur_iface = NULL;
-	uint8_t rcode;
+	uint8_t rcode, ep_count;
 
 	if (len > USB_MAX_CONFIG_DESC_SIZE)
 		return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
@@ -185,6 +185,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 		case USB_DESCRIPTOR_INTERFACE:
 			usb_dump_interface_descriptor(&p->iface_desc);
 			cur_iface = NULL;
+			ep_count = 0;
 
 			if (info->bNumIfaces >= MAX_IFACES
 				|| p->iface_desc.bInterfaceClass != USB_CLASS_HID) {
@@ -215,6 +216,17 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 		case USB_DESCRIPTOR_ENDPOINT:
 			usb_dump_endpoint_descriptor(&p->ep_desc);
+			ep_count++;
+
+			if (ep_count > 2) {
+				// skip vendor specific iface
+				if (cur_iface) {
+					info->bNumIfaces--;
+					cur_iface = NULL;
+				}
+				break;
+			}
+
 			bool is_in = (p->ep_desc.bEndpointAddress & 0x80);
 
 			if (!cur_iface
@@ -250,6 +262,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 				break;
 			}
 
+			// invalid HID descriptor
 			info->bNumIfaces--;
 			break;
 
@@ -435,7 +448,7 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 						if(dev[j].hid_info.iface[k].device_type == HID_DEVICE_MOUSE) {
 							uint8_t jindex = dev[j].hid_info.iface[k].jindex;
 							if(jindex > c_jindex) {
-								hid_debugf("decreasing jindex of mouse #%ld from %d to %d",
+								hid_debugf("decreasing jindex of mouse #%d from %d to %d",
 									j, jindex, jindex - 1);
 								dev[j].hid_info.iface[k].jindex--;
 							}

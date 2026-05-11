@@ -168,7 +168,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	} else
 		errorf("usb: no more free device entries");
 
-	return 0;
+	return rcode;
 }
 
 uint8_t usb_release_device(uint8_t parent, uint8_t port) {
@@ -228,11 +228,12 @@ uint8_t usb_get_other_speed_descr( usb_device_t *dev,
 uint8_t usb_set_addr( usb_device_t *dev, uint8_t newaddr ) {
 	usb_debugf("%s(%u)", __FUNCTION__, newaddr);
 
+	timer_delay_msec(5);
+
 	uint8_t rcode = usb_ctrl_req( dev, USB_REQ_SET, USB_REQUEST_SET_ADDRESS,
 		newaddr, 0x00, 0x0000, 0x0000, NULL );
 
 	dev->bAddress = (rcode) ? 0 : newaddr;
-	timer_delay_msec(2);
 	return rcode;
 }
 
