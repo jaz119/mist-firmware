@@ -166,35 +166,44 @@ static void siprintbinary(char* buffer, uint8_t byte)
 
 static void get_joystick_state( char joy_string[32], char joy_string2[32], uint8_t joy_num ) {
 	// helper to get joystick status (both USB or DB9)
-	uint32_t vjoy;
-	vjoy = StateJoyGet(joy_num);
+	uint32_t vjoy = StateJoyGet(joy_num);
 	vjoy |= StateJoyGetExtra(joy_num) << 8;
 	vjoy |= StateJoyGetRight(joy_num) << 16;
-	if (vjoy==0) {
-		joy_string[0] = '\0';
-		joy_string2[0] = '\0';
-		return;
-	}
+
 	/*
-	 * '  ^   X A Sel L R L2 R2'
-	 * '< _ > Y B Sta     L3 R3'
+	 * '  ^   X A Sel L R L2 R2   ^  '
+	 * '< _ > Y B Sta     L3 R3 < _ >'
 	 */
 	memset(joy_string, ' ', 32);
 	memset(joy_string2, ' ', 32);
 
-	// directions (joy1 & joy2)
-	if (vjoy & (JOY_UP    | JOY_UP2))    joy_string[2]  = '\x12';
-	if (vjoy & (JOY_LEFT  | JOY_LEFT2))  joy_string2[0] = '\x10';
-	if (vjoy & (JOY_DOWN  | JOY_DOWN2))  joy_string2[2] = '\x13';
-	if (vjoy & (JOY_RIGHT | JOY_RIGHT2)) joy_string2[4] = '\x11';
+	// Joy1 directions
+	if (vjoy & (JOY_UP | JOY_LEFT | JOY_DOWN | JOY_RIGHT)) {
+		if (vjoy & JOY_UP)     joy_string[2]  = '\x12';
+		if (vjoy & JOY_LEFT)   joy_string2[0] = '\x10';
+		if (vjoy & JOY_DOWN)   joy_string2[2] = '\x13';
+		if (vjoy & JOY_RIGHT)  joy_string2[4] = '\x11';
+	} else {
+		joy_string2[2] = '\x14';
+	}
+
+	// Joy2 directions
+	if (vjoy & (JOY_UP2 | JOY_LEFT2 | JOY_DOWN2 | JOY_RIGHT2)) {
+		if (vjoy & JOY_UP2)    joy_string[26]  = '\x12';
+		if (vjoy & JOY_LEFT2)  joy_string2[24] = '\x10';
+		if (vjoy & JOY_DOWN2)  joy_string2[26] = '\x13';
+		if (vjoy & JOY_RIGHT2) joy_string2[28] = '\x11';
+	} else {
+		joy_string2[26] = '\x15';
+	}
 
 	// virtual gamepad buttons
-	if (vjoy & JOY_X) joy_string[6]  = 'X';
-	if (vjoy & JOY_A) joy_string[8]  = 'A';
-	if (vjoy & JOY_L) joy_string[14] = 'L';
-	if (vjoy & JOY_R) joy_string[16] = 'R';
-	if (vjoy & JOY_Y) joy_string2[6] = 'Y';
-	if (vjoy & JOY_B) joy_string2[8] = 'B';
+	if (vjoy & JOY_X)      joy_string[6]   = 'X';
+	if (vjoy & JOY_A)      joy_string[8]   = 'A';
+	if (vjoy & JOY_L)      joy_string[14]  = 'L';
+	if (vjoy & JOY_R)      joy_string[16]  = 'R';
+	if (vjoy & JOY_Y)      joy_string2[6]  = 'Y';
+	if (vjoy & JOY_B)      joy_string2[8]  = 'B';
 
 	if (vjoy & JOY_SELECT) memcpy(joy_string+10,  "Sel", 3);
 	if (vjoy & JOY_L2)     memcpy(joy_string+18,  "L2",  2);
