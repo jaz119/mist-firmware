@@ -30,7 +30,7 @@
 #endif
 
 #if DEBUG_FDD
-#define fdd_debugf(...) iprintf(__VA_ARGS__)
+#define fdd_debugf(a, ...) iprintf("\033[1;32mFDD: " a "\033[0m\n", ##__VA_ARGS__)
 #else
 #define fdd_debugf(...)
 #endif

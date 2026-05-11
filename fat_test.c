@@ -25,7 +25,7 @@ void dump(unsigned char *buf) {
 }
 
 void FatalError(unsigned long error) {
-	iprintf("Fatal: %lu\r", error);
+	iprintf("Fatal: %lu\n", error);
 	exit(error);
 }
 

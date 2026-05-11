@@ -247,7 +247,7 @@ char UploadActionReplay()
       f_close(&romfile);
       return(1);
     } else {
-      puts("\rhrtmon.rom not found!\r");
+      puts("\nhrtmon.rom not found!\n");
       return(0);
     }
   }
@@ -471,7 +471,7 @@ static void ApplyConfiguration(char reloadkickstart)
     BootPrint(  "*           when using large hardfiles.           *");  // AMR
     BootPrint(  "***************************************************");
   }
-  iprintf("Bootloading is complete.\r");
+  iprintf("Bootloading is complete.\n");
 #endif
 
   BootPrint("\nExiting bootloader...");
@@ -487,7 +487,7 @@ static void ApplyConfiguration(char reloadkickstart)
     ConfigFeatures(config.features.audiofiltermode, config.features.powerledoffstate);
 
     if(reloadkickstart) {
-      iprintf("Reloading Kickstart ...\r");
+      iprintf("Reloading Kickstart ...\n");
       WaitTimer(250);
       EnableOsd();
       SPI(OSD_CMD_RST);
@@ -503,7 +503,7 @@ static void ApplyConfiguration(char reloadkickstart)
         }
       }
     }
-    iprintf("Resetting ...\r");
+    iprintf("Resetting ...\n");
     EnableOsd();
     SPI(OSD_CMD_RST);
     rstval |= (SPI_RST_USR | SPI_RST_CPU); // reset #4

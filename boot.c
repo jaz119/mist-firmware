@@ -89,7 +89,7 @@ static void BootUploadLogo()
         SPI(sector_buffer[i++]);
         delay_usec(1);
         //for (tmp=0; tmp<0x80000; tmp++);
-        //printf("i=%03d  x=%03d  y=%03d  dat[0]=0x%08x  dat[1]=0x%08x\r", i, x, y, sector_buffer[i], sector_buffer[i+1]);
+        //printf("i=%03d  x=%03d  y=%03d  dat[0]=0x%08x  dat[1]=0x%08x\n", i, x, y, sector_buffer[i], sector_buffer[i+1]);
         adr += 2;
       }
       mem_upload_fini();

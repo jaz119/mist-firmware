@@ -88,7 +88,7 @@ unsigned long storage_size = 0; // MiB
 
 void FatalError(unsigned int error)
 {
-    iprintf("Fatal error: %u\r", error);
+    iprintf("Fatal error: %u\n", error);
 
     while (true)
     {
@@ -190,9 +190,9 @@ int main(void)
 
     USART_Init(115200);
 
-    iprintf("\rMinimig by Dennis van Weeren");
-    iprintf("\rARM Controller by Jakub Bednarski\r\r");
-    iprintf("Version %s\r\r", version+5);
+    iprintf("\nMinimig by Dennis van Weeren\n");
+    iprintf("ARM Controller by Jakub Bednarski\n\n");
+    infof("Version %s\n", version+5);
 
     spi_init();
 #ifdef HAVE_QSPI
@@ -201,7 +201,7 @@ int main(void)
 
     mmc_ok = MMC_Init();
 
-    iprintf("spi_clock: %u MHz\r", GetSPICLK());
+    iprintf("spi_clock: %u MHz\n", GetSPICLK());
 
     usb_init();
 

@@ -176,11 +176,11 @@ static void ReadTrack(adfTYPE *drive)
     UINT br;
 
     //unsigned short n;
-    fdd_debugf("Read track %d\r", drive->track);
+    fdd_debugf("Read track %d\n", drive->track);
 
     if (drive->track >= drive->tracks)
     {
-        fdd_debugf("Illegal track read: %d\r", drive->track);
+        fdd_debugf("Illegal track read: %d\n", drive->track);
         // ErrorMessage("    Illegal track read!", drive->track);
         drive->track = drive->tracks - 1;
     }
@@ -197,7 +197,7 @@ static void ReadTrack(adfTYPE *drive)
         sector = drive->sector_offset;
         f_lseek(&drive->file, (drive->track * SECTOR_COUNT + sector) * 512);
     }
-    fdd_debugf("sector: %d\r", sector);
+    fdd_debugf("sector: %d\n", sector);
 
     EnableFpgaMinimig();
     status   = SPI(0); // read request signal
@@ -294,11 +294,11 @@ static bool FindSync(adfTYPE *drive)
         c1 = SPI(0); // write request signal
         c2 = SPI(0); // track number (cylinder & head)
         if (!(c1 & CMD_WRTRK)) {
-            fdd_debugf("Not WRTRK?\r");
+            fdd_debugf("Not WRTRK?");
             break;
         }
         if (c2 != drive->track) {
-            fdd_debugf("Not on the same track (%d!=%d)\r", c2, drive->track);
+            fdd_debugf("Not on the same track (%d!=%d)", c2, drive->track);
             break;
         }
         SPI(0); // disk sync high byte
@@ -307,7 +307,7 @@ static bool FindSync(adfTYPE *drive)
         c4 = SPI(0); // lsb of mfm words to transfer
 
         if (c3 == 0 && c4 == 0) {
-            fdd_debugf("No sync?\r");
+            fdd_debugf("No sync?");
             break;
         }
 
@@ -342,7 +342,7 @@ static unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector)
         c1 = SPI(0); // write request signal
         c2 = SPI(0); // track number (cylinder & head)
         if (!(c1 & CMD_WRTRK)) {
-            fdd_debugf("Not WRTRK?\r");
+            fdd_debugf("Not WRTRK?");
             break;
         }
         SPI(0); // disk sync high byte
@@ -357,7 +357,7 @@ static unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector)
             if (c1 != 0x44 || c2 != 0x89)
             {
                 Error = 21;
-                fdd_debugf("\rSecond sync word missing...\r");
+                fdd_debugf("\nSecond sync word missing...");
                 break;
             }
 
@@ -412,7 +412,7 @@ static unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector)
 
             if (Error)
             {
-                fdd_debugf("\rWrong header: %u.%u.%u.%u\r", c1, c2, c3, c4);
+                fdd_debugf("\nWrong header: %u.%u.%u.%u", c1, c2, c3, c4);
                 break;
             }
 
@@ -452,7 +452,7 @@ static unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector)
 
             if (c1 != checksum[0] || c2 != checksum[1] || c3 != checksum[2] || c4 != checksum[3])
             {
-                fdd_debugf("Header checksum error\r");
+                fdd_debugf("Header checksum error");
                 Error = 26;
                 break;
             }
@@ -462,7 +462,7 @@ static unsigned char GetHeader(unsigned char *pTrack, unsigned char *pSector)
         }
         else if ((c3 & 0x80) == 0) // not enough data for header and write dma is not active
         {
-            fdd_debugf("Header FIFO underrun\r");
+            fdd_debugf("Header FIFO underrun");
             Error = 20;
             break;
         }
@@ -489,7 +489,7 @@ static unsigned char GetData(void)
         c1 = SPI(0); // write request signal
         c2 = SPI(0); // track number (cylinder & head)
         if (!(c1 & CMD_WRTRK)) {
-            fdd_debugf("Not WRTRK?\r");
+            fdd_debugf("Not WRTRK?");
             break;
         }
         SPI(0); // disk sync high byte
@@ -573,7 +573,7 @@ static unsigned char GetData(void)
 
             if (c1 != checksum[0] || c2 != checksum[1] || c3 != checksum[2] || c4 != checksum[3])
             {
-                fdd_debugf("Checksum error\r");
+                fdd_debugf("Checksum error");
                 Error = 29;
                 break;
             }
@@ -583,7 +583,7 @@ static unsigned char GetData(void)
         }
         else if ((c3 & 0x80) == 0) // not enough data in fifo and write dma is not active
         {
-            fdd_debugf("FIFO underrun\r");
+            fdd_debugf("FIFO underrun");
             Error = 28;
             break;
         }
@@ -602,7 +602,7 @@ static void WriteTrack(adfTYPE *drive)
     FRESULT res;
     UINT bw;
 
-    fdd_debugf("Write track %d\r", drive->track);
+    fdd_debugf("Write track %d", drive->track);
     drive->track_prev = -1; // just to force next read from the start of current track
 
     while (FindSync(drive))
@@ -620,14 +620,14 @@ static void WriteTrack(adfTYPE *drive)
                 {
                     if (drive->status & DSK_WRITABLE)
                     {
-                        fdd_debugf("Write sector: %d\r", Sector);
+                        fdd_debugf("Write sector: %d", Sector);
                         res = f_write(&drive->file, sector_buffer, 512, &bw);
                         if (res) Error = res;
                     }
                     else
                     {
                         Error = 30;
-                        fdd_debugf("Write attempt to protected disk!\r");
+                        fdd_debugf("Write attempt to protected disk!");
                     }
                 }
             }
@@ -636,7 +636,7 @@ static void WriteTrack(adfTYPE *drive)
         }
         if (Error)
         {
-            fdd_debugf("WriteTrack: error %u\r", Error);
+            fdd_debugf("WriteTrack: error %u", Error);
             ErrorMessage("  WriteTrack", Error);
         }
     }

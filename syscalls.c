@@ -144,10 +144,10 @@ void
 initialise_monitor_handles (void)
 {
   int i;
-  
+
 #ifdef ARM_RDI_MONITOR
   int volatile block[3];
-  
+
   block[0] = (int) ":tt";
   block[2] = 3;     /* length of filename */
   block[1] = 0;     /* mode "r" */
@@ -219,11 +219,11 @@ _swiread (int file,
   int fh = remap_handle (file);
 #ifdef ARM_RDI_MONITOR
   int block[3];
-  
+
   block[0] = fh;
   block[1] = (int) ptr;
   block[2] = len;
-  
+
   return do_AngelSWI (AngelSWI_Reason_Read, block);
 #else
   asm ("mov r0, %1; mov r1, %2;mov r2, %3; swi %a0"
@@ -270,14 +270,14 @@ _swilseek (int file,
       ptr = openfiles[slot].pos + ptr;
       dir = SEEK_SET;
     }
-  
+
 #ifdef ARM_RDI_MONITOR
   if (dir == SEEK_END)
     {
       block[0] = fh;
       ptr += do_AngelSWI (AngelSWI_Reason_FLen, block);
     }
-  
+
   /* This code only does absolute seeks.  */
   block[0] = remap_handle (file);
   block[1] = ptr;
@@ -324,11 +324,11 @@ _swiwrite (
   int fh = remap_handle (file);
 #ifdef ARM_RDI_MONITOR
   int block[3];
-  
+
   block[0] = fh;
   block[1] = (int) ptr;
   block[2] = len;
-  
+
   return do_AngelSWI (AngelSWI_Reason_Write, block);
 #else
   asm ("mov r0, %1; mov r1, %2;mov r2, %3; swi %a0"
@@ -348,19 +348,17 @@ static void write_byte(char byte) {
 }
 
 int
-_write (int    file,
-	char * ptr,
-	int    len) {
+_write (int file,
+  char * ptr,
+  int    len) {
 
-  int l = len;
-  while(l--) {
-    if(*ptr == '\n') write_byte('\r');
-    write_byte(*ptr);
-    if(*ptr == '\r') write_byte('\n');
-
-    ptr++;
+  for(int i = 0; i < len; i++) {
+    if (ptr[i] == '\n') {
+      write_byte('\r');
+    }
+    write_byte(ptr[i]);
   }
-  
+
   return len;
 }
 
@@ -368,15 +366,15 @@ extern int strlen (const char *);
 
 int
 _swiopen (const char * path,
-	  int          flags)
+  int flags)
 {
   int aflags = 0, fh;
 #ifdef ARM_RDI_MONITOR
   int block[3];
 #endif
-  
+
   int i = findslot (-1);
-  
+
   if (i == MAX_OPEN_FILES)
     return -1;
 
@@ -400,21 +398,21 @@ _swiopen (const char * path,
       aflags &= ~4;     /* Can't ask for w AND a; means just 'a'.  */
       aflags |= 8;
     }
-  
+
 #ifdef ARM_RDI_MONITOR
   block[0] = (int) path;
   block[2] = strlen (path);
   block[1] = aflags;
-  
+
   fh = do_AngelSWI (AngelSWI_Reason_Open, block);
-  
+
 #else
   asm ("mov r0,%2; mov r1, %3; swi %a1; mov %0, r0"
        : "=r"(fh)
        : "i" (SWI_Open),"r"(path),"r"(aflags)
        : "r0","r1");
 #endif
-  
+
   if (fh >= 0)
     {
       openfiles[i].handle = fh;
@@ -437,7 +435,7 @@ _swiclose (int file)
 {
   int myhan = remap_handle (file);
   int slot = findslot (myhan);
-  
+
   if (slot != MAX_OPEN_FILES)
     openfiles[slot].handle = -1;
 
@@ -458,7 +456,7 @@ void
 _exit (int n)
 {
   /* FIXME: return code is thrown away.  */
-  
+
 #ifdef ARM_RDI_MONITOR
   do_AngelSWI (AngelSWI_Reason_ReportException,
 	      (void *) ADP_Stopped_ApplicationExit);
@@ -498,9 +496,9 @@ _sbrk (int incr)
 
   if (heap_end == NULL)
     heap_end = & end;
-  
+
   prev_heap_end = heap_end;
-  
+
   if (heap_end + incr > stack_ptr)
     {
       /* Some of the libstdc++-v3 tests rely upon detecting
@@ -509,14 +507,14 @@ _sbrk (int incr)
       extern void abort (void);
 
       _write (1, "_sbrk: Heap and stack collision\n", 32);
-      
+
       abort ();
 #else
       errno = ENOMEM;
       return (caddr_t) -1;
 #endif
     }
-  
+
   heap_end += incr;
 
   return (caddr_t) prev_heap_end;
@@ -598,7 +596,7 @@ _gettimeofday (struct timeval * tp, struct timezone * tzp)
 }
 
 /* Return a clock that ticks at 100Hz.  */
-clock_t 
+clock_t
 _times (struct tms * tp)
 {
   clock_t timeval;
@@ -616,7 +614,7 @@ _times (struct tms * tp)
       tp->tms_cutime = 0;	/* user time, children */
       tp->tms_cstime = 0;	/* system time, children */
     }
-  
+
   return timeval;
 };
 

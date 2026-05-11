@@ -149,11 +149,11 @@ unsigned char ConfigureFpga(const char *name)
         }
     }
 
-    iprintf("FPGA init is high\r");
+    iprintf("FPGA init is high\n");
 
     if (*AT91C_PIOA_PDSR & XILINX_DONE)
     {
-        iprintf("FPGA done is high before configuration!\r");
+        iprintf("FPGA done is high before configuration!\n");
         FatalError(3);
     }
 
@@ -168,7 +168,7 @@ unsigned char ConfigureFpga(const char *name)
         FatalError(4);
     }
 
-    iprintf("FPGA bitstream file %s opened, file size = %lu\r", name, (uint32_t) f_size(&file));
+    iprintf("FPGA bitstream file %s opened, file size = %lu\n", name, (uint32_t) f_size(&file));
     iprintf("[");
 
     // using fast seek
@@ -221,15 +221,15 @@ unsigned char ConfigureFpga(const char *name)
     // return outputs to a state suitable for user_io.c
     *AT91C_PIOA_SODR = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B;
 
-    iprintf("]\r");
-    // iprintf("FPGA bitstream loaded\r");
+    iprintf("]\n");
+    // iprintf("FPGA bitstream loaded\n");
     DISKLED_OFF;
 
     // check if DONE is high
     if (*AT91C_PIOA_PDSR & XILINX_DONE)
         return(1);
 
-    iprintf("FPGA done is NOT high!\r");
+    iprintf("FPGA done is NOT high!\n");
     FatalError(5);
     return 0;
 }
@@ -267,7 +267,7 @@ unsigned char ConfigureFpga(const char *name)
         return ERROR_BITSTREAM_OPEN;
     }
 
-    iprintf("FPGA bitstream file %s opened, file size = %lu\r", name, (uint32_t) f_size(&file));
+    iprintf("FPGA bitstream file %s opened, file size = %lu\n", name, (uint32_t) f_size(&file));
     iprintf("[");
 
     // set outputs
@@ -340,7 +340,7 @@ unsigned char ConfigureFpga(const char *name)
             if (!ALTERA_NSTATUS_STATE) {
                 ALTERA_STOP_CONFIG
 
-                iprintf("FPGA NSTATUS is NOT high!\r");
+                iprintf("FPGA NSTATUS is NOT high!\n");
                 f_close(&file);
 
                 return ERROR_UPDATE_PROGRESS_FAILED;
@@ -351,8 +351,8 @@ unsigned char ConfigureFpga(const char *name)
     ALTERA_STOP_CONFIG
     DISKLED_OFF;
 
-    iprintf("]\r");
-    // iprintf("FPGA bitstream loaded\r");
+    iprintf("]\n");
+    // iprintf("FPGA bitstream loaded\n");
     f_close(&file);
 
     // check if DONE is high
@@ -628,7 +628,7 @@ unsigned char fpga_init(const char *name) {
     if (err != ERROR_NONE) return err;
 
     time = GetRTTC() - time;
-    iprintf("FPGA configured in %lu ms\r", time);
+    iprintf("FPGA configured in %lu ms\n", time);
   }
 
   // wait max 100 msec for a valid core type
