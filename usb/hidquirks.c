@@ -75,12 +75,12 @@ static bool x360_init(usb_device_t *dev)
 }
 
 // Xbox360 controller: MENU key polling
-static void FORCE_ARM x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
+static void FORCE_ARM x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *home = &iface->conf.joystick_mouse.button[11];
 
     StateJoySetMenu(
-        report[home->byte_offset] & home->bitmask,
+        buf[home->byte_offset] & home->bitmask,
         joystick_index(iface->jindex));
 }
 
@@ -176,26 +176,29 @@ static bool procon_wakeup(usb_device_t *dev)
 }
 
 // Nintendo Pro Controller: MENU key polling
-static void FORCE_ARM procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *report)
+static void FORCE_ARM procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *home = &iface->conf.joystick_mouse.button[9];
 
     StateJoySetMenu(
-        report[home->byte_offset] & home->bitmask,
+        buf[home->byte_offset] & home->bitmask,
         joystick_index(iface->jindex));
 }
 
 // Logitech K400r: set F1-F12 as primary functions
 static bool logi_K400r_init(usb_device_t *dev)
 {
-    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x03\x15\x00\x00\x00");
-    timer_delay_msec(100);
+    const static char cmds[][7] = {
+        "\x10\x01\x03\x15\x00\x00\x00", // enable HID++
+        "\x10\x01\x0F\x15\x01\x00\x00", // swap F-keys
+        "\x10\x01\x10\x15\x00\x00\x00", // Fn-lock
+    };
 
-    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x0F\x15\x01\x00\x00");
-    timer_delay_msec(100);
-
-    hid_set_report(dev, 2, 2, 16, 7, "\x10\x01\x10\x15\x00\x00\x00");
-    timer_delay_msec(100);
+    for (uint32_t n = 0; n < ARRAY_SIZE(cmds); n++)
+    {
+        timer_delay_msec(20);
+        hid_set_report(dev, 2, 2, 16, sizeof(cmds[n]), (uint8_t *)cmds[n]);
+    }
 
     return true;
 }

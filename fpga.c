@@ -596,7 +596,7 @@ unsigned char fpga_init(const char *name) {
   virtual_joystick_remap_init(false);
   settings_load(true);
 
-  iprintf("loaded_from_usb = %d\n", USB_LOAD_VAR == USB_LOAD_VALUE);
+  debugf("loaded_from_usb = %d", USB_LOAD_VAR == USB_LOAD_VALUE);
   unsigned long time = GetRTTC();
   USB_LOAD_VAR = 0;
 

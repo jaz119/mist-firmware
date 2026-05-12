@@ -51,22 +51,20 @@ void user_io_kbd(unsigned char m,
 
 void user_io_mouse(unsigned char index, unsigned char btn, char x, char y, char z)
 {
-    printf("> Mouse%d: X = %d, Y = %d, Z = %d, BTN = %d\n", index, x, y, z, btn);
+    printf("> Mouse%d: X = %d, Y = %d, Z = %d, BTN = %d\n",
+        index, x, y, z, btn);
 }
 
-void user_io_digital_joystick(unsigned char index, unsigned char map)
+void user_io_digital_joystick(unsigned char index, uint32_t map)
 {
-    printf("> Joy%d: MAP = 0x%x\n", index, map);
-}
-
-void user_io_digital_joystick_ext(unsigned char index, uint32_t map)
-{
+    printf("> Joy%d: MAP = 0x%x\n", index, map & 0xFF);
     printf("> Joy%d: MAP_EXT = 0x%x\n", index, map);
 }
 
 void user_io_analog_joystick(unsigned char index, int X, int Y, int X2, int Y2)
 {
-    printf("> Joy%d: X = 0x%x, Y = 0x%x, X2 = 0x%x, Y2 = 0x%x\n", index, X, Y, X2, Y2);
+    printf("> Joy%d: LX = %d, LY = %d, RX = %d, RY = %d\n",
+        index, (int8_t)X, (int8_t)Y, (int8_t)X2, (int8_t)Y2);
 }
 
 uint8_t usb_in_transfer(usb_device_t *dev, ep_t *ep, uint16_t *size, uint8_t *buf)
@@ -79,7 +77,7 @@ uint8_t usb_in_transfer(usb_device_t *dev, ep_t *ep, uint16_t *size, uint8_t *bu
 
         if (ep == &(iface->ep_in) && *size <= iface->conf.report_size)
         {
-            // send empty report
+            // send junk report
             memset(buf, 0xA5, *size);
             buf[0] = iface->conf.report_id;
             printf("%s: EP%d, report ID = 0x%02x\n", __FUNCTION__, ep->epAddr, buf[0]);
@@ -177,6 +175,15 @@ uint8_t usb_ctrl_req(
     }
 
     return 2; /* hrBADREQ */
+}
+
+uint8_t user_io_swap_joystick(uint8_t joystick)
+{
+    if (joystick < 2) {
+        joystick ^= 1;
+    }
+
+    return joystick;
 }
 
 static bool load_report(uint8_t *buf, const char* fname)

@@ -463,43 +463,41 @@ static inline unsigned short usb2ps2code(unsigned char k) {
 	return (ps2_kbd_scan_set == 1) ? usb2ps2_set1[k] : usb2ps2[k];
 }
 
-void user_io_analog_joystick(unsigned char joystick, int valueX, int valueY, int valueX2, int valueY2) {
-	if(osd_is_visible) return;
-
-	if(core_type == CORE_TYPE_8BIT || core_type == CORE_TYPE_MINIMIG_AGA) {
-		int16_t valueXX = valueX*mist_cfg.joystick_analog_mult/128 + mist_cfg.joystick_analog_offset;
-		int16_t valueYY = valueY*mist_cfg.joystick_analog_mult/128 + mist_cfg.joystick_analog_offset;
-		int16_t valueXX2 = valueX2*mist_cfg.joystick_analog_mult/128 + mist_cfg.joystick_analog_offset;
-		int16_t valueYY2 = valueY2*mist_cfg.joystick_analog_mult/128 + mist_cfg.joystick_analog_offset;
-		//iprintf("analog: x=%d, y=%d, xx=%d, yy=%d, mult=%d, offs=%d\n", valueX, valueY, valueXX, valueYY, mist_cfg.joystick_analog_mult, mist_cfg.joystick_analog_offset);
-		spi_uio_cmd8_cont(UIO_ASTICK, joystick);
-		spi8(valueXX);
-		spi8(valueYY);
-		spi8(valueXX2);
-		spi8(valueYY2);
-		DisableIO();
-	}
+static inline char dig2ana(bool min, bool max) {
+	if(min && !max) return -128;
+	if(max && !min) return  127;
+	return 0;
 }
 
-void user_io_digital_joystick(unsigned char joystick, unsigned char map) {
-	// "only" 6 joysticks are supported
-	if(joystick > 5)
-		return;
-	// if osd is open, control it via joystick
-	if(osd_is_visible && map)
-		return;
+uint8_t user_io_swap_joystick(uint8_t joystick) {
+	// swap joystick 0 and 1
+	// since 1 is the one used primarily on most systems
+	if (joystick < 2 && (!mist_cfg.joystick_disable_swap || user_io_core_type() == CORE_TYPE_8BIT)) {
+		joystick ^= 1;
+	}
 
-	//iprintf("j%d: %x\n", joystick, map);
+	// if real DB9 mouse is preffered, switch the id back to 1
+	if (joystick == 0 && mist_cfg.joystick0_prefer_db9) {
+		return 1;
+	}
 
+    return joystick;
+}
+
+static inline void user_io_digital_joystick_legacy(unsigned char joystick, unsigned char map) {
 	// every other core else uses this
 	// (even MIST, joystick 3 and 4 were introduced later)
-	spi_uio_cmd8((joystick < 2)?(UIO_JOYSTICK0 + joystick):((UIO_JOYSTICK2 + joystick - 2)), map);
+	spi_uio_cmd8((joystick < 2)
+		? (UIO_JOYSTICK0 + joystick)
+		: ((UIO_JOYSTICK2 + joystick - 2)), map);
 }
 
-void user_io_digital_joystick_ext(unsigned char joystick, uint32_t map) {
+void user_io_digital_joystick(unsigned char joystick, uint32_t map) {
 	// "only" 6 joysticks are supported
 	if(joystick > 5) return;
 	if(osd_is_visible && map) return;
+	// legacy api
+	user_io_digital_joystick_legacy(joystick, map & 0xFF);
 	//iprintf("ext j%d: %x\n", joystick, map);
 	spi_uio_cmd32(UIO_JOYSTICK0_EXT + joystick, 0x000fffff & map);
 	if (autofire && (map & 0x30)) {
@@ -514,16 +512,22 @@ void user_io_digital_joystick_ext(unsigned char joystick, uint32_t map) {
 	}
 }
 
-static inline char dig2ana(char min, char max) {
-	if(min && !max) return -128;
-	if(max && !min) return  127;
-	return 0;
+void user_io_analog_joystick(unsigned char joystick, int valueX, int valueY, int valueX2, int valueY2) {
+	if(osd_is_visible)
+		return;
+	if(core_type != CORE_TYPE_8BIT && core_type != CORE_TYPE_MINIMIG_AGA)
+		return;
+	spi_uio_cmd8_cont(UIO_ASTICK, joystick);
+	spi8(valueX);
+	spi8(valueY);
+	spi8(valueX2);
+	spi8(valueY2);
+	DisableIO();
 }
 
 static void user_io_joystick(unsigned char joystick, uint16_t map) {
 	// digital joysticks also send analog signals
 	user_io_digital_joystick(joystick, map);
-	user_io_digital_joystick_ext(joystick, map);
 	user_io_analog_joystick(joystick,
 		dig2ana(map & JOY_LEFT, map & JOY_RIGHT),
 		dig2ana(map & JOY_UP, map & JOY_DOWN),
@@ -808,7 +812,7 @@ bool user_io_file_mount(const unsigned char *name, int index) {
 		FRESULT res = IDXOpen(idxfile, name, FA_READ | FA_WRITE);
 		if (res != FR_OK) res = IDXOpen(idxfile, name, FA_READ);
 		if (res == FR_OK) {
-			infof("%s: %lu byte(s) into slot: %d",
+			iprintf("%s: %lu byte(s) into slot: %d\n",
 				__FUNCTION__, (uint32_t) f_size(&idxfile->file), slot);
 			// build index for fast random access
 			IDXIndex(idxfile, slot);

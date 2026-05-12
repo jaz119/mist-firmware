@@ -245,9 +245,10 @@ void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned s
 #define CONFIG_ROOT 1   // create config filename in the root directory
 #define CONFIG_VHD  2   // create config filename according to VHD= in arc file
 
+uint8_t user_io_swap_joystick(uint8_t);
 char user_io_create_config_name(char *s, const char *ext, uint8_t flags);
-void user_io_digital_joystick(unsigned char, unsigned char);
-void user_io_digital_joystick_ext(unsigned char, uint32_t);
+
+void user_io_digital_joystick(unsigned char, uint32_t);
 void user_io_analog_joystick(unsigned char, int, int, int, int);
 
 static inline bool user_io_osd_is_visible() {
