@@ -117,7 +117,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 		if (size == 3)
 			size = 4;
 
-		for (uint8_t j = 0; j < size; j++) {
+		for (uint8_t j = 0; j < size && rep_size > 0; j++) {
 			value |= ((uint32_t)(*rep++) << (8 * j));
 			rep_size--;
 		}
