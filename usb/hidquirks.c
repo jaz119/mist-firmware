@@ -31,7 +31,7 @@ static bool xone_check_iface(const usb_interface_descriptor_t *iface)
     return (iface->bInterfaceClass == USB_CLASS_VENDOR_SPECIFIC)
         && (iface->bInterfaceSubClass == 0x47)
         && (iface->bInterfaceProtocol == 0xD0)
-        && (iface->bInterfaceNumber == 0);
+        && (iface->bInterfaceNumber   == 0x00);
 }
 
 // Xbox One controller: init
@@ -40,12 +40,14 @@ static bool xone_init(usb_device_t *dev)
     usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
 
 #define GIP_CMD_POWER    0x05
+    #define GIP_PWR_ON   0x00
 #define GIP_CMD_AUTH     0x06
-#define GIP_CMD_LED      0x0a
-#define GIP_OPT_INTERNAL 0x20
+#define GIP_CMD_LED      0x0A
+    #define GIP_LED_ON   0x01
+#define GIP_CMD_INPUT    0x20
+
 #define GIP_SEQ0         0x00
-#define GIP_PWR_ON       0x00
-#define GIP_LED_ON       0x01
+#define GIP_OPT_INTERNAL 0x20
 #define GIP_PL_LEN(N)    (N)
 
     static const uint8_t xone_power_on[] = {
@@ -65,8 +67,8 @@ static bool xone_init(usb_device_t *dev)
         INIT_PKT(0x0000, 0x0000, xone_auth_done),
     };
 
-    uint8_t buf[64], seq = 0;
-    memset(buf, 0, sizeof(buf));
+    ALIGNED(4) uint8_t report[64], seq = 0;
+    memset(report, 0, sizeof(report));
 
     for (int n = 0; n < ARRAY_SIZE(xone_wakeup); n++)
     {
@@ -75,24 +77,24 @@ static bool xone_init(usb_device_t *dev)
         if (pkt->vid && pkt->vid != dev->vid) continue;
         if (pkt->pid && pkt->pid != dev->pid) continue;
 
-        memcpy(buf, pkt->data, pkt->len);
-        buf[2] = seq++;
+        memcpy(report, pkt->data, pkt->len);
+        report[2] = seq++; // GIP_SEQ
 
         timer_delay_msec(20);
-        uint16_t buf_size = sizeof(buf);
+        uint16_t rpt_size = sizeof(report);
 
-        uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(buf), buf);
+        uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(report), report);
         if (rcode) {
-            hid_debugf("%s: init error 0x%02x", __FUNCTION__, rcode);
+            hid_debugf("%s: error 0x%02x", __FUNCTION__, rcode);
             return false;
         }
 
-        usb_in_transfer(dev, &iface->ep_in, &buf_size, buf);
+        usb_in_transfer(dev, &iface->ep_in, &rpt_size, report);
     }
 
     static const hid_report_t xone_report = {
         .type = REPORT_TYPE_JOYSTICK,
-        .report_id = 0x20,
+        .report_id = GIP_CMD_INPUT,
         .report_size = 0x20,
 
         .joystick_mouse = {
@@ -132,7 +134,7 @@ static bool xone_init(usb_device_t *dev)
 }
 
 // Xbox One controller: MENU key polling
-static void xone_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
+FORCE_ARM static void xone_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *guide = &iface->conf.joystick_mouse.button[11];
 
@@ -145,7 +147,7 @@ static void xone_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 static bool x360_check_iface(const usb_interface_descriptor_t *iface)
 {
     return (iface->bInterfaceClass == USB_CLASS_VENDOR_SPECIFIC)
-        && (iface->bInterfaceSubClass == 0x5d)
+        && (iface->bInterfaceSubClass == 0x5D)
         && (iface->bInterfaceProtocol == 0x01);
 }
 
@@ -155,11 +157,13 @@ static bool x360_init(usb_device_t *dev)
     usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
 
     // LED command: top-left blink, then on
-    static const uint8_t leds_on[] = { 0x01, 0x03, 0x02 };
+    ALIGNED(4) static const uint8_t led_on[] = {
+        0x01, 0x03, 0x02
+    };
 
-    uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(leds_on), leds_on);
+    uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(led_on), led_on);
     if (rcode) {
-        hid_debugf("%s: handshake error 0x%02x", __FUNCTION__, rcode);
+        hid_debugf("%s: error 0x%02x", __FUNCTION__, rcode);
         return false;
     }
 
@@ -207,7 +211,7 @@ static bool x360_init(usb_device_t *dev)
 }
 
 // Xbox360 controller: MENU key polling
-static void FORCE_ARM x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
+FORCE_ARM static void x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *guide = &iface->conf.joystick_mouse.button[11];
 
@@ -217,7 +221,7 @@ static void FORCE_ARM x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uin
 }
 
 // Nintendo Pro Controller: wakeup
-static bool procon_wakeup(usb_device_t *dev)
+static bool procon_init(usb_device_t *dev)
 {
     usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
 
@@ -246,15 +250,15 @@ static bool procon_wakeup(usb_device_t *dev)
         report[0] = cmds[n][0];
         report[1] = cmds[n][1];
 
+        rpt_size = 64;
         timer_delay_msec(20);
 
         uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, 64, report);
         if (rcode) {
-            hid_debugf("%s: handshake, OUT error 0x%02x", __FUNCTION__, rcode);
+            hid_debugf("%s: error 0x%02x", __FUNCTION__, rcode);
             return false;
         }
 
-        rpt_size = 64;
         usb_in_transfer(dev, &iface->ep_in, &rpt_size, report);
     }
 
@@ -302,7 +306,7 @@ static bool procon_wakeup(usb_device_t *dev)
 }
 
 // Nintendo Pro Controller: MENU key polling
-static void FORCE_ARM procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
+FORCE_ARM static void procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *home = &iface->conf.joystick_mouse.button[9];
 
@@ -407,31 +411,36 @@ ALIGNED(4) static const hid_dev_info_t hid_devs[] = {
     { 0x045E, 0x02D1, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x045E, 0x02DD, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x045E, 0x0B12, "Xbox S|X Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x057E, 0x2009, "Nintendo Switch Pro", procon_wakeup, procon_poll },
-    { 0x057E, 0x200E, "Nintendo Switch Joy-Con", procon_wakeup, procon_poll },
+    { 0x057E, 0x2009, "Nintendo Switch Pro", procon_init, procon_poll },
+    { 0x057E, 0x200E, "Nintendo Switch Joy-Con", procon_init, procon_poll },
     { 0x0E6F, 0x0133, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x0E6F, 0x0139, "PDP Afterglow Prismatic", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x0161, "PDP Wired Controller", xone_init, xone_poll, xone_check_iface },
+    { 0x0E6F, 0x013A, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
+    { 0x0E6F, 0x0161, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
+    { 0x0E6F, 0x0162, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
+    { 0x0E6F, 0x0163, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x0E6F, 0x0213, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x0E6F, 0x0246, "PDP Rock Candy", xone_init, xone_poll, xone_check_iface },
     { 0x0E6F, 0x021F, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x0E6F, 0x02A0, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
+    { 0x0E6F, 0x02A1, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x0E6F, 0x02AB, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x0E6F, 0x0401, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x1532, 0x0A57, "Razer Wolverine V3 Pro", x360_init, x360_poll, x360_check_iface },
     { 0x1532, 0x0A59, "Razer Wolverine V3 Pro", x360_init, x360_poll, x360_check_iface },
     { 0x162E, 0xBEEF, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x17EF, 0x6182, "Lenovo Legion Controller", x360_init, x360_poll, x360_check_iface },
     { 0x1BAD, 0xF016, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x1BAD, 0xFD00, "Razer Onza TE", x360_init, x360_poll, x360_check_iface },
     { 0x1BAD, 0xFD01, "Razer Onza", x360_init, x360_poll, x360_check_iface },
-    { 0x17EF, 0x6182, "Lenovo Legion Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x2DC8, 0x6001, "8BitDo SN30 Pro", x360_init, x360_poll, x360_check_iface },
+    { 0x054C, 0x05C4, "Sony DualShock 4" },
+    { 0x054C, 0x09CC, "Sony DualShock 4" },
+    { 0x054C, 0x0CE6, "Sony DualSense" },
     { 0x0CA3, 0x0024, "8BitDo M30 2.4g" },
     { 0x1002, 0x9000, "8BitDo FC30" },
     { 0x1235, 0xAB11, "8BitDo SFC30" },
     { 0x1235, 0xAB21, "8BitDo SFC30"},
-    { 0x054C, 0x05C4, "Sony DualShock 4" },
-    { 0x054C, 0x09CC, "Sony DualShock 4" },
-    { 0x054C, 0x0CE6, "Sony DualSense" },
+    { 0x2DC8, 0x6001, "8BitDo SN30 Pro" },
     { 0x040B, 0x6533, "Competition Pro" },
     { 0x0738, 0x2217, "Competition Pro" },
     { 0x046D, 0xC52B, "Unifying Receiver", logi_K400r_init },

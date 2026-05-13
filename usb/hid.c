@@ -285,9 +285,10 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			info->bNumIfaces--;
 			break;
 
-		case USB_DESCRIPTOR_IAD:
-		case USB_DESCRIPTOR_CS_IFACE:
-			return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
+		case USB_DESCRIPTOR_INTERFACE_AD:
+		case USB_DESCRIPTOR_INTERFACE_AUDIO:
+		case USB_DESCRIPTOR_ENDPOINT_AUDIO:
+			break;
 
 		default:
 			hid_debugf("unknown descriptor 0x%02x, length %d",

@@ -308,8 +308,9 @@ typedef struct {
 #define USB_DESCRIPTOR_DEVICE_QUALIFIER 0x06    // bDescriptorType for a Device Qualifier.
 #define USB_DESCRIPTOR_OTHER_SPEED      0x07    // bDescriptorType for a Other Speed Configuration.
 #define USB_DESCRIPTOR_INTERFACE_POWER  0x08    // bDescriptorType for Interface Power.
-#define USB_DESCRIPTOR_IAD              0x0b    // Interface Association Descriptor
-#define USB_DESCRIPTOR_CS_IFACE         0x24    // Class-Specific Interface
+#define USB_DESCRIPTOR_INTERFACE_AD     0x0b    // bDescriptorType for Interface Association Descriptor.
+#define USB_DESCRIPTOR_INTERFACE_AUDIO  0x24    // bDescriptorType for Audio Interface Descriptor.
+#define USB_DESCRIPTOR_ENDPOINT_AUDIO   0x25    // bDescriptorType for Audio Endpoint Descriptor.
 
 void usb_init();
 

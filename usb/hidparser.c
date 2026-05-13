@@ -88,6 +88,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 	uint16_t bit_count = 0, usage_count = 0;
 	int16_t logical_minimum=0, physical_minimum=0;
 	uint16_t logical_maximum=0, physical_maximum=0;
+	uint32_t usage_minimum=0, usage_maximum=0;
 
 	memset(conf, 0, sizeof(hid_report_t));
 	conf->type = REPORT_TYPE_NONE;
@@ -103,7 +104,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 	for (int i=0; i<MAX_AXES; i++) axis[i] = -1;
 
-	while(rep_size) {
+	while(rep_size >= 1) {
 		uint32_t value = 0;
 
 		// extract short item
@@ -112,19 +113,26 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 		uint8_t size = ((item_t*)rep)->bSize;
 
 		rep++;
-		rep_size--;   // one byte consumed
+		rep_size--; // one byte consumed
+
+		if (rep_size < size)
+			return false;
 
 		if (size == 3)
 			size = 4;
 
-		for (uint8_t j = 0; j < size && rep_size > 0; j++) {
+		for (uint8_t j = 0; j < size; j++) {
 			value |= ((uint32_t)(*rep++) << (8 * j));
 			rep_size--;
 		}
 
 		// we are currently skipping an unknown/unsupported collection)
 		if(skip_collection) {
-			if(!type) {  // main item
+			if(!type) {
+				// main item
+				if(tag == 8 || tag == 9 || tag == 11) {
+					bit_count += (uint32_t)report_count * report_size;
+				}
 				// any new collection increases the depth of collections to skip
 				if(tag == 10) {
 					skip_collection++;
@@ -216,8 +224,10 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 						}
 					}
 
-					bit_count += report_count * report_size;
+					bit_count += (uint32_t)report_count * report_size;
 					for (int i=0; i<MAX_AXES; i++) axis[i] = -1;
+					usage_minimum = 0;
+					usage_maximum = 0;
 					usage_count = 0;
 					btns = 0;
 					hat = -1;
@@ -302,15 +312,21 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 1:
-					if (size == 1) logical_minimum = (int8_t)(value & 0xff);
-					else if (size == 2) logical_minimum = (int16_t)(value & 0xffff);
-					else logical_minimum = (int32_t)value;
+					logical_minimum = (size == 1) ? (int32_t)((int8_t)value)
+						: (size == 2) ? (int32_t)((int16_t)value)
+							: (int32_t)value;
 					hidp_extreme_debugf("LOGICAL_MINIMUM(%d)", logical_minimum);
 					break;
 
 				case 2:
+					if (logical_minimum < 0) {
+						logical_maximum = (size == 1) ? (int32_t)((int8_t)value)
+							: (size == 2) ? (int32_t)((int16_t)value)
+								: (int32_t)value;
+					} else {
+						logical_maximum = value;
+					}
 					hidp_extreme_debugf("LOGICAL_MAXIMUM(%u)", value);
-					logical_maximum = value;
 					break;
 
 				case 3:
@@ -359,6 +375,8 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 						conf->joystick_mouse.axis[a].size = 0;
 					}
 					report_complete = 0;
+					usage_minimum = 0;
+					usage_maximum = 0;
 					usage_count = 0;
 					bit_count = 8;
 					break;
@@ -452,11 +470,16 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 1:
+					usage_minimum = value;
 					hidp_extreme_debugf("USAGE_MINIMUM(%u)", value);
 					break;
 
 				case 2:
+					usage_maximum = value;
 					hidp_extreme_debugf("USAGE_MAXIMUM(%u)", value);
+					if (usage_maximum > usage_minimum) {
+						usage_count += (usage_maximum - usage_minimum);
+					}
 					break;
 
 				default:
