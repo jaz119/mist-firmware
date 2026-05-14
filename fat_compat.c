@@ -95,7 +95,7 @@ bool FindDrive(void) {
 		// get start of first partition
 		for (partitioncount=4; (partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount);
 
-		iprintf("partitions count: %d\n", partitioncount);
+		debugf("partitions count: %d", partitioncount);
 
 		for (int i=0; i<partitioncount; ++i) {
 			debugf("partition %d:", i);

@@ -273,7 +273,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 				break;
 
 			uint16_t desc_size = p->hid_desc.wDescriptorLength[0] | (p->hid_desc.wDescriptorLength[1] << 8);
-			iprintf(" -> report descriptor, size = %d\n", desc_size);
+			hid_debugf(" -> report descriptor, size = %d", desc_size);
 
 			// verify report descriptor
 			if (hid_get_report_descr(dev, cur_iface, desc_size)) {

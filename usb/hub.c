@@ -168,7 +168,9 @@ static uint8_t usb_hub_init(
   if (!dev->parent)
     usb_SetHubPreMask();
 
+  iprintf("HUB initialized\n");
   info->pollEnable = true;
+
   return 0;
 }
 

@@ -15,6 +15,7 @@
 #include "debug.h"
 
 #define TIMEOUT_MS      USB_ACK_TIMEOUT + 5
+#define REPORT_INTL     500
 #define REPORT_SIZE     64
 
 #define MCP2221_VID     0x04d8
@@ -291,19 +292,26 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint16_t len)
 
             case USB_DESCRIPTOR_INTERFACE:
                 isHID = (p->iface_desc.bInterfaceClass == USB_CLASS_HID);
+
+                if (isHID) {
+                    iprintf("HID interface %d:\n", p->iface_desc.bInterfaceNumber);
+                }
                 break;
 
             case USB_DESCRIPTOR_ENDPOINT:
                 if (!isHID)
                     break;
 
-                ep_t *ep = (p->ep_desc.bEndpointAddress & 0x80)
-                    ? &info->ep_in : &info->ep_out;
+                bool is_in = (p->ep_desc.bEndpointAddress & 0x80);
+                ep_t *ep = (is_in) ? &info->ep_in : &info->ep_out;
 
                 ep->epAddr = (p->ep_desc.bEndpointAddress & 0x0f);
                 ep->epType = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
                 ep->maxPktSize = p->ep_desc.wMaxPacketSize[0];
                 ep->bmNakPower = USB_NAK_DEFAULT;
+
+                iprintf(" -> %s endpoint %d, interval: %d ms\n",
+                    (is_in) ? "IN" : "OUT", ep->epAddr, REPORT_INTL);
                 break;
         }
 
@@ -383,7 +391,7 @@ static uint8_t mcp_init(
 
         if (chip->probe(dev, &mcp_i2c_bus))
         {
-            iprintf("mcp2221: rtc %s found\n", chip->name);
+            iprintf("mcp2221: rtc %s used\n", chip->name);
             info->chip_type = i;
             return 0;
         }
@@ -512,7 +520,7 @@ static uint8_t mcp_poll(usb_device_t *dev)
     usb_mcp_info_t *info = &(dev->mcp_info);
     info->usb_error = 0;
 
-    if (timer_check(info->time.updated, 500))
+    if (timer_check(info->time.updated, REPORT_INTL))
     {
         const rtc_chip_t *rtc = rtc_chips[info->chip_type];
 
