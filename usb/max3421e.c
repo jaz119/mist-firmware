@@ -65,18 +65,12 @@ uint16_t max3421e_reset() {
   return 0;
 }
 
-void max3421e_reset_sie() {
-  max3421e_write_u08( MAX3421E_HCTL, MAX3421E_FRMRST );
-  max3421e_write_u08( MAX3421E_HCTL, 0 );
-}
-
 void max3421e_clear_fifo(int8_t junk_count) {
-  while( junk_count > 0 ) {
-    max3421e_read_u08( MAX3421E_RCVFIFO );
-    junk_count--;
+  if( junk_count > 0 ) {
+    max3421e_read( MAX3421E_RCVFIFO, junk_count, NULL );
   }
   max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_RCVDAVIRQ );
-  delay_usec(10);
+  max3421e_write_u08( MAX3421E_RCVBC, 0 );
 }
 
 void max3421e_busprobe() {
@@ -170,16 +164,16 @@ void max3421e_init() {
 
 #include "timer.h"
 
-uint8_t max3421e_poll(uint8_t *hirq) {
-  *hirq = max3421e_read_u08( MAX3421E_HIRQ );
+uint8_t max3421e_poll() {
+  uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );
 
-  if( *hirq & MAX3421E_CONDETIRQ ) {
+  if( hirq & MAX3421E_CONDETIRQ ) {
     max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_CONDETIRQ );
     usb_debugf("=> CONDETIRQ");
     max3421e_busprobe();
   }
 
-  if( *hirq & MAX3421E_BUSEVENTIRQ ) {
+  if( hirq & MAX3421E_BUSEVENTIRQ ) {
     max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_BUSEVENTIRQ );
     usb_debugf("=> BUSEVENTIRQ");
   }

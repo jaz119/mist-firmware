@@ -13,12 +13,11 @@
 #define USB_NAK_NOWAIT        1     // Single NAK stops transfer
 #define USB_NAK_NONAK         0     // Do not count NAKs, stop retrying after USB Timeout
 
-#define USB_SETTLE_DELAY      200   // Settle delay (msec)
 #define USB_XFER_TIMEOUT      1500  // USB transfer timeout (msec), per section 9.2.6.1 of USB 2.0 spec
-#define USB_ACK_TIMEOUT       20    // USB ACK timeout (msec)
-#define USB_NACK_DELAY        100   // USB NACK delay (usec)
-#define USB_RETRY_DELAY       200   // USB timeout retry delay (usec)
-#define USB_RETRY_LIMIT       3     // Retry limit for a transfer
+#define USB_ACK_TIMEOUT       3     // USB ACK timeout (msec)
+#define USB_SETTLE_DELAY      200   // Settle delay (msec)
+#define USB_NACK_DELAY        25    // USB NACK delay (usec)
+#define USB_RETRY_DELAY       50    // USB timeout retry delay (usec)
 
 #define EP_TYPE_CTRL          0U
 #define EP_TYPE_ISOC          1U
@@ -93,11 +92,11 @@ typedef struct {
 } __attribute__((packed)) setup_pkt_t;
 
 // Additional Error Codes
-#define USB_ERROR_INVALID_MAX_PKT_SIZE                      0xDA
-#define USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED           0xDB
-#define USB_ERROR_CONFIGURATION_SIZE_MISMATCH               0xDC
-#define USB_ERROR_NO_SUCH_DEVICE                            0xDE
-#define USB_ERROR_TRANSFER_TIMEOUT                          0xFF
+#define USB_ERROR_NO_SUCH_DEVICE                            0xE1
+#define USB_ERROR_CONFIGURATION_SIZE_MISMATCH               0xE2
+#define USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED           0xE3
+#define USB_ERROR_INVALID_MAX_PKT_SIZE                      0xE4
+#define USB_ERROR_TRANSFER_TIMEOUT                          0xEF
 
 struct usb_device_entry;
 struct usb_device_descriptor;

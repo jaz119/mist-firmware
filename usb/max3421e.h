@@ -207,14 +207,12 @@
 
 // interface used by usb.c
 void max3421e_init();
+uint8_t max3421e_poll();
+void max3421e_clear_fifo(int8_t count);
 
 void max3421e_write_u08(uint8_t reg, uint8_t data);
 uint8_t max3421e_read_u08(uint8_t reg);
 const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data);
 uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data);
-
-void max3421e_reset_sie();
-void max3421e_clear_fifo(int8_t count);
-uint8_t max3421e_poll(uint8_t *);
 
 #endif //_max3421e_h_
