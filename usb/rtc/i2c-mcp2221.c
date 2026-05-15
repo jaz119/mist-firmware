@@ -14,7 +14,7 @@
 #include "timer.h"
 #include "debug.h"
 
-#define TIMEOUT_MS      USB_ACK_TIMEOUT + 5
+#define TIMEOUT_MS      10
 #define REPORT_INTL     500
 #define REPORT_SIZE     64
 
@@ -122,7 +122,7 @@ static bool mcp_i2c_bulk_write(
     usb_device_t *, uint8_t, uint8_t, uint8_t *, uint8_t);
 
 static uint8_t mcp_get_status(
-    usb_device_t *, uint8_t *, bool);
+    usb_device_t *, uint8_t * restrict, bool);
 
 static const i2c_bus_t mcp_i2c_bus = {
     .bulk_read = mcp_i2c_bulk_read,
@@ -140,16 +140,15 @@ static const rtc_chip_t *rtc_chips[] = {
     (void) mcp_get_status(dev, rpt, true)
 
 static bool mcp_i2c_wait_for(
-    usb_device_t *dev, uint8_t *rpt, mcp_i2c_state_t state, int timeout_ms)
+    usb_device_t *dev, uint8_t *restrict rpt, mcp_i2c_state_t state, int timeout_ms)
 {
-    const unsigned int time_us = 500;
-    int rounds = timeout_ms * 1000 / time_us;
-    const mcp_set_resp_t *resp = (mcp_set_resp_t *) rpt;
+    uint32_t start_time = timer_get_msec();
+    const volatile mcp_set_resp_t *resp = (const volatile mcp_set_resp_t *) rpt;
 
     // waiting until bus state changed
     do {
 
-        delay_usec(time_us);
+        delay_usec(250);
 
         if (mcp_get_status(dev, rpt, false) != 0)
             return false;
@@ -163,14 +162,15 @@ static bool mcp_i2c_wait_for(
         if (resp->i2c_cur_state & I2C_MASK_ADDR_NACK)
             break;
 
-    } while (--rounds > 0);
+    } while (!timer_check(start_time, timeout_ms));
 
     // trying to reset bus
     mcp_i2c_cancel(dev, rpt);
     return false;
 }
 
-static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
+static uint8_t mcp_exec(
+    usb_device_t *dev, uint8_t *restrict rpt, uint16_t *size)
 {
     // send command and check response
     uint8_t cmd = rpt[0];
@@ -180,12 +180,12 @@ static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     if (info->usb_error)
     {
         usbrtc_debugf("%s: OUT ep%d failed for 0x%x, error 0x%02x",
-            __FUNCTION__, info->ep_out.epAddr, cmd, info->last_error);
+            __FUNCTION__, info->ep_out.epAddr, cmd, info->usb_error);
         return info->usb_error;
     }
 
     *size = REPORT_SIZE;
-    mcp_set_resp_t *resp = (mcp_set_resp_t *) rpt;
+    volatile mcp_set_resp_t *resp = (volatile mcp_set_resp_t *) rpt;
 
     resp->cmd_echo = -1;
     resp->cmd_status = -1;
@@ -194,7 +194,7 @@ static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     if (info->usb_error)
     {
         usbrtc_debugf("%s: IN ep%d failed for 0x%x, error 0x%02x",
-            __FUNCTION__, info->ep_in.epAddr, cmd, info->last_error);
+            __FUNCTION__, info->ep_in.epAddr, cmd, info->usb_error);
         return info->usb_error;
     }
     else if (resp->cmd_echo != cmd)
@@ -214,13 +214,14 @@ static uint8_t mcp_exec(usb_device_t *dev, uint8_t *rpt, uint16_t *size)
     return 0;
 }
 
-static bool mcp_set_i2c_clock(usb_device_t *dev, uint8_t *rpt, uint16_t clock)
+static bool mcp_set_i2c_clock(
+    usb_device_t *dev, uint8_t *restrict rpt, uint16_t clock)
 {
     uint16_t size;
 
     // set new bus clock rate
     mcp_set_cmd_t *cmd = (mcp_set_cmd_t *) rpt;
-    const mcp_set_resp_t *resp = (mcp_set_resp_t *) rpt;
+    const volatile mcp_set_resp_t *resp = (const volatile mcp_set_resp_t *) rpt;
     usb_mcp_info_t *info = &(dev->mcp_info);
 
     if (info->i2c_clock == clock)
@@ -244,7 +245,7 @@ static bool mcp_set_i2c_clock(usb_device_t *dev, uint8_t *rpt, uint16_t clock)
 }
 
 static uint8_t mcp_get_status(
-    usb_device_t *dev, uint8_t *rpt, bool with_cancel)
+    usb_device_t *dev, uint8_t *restrict rpt, bool with_cancel)
 {
     uint16_t size;
 
@@ -413,9 +414,6 @@ static uint8_t mcp_release(usb_device_t *dev)
 static bool mcp_i2c_bulk_read(
     usb_device_t *dev, uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t length)
 {
-    usbrtc_debugf("%s(0x%X, 0x%X, %u)",
-        __FUNCTION__, addr, reg, length);
-
     ALIGNED(4) union {
         mcp_i2c_cmd_t cmd;
         mcp_i2c_resp_t resp;
