@@ -472,14 +472,14 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			helptext=helptexts[HELPTEXT_INPUT];
 			siprintf(s, "Joy%d", idx-3);
 			page->title = s;
-			page->timer = 10;
+			page->timer = 5;
 			page->stdexit = MENU_STD_SPACE_EXIT;
 			memset(&mapping, 0, sizeof(joymapping_t));
 			setup_phase = 0;
 			break;
 		case 8:
 			page->title = "Keyboard";
-			page->timer = 10;
+			page->timer = 5;
 			page->stdexit = MENU_STD_COMBO_EXIT;
 			break;
 		case 9:

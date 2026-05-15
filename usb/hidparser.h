@@ -16,7 +16,7 @@ typedef struct {
   uint8_t size;
   struct {
     int16_t min;
-    uint16_t max;
+    int16_t max;
   } logical;
   int32_t mul;
 } hid_axis_t;

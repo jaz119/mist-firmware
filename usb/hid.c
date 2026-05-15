@@ -155,18 +155,18 @@ void hid_axis_precalc(hid_axis_t *axis, uint8_t type) {
 	if (type == HID_DEVICE_MOUSE) {
 		axis->mul = (1 << 16);
 	} else {
-		int32_t l_min = (int16_t)axis->logical.min;
-		int32_t l_max = (int16_t)axis->logical.max;
+		int32_t l_min = axis->logical.min;
+		int32_t l_max = axis->logical.max;
 
 		// range is always positive to keep multiplier stable
 		int32_t range = (l_max > l_min) ? (l_max - l_min) : (l_min - l_max);
 		if (range == 0) range = 1;
 
-		// span = 255 * mult / 128
-		int32_t span = (JOYSTICK_AXIS_MAX * mist_cfg.joystick_analog_mult) >> 7;
+		// span = JOYSTICK_AXIS_MID * mult / 64
+		int64_t span = (int64_t)JOYSTICK_AXIS_MID * mist_cfg.joystick_analog_mult >> 6;
 
 		// multiplier in fixed-point 16.16 format
-		axis->mul = (int32_t)(((int64_t)span << 16) / range);
+		axis->mul = (int32_t)((span << 16) / range);
 	}
 }
 
@@ -259,7 +259,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			ep->epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
 			ep->epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 			ep->maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
-			cur_iface->interval = MAX(4, p->ep_desc.bInterval);
+			cur_iface->interval = p->ep_desc.bInterval;
 
 			iprintf(" -> %s endpoint %d, %s, interval: %d ms\n", (is_in) ? "IN" : "OUT",
 				ep->epAddr, hid_device_name[cur_iface->conf.type], cur_iface->interval);
@@ -536,39 +536,45 @@ FORCE_ARM static void usb_process_iface(
 	// several axes ...
 	for (uint32_t i=0; i<MAX_AXES; i++) {
 		hid_axis_t *axis = &conf->joystick_mouse.axis[i];
+		bool is_joystick = (iface->device_type == HID_DEVICE_JOYSTICK);
 
 		if (axis->size == 0) {
-			a[i] = (iface->device_type == HID_DEVICE_JOYSTICK)
-				? JOYSTICK_AXIS_MID : 0;
+			a[i] = is_joystick ? JOYSTICK_AXIS_MID : 0;
 			continue;
 		}
 
-		bool is_signed = (int16_t)axis->logical.min < 0;
-		int32_t val = collect_bits(buf, read,
-			axis->offset, axis->size, is_signed);
-		int32_t dist, pos = val;
+		bool is_signed = (axis->logical.min < 0) || (axis->logical.max < 0);
+		int32_t val = collect_bits(buf, read, axis->offset, axis->size, is_signed);
 
-		if (axis->size == 16) val = (int16_t)val;
-		else if (axis->size == 8) val = (int8_t)val;
+		if (is_signed) {
+			if (axis->size == 16) val = (int32_t)(int16_t)val;
+			else if (axis->size == 8) val = (int32_t)(int8_t)val;
+		}
 
-		if (iface->device_type == HID_DEVICE_JOYSTICK) {
-			int32_t l_min = (int16_t)axis->logical.min;
-			int32_t l_max = (int16_t)axis->logical.max;
+		int32_t pos = val;
+
+		if (is_joystick) {
+			int32_t l_min = axis->logical.min;
+			int32_t l_max = axis->logical.max;
+
+			int32_t l_mid = l_min + ((l_max - l_min) / 2);
+			int32_t dist = val - l_mid;
 
 			// handle axis inversion
-			if (l_max > l_min) dist = val - l_min;
-			else               dist = l_min - val;
+			if (l_max < l_min) {
+				dist = -dist;
+			}
 
 			// fast scaling
-			pos = (int32_t)(((int64_t)dist * axis->mul) >> 16);
-			pos += mist_cfg.joystick_analog_offset;
+			int32_t scaled_dist = (dist * axis->mul) >> 16;
+			pos = JOYSTICK_AXIS_MID + scaled_dist + mist_cfg.joystick_analog_offset;
 
 			if (pos < JOYSTICK_AXIS_MIN) pos = JOYSTICK_AXIS_MIN;
 			if (pos > JOYSTICK_AXIS_MAX) pos = JOYSTICK_AXIS_MAX;
 
-			int32_t diff = pos - JOYSTICK_AXIS_MID;
-			if ((diff < 0 ? -diff : diff) < mist_cfg.joystick_dead_range)
+			if (ABS(pos - JOYSTICK_AXIS_MID) < mist_cfg.joystick_dead_range) {
 				pos = JOYSTICK_AXIS_MID;
+			}
 		}
 
 		a[i] = pos;
