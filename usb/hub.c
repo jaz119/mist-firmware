@@ -240,14 +240,16 @@ static uint8_t usb_hub_port_status_change(
         info->resetMask |= mask;
         warningf("hub: port %d: CONNECT", port);
         usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
-        timer_delay_msec(USB_SETTLE_DELAY / 2); // FIXME
+        timer_delay_msec(50);
         usb_hub_set_port_feature(dev, HUB_FEATURE_PORT_RESET, port, 0);
         return HUB_ERROR_PORT_HAS_BEEN_RESET;
       }
     } else {
       warningf("hub: port %d: DISCONNECT", port);
     }
-  } else if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_RESET) {
+  }
+
+  if (evt->bmChange & USB_HUB_PORT_STATUS_PORT_RESET) {
     usb_hub_clear_port_feature(dev, HUB_FEATURE_C_PORT_RESET, port, 0);
     warningf("hub: port %d: RESET", port);
 
@@ -257,6 +259,7 @@ static uint8_t usb_hub_port_status_change(
       rcode = usb_configure(dev->bAddress, port, isLS);
       if (rcode) {
         errorf("hub: port %d: configure error 0x%02x", port, rcode);
+        usb_release_device(dev->bAddress, port);
       }
     }
   }
@@ -302,8 +305,8 @@ static uint8_t usb_hub_poll(usb_device_t *dev) {
   if (!info->pollEnable)
     return 0;
 
-  if (timer_check(info->lastPollTime, 100)) {
-    // poll 10 times a second
+  if (timer_check(info->lastPollTime, 50)) {
+    // poll 20 times a second
     rcode = usb_hub_check_hub_status(dev, info->nrPorts);
     info->lastPollTime = timer_get_msec();
   }
