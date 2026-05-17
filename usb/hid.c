@@ -259,10 +259,10 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			ep->epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
 			ep->epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 			ep->maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
-			cur_iface->interval = p->ep_desc.bInterval;
+			ep->interval   = p->ep_desc.bInterval;
 
 			iprintf(" -> %s endpoint %d, %s, interval: %d ms\n", (is_in) ? "IN" : "OUT",
-				ep->epAddr, hid_device_name[cur_iface->conf.type], cur_iface->interval);
+				ep->epAddr, hid_device_name[cur_iface->conf.type], ep->interval);
 			break;
 
 		case HID_DESCRIPTOR_HID:
@@ -710,7 +710,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 			continue;
 
 		// poll at requested rate
-		if (!timer_check(iface->qLastPollTime, iface->interval))
+		if (!timer_check(iface->lastPollTime, iface->ep_in.interval))
 			continue;
 
 		uint16_t read = MIN(iface->conf.report_size, sizeof(buf));
@@ -720,7 +720,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 			usb_process_iface(dev, iface, read, buf);
 		}
 
-		iface->qLastPollTime = timer_get_msec();
+		iface->lastPollTime = timer_get_msec();
 	}
 
 	return rcode;

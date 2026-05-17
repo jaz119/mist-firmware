@@ -306,10 +306,11 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint16_t len)
                 bool is_in = (p->ep_desc.bEndpointAddress & 0x80);
                 ep_t *ep = (is_in) ? &info->ep_in : &info->ep_out;
 
+                ep->bmNakPower = USB_NAK_DEFAULT;
                 ep->epAddr = (p->ep_desc.bEndpointAddress & 0x0f);
                 ep->epType = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
                 ep->maxPktSize = p->ep_desc.wMaxPacketSize[0];
-                ep->bmNakPower = USB_NAK_DEFAULT;
+                ep->interval   = p->ep_desc.bInterval;
 
                 iprintf(" -> %s endpoint %d, interval: %d ms\n",
                     (is_in) ? "IN" : "OUT", ep->epAddr, REPORT_INTL);

@@ -57,19 +57,16 @@ typedef struct {
   ep_t ep_in;
   ep_t ep_out;
 
-  uint8_t interval;
-  uint8_t iface_idx;
-  uint32_t qLastPollTime;     // last poll time
-
-  uint8_t device_type;
-  bool ignore_boot_mode: 1;   // don't use boot mode even if device supports it
-  bool has_boot_mode: 1;      // device supports boot mode
-  uint16_t key_state;         // needed to detect key state changes in 5200daptor
-
-  // additional info extracted from the report descriptor
-  // (currently only used for joysticks)
+  uint32_t lastPollTime;      // last poll time
   uint32_t jmap;              // last reported joystick state
   uint16_t jindex;            // joystick index
+  uint16_t key_state;         // needed to detect key state changes in 5200daptor
+  uint8_t iface_idx;
+
+  uint8_t ignore_boot_mode: 1;  // don't use boot mode even if device supports it
+  uint8_t has_boot_mode: 1;     // device supports boot mode
+  uint8_t device_type;
+
   hid_report_t conf;          // HID report struct
 
 } usb_hid_iface_info_t;

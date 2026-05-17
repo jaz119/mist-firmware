@@ -80,8 +80,8 @@ static bool xone_init(usb_device_t *dev)
         memcpy(report, pkt->data, pkt->len);
         report[2] = seq++; // GIP_SEQ
 
-        timer_delay_msec(20);
         uint16_t rpt_size = sizeof(report);
+        timer_delay_msec(iface->ep_out.interval);
 
         uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(report), report);
         if (rcode) {
@@ -251,7 +251,7 @@ static bool procon_init(usb_device_t *dev)
         report[1] = cmds[n][1];
 
         rpt_size = 64;
-        timer_delay_msec(20);
+        timer_delay_msec(iface->ep_out.interval);
 
         uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, 64, report);
         if (rcode) {

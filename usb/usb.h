@@ -26,9 +26,10 @@
 #define EP_TYPE_MSK           3U
 
 typedef struct {
-  uint8_t epType;
-  uint8_t epAddr;       // Endpoint address
-  uint16_t maxPktSize;  // Maximum packet size
+  uint16_t maxPktSize;  // Max packet size
+  uint8_t epType;       // Type
+  uint8_t epAddr;       // Address
+  uint8_t interval;     // Polling interval
 
   union {
     uint8_t epAttribs;
