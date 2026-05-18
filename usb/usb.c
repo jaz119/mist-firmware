@@ -106,7 +106,8 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 
 		// setup endpoint 0
 		dev->ep0.maxPktSize = 8;
-		dev->ep0.bmNakPower = USB_NAK_DEFAULT;
+		dev->ep0.type = EP_TYPE_CTRL;
+		dev->ep0.nakPower = USB_NAK_DEFAULT;
 
 		if((rcode = usb_get_dev_descr(dev, 8, &dev_desc)))
 			return rcode;
@@ -141,28 +142,32 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		dev->vid = dev_desc.idVendor;
 		dev->pid = dev_desc.idProduct;
 
-		// The Retroflag Classic USB Gamepad doesn't report movement until the string descriptors are read,
+		// The Retroflag Classic USB Gamepad doesn't report
+		// movement until the string descriptors are read,
 		// so read all of them here (and show them on the console)
-		if(!usb_get_string_descr(dev, sizeof(str), 0, 0, &str.str_desc)) { // supported languages descriptor
+		if(!usb_get_string_descr(dev, sizeof(str), 0, 0, &str.str_desc)) {
+			// supported languages descriptor
 			usb_debugf("wLangId: 0x%04X", str.str0_desc.wLANGID[0]);
 		}
 
 		// try to connect device to one of the supported classes
 		for(int c=0; class_list[c]; c++) {
 			usb_debugf("trying to init class %d", c);
+
 			rcode = class_list[c]->init(dev, &dev_desc);
+			if(rcode) continue;
 
-			if (!rcode) {
-				dev->class = class_list[c];
+			dev->class = class_list[c];
+			infof("USB %s device %d, address %d, %lu ms",
+				dev->lowspeed ? "LS" : "FS", i, dev->bAddress,
+				GetRTTC() - time);
 
-				infof("USB %s device %d, address %d, %lu ms",
-					(dev->lowspeed) ? "LS" : "FS", i, dev->bAddress, GetRTTC() - time);
-
-				return 0;
-			}
+			return 0;
 		}
 
 		errorf("usb: unknown device");
+
+		usb_set_addr(dev, 0);
 		dev->bAddress = 0;
 
 	} else
@@ -228,12 +233,12 @@ uint8_t usb_get_other_speed_descr( usb_device_t *dev,
 uint8_t usb_set_addr( usb_device_t *dev, uint8_t newaddr ) {
 	usb_debugf("%s(%u)", __FUNCTION__, newaddr);
 
-	timer_delay_msec(5);
-
 	uint8_t rcode = usb_ctrl_req( dev, USB_REQ_SET, USB_REQUEST_SET_ADDRESS,
 		newaddr, 0x00, 0x0000, 0x0000, NULL );
 
 	dev->bAddress = (rcode) ? 0 : newaddr;
+	timer_delay_msec(5);
+
 	return rcode;
 }
 

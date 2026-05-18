@@ -118,7 +118,7 @@
 #define MAX3421E_HIRQ       0xc8    //25<<3
 /* HIRQ Bits */
 #define MAX3421E_BUSEVENTIRQ   0x01   // indicates BUS reset Done or BUS resume
-#define MAX3421E_RWUIRQ        0x02
+#define MAX3421E_RSMREQIRQ     0x02
 #define MAX3421E_RCVDAVIRQ     0x04
 #define MAX3421E_SNDBAVIRQ     0x08
 #define MAX3421E_SUSDNIRQ      0x10
@@ -144,7 +144,7 @@
 #define MAX3421E_HOST          0x01
 #define MAX3421E_LOWSPEED      0x02
 #define MAX3421E_HUBPRE        0x04
-#define MAX3421E_SOFKAENAB     0x08
+#define MAX3421E_SOFKAEN       0x08
 #define MAX3421E_SEPIRQ        0x10
 #define MAX3421E_DELAYISO      0x20
 #define MAX3421E_DMPULLDN      0x40
@@ -203,16 +203,15 @@
 #define hrBABBLE    0x0F
 
 /* Base mode to keep SOF generation and host settings alive */
-#define MAX3421E_MODE_HOST      (MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SOFKAENAB)
+#define MAX3421E_MODE_HOST      (MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SOFKAEN)
 
 // interface used by usb.c
 void max3421e_init();
 uint8_t max3421e_poll();
-void max3421e_clear_fifo(int8_t count);
 
 void max3421e_write_u08(uint8_t reg, uint8_t data);
+const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t *);
+uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t *);
 uint8_t max3421e_read_u08(uint8_t reg);
-const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data);
-uint8_t *max3421e_read(uint8_t reg, uint8_t n, uint8_t* data);
 
 #endif //_max3421e_h_

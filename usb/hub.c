@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <string.h>
 #include "timer.h"
 #include "usb.h"
 #include "max3421e.h"
@@ -69,7 +69,7 @@ static uint8_t usb_hub_parse_conf(
     case USB_DESCRIPTOR_ENDPOINT:
       usb_dump_endpoint_descriptor(&p->ep_desc);
       if ((p->ep_desc.bmAttributes & 0x03) == 0x03 && (p->ep_desc.bEndpointAddress & 0x80)) {
-        pep->epAddr     = p->ep_desc.bEndpointAddress & 0x0f;
+        pep->addr       = p->ep_desc.bEndpointAddress & 0x0f;
         pep->maxPktSize = p->ep_desc.wMaxPacketSize[0];
         return 0;
       }
@@ -111,16 +111,11 @@ static uint8_t usb_hub_init(
   } buf;
 
   // Reset status
-  info->nrPorts = 0;
-  info->lastPollTime = 0;
-  info->pollEnable = false;
-  info->resetMask = 0;
-
-  info->ep.epAddr     = 1;
+  memset(info, 0, sizeof(usb_hub_info_t));
+  info->ep.nakPower   = USB_NAK_NOWAIT;
   info->ep.maxPktSize = 8; // kludge
-  info->ep.epType     = EP_TYPE_INTR;
-  info->ep.epAttribs  = 0;
-  info->ep.bmNakPower = USB_NAK_NOWAIT;
+  info->ep.type       = EP_TYPE_INTR;
+  info->ep.addr       = 1;
 
   // Extract device class from device descriptor
   // If device class is not a hub return

@@ -255,14 +255,14 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			ep_t *ep = (is_in) ? &cur_iface->ep_in : &cur_iface->ep_out;
 
 			// fill the endpoint info structure
-			ep->bmNakPower = USB_NAK_NOWAIT;
-			ep->epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
-			ep->epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
+			ep->nakPower   = USB_NAK_NOWAIT;
+			ep->addr       = (p->ep_desc.bEndpointAddress & 0x0F);
+			ep->type       = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 			ep->maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
-			ep->interval   = p->ep_desc.bInterval;
+			ep->interval   = MAX(6, p->ep_desc.bInterval); // for battery saving
 
 			iprintf(" -> %s endpoint %d, %s, interval: %d ms\n", (is_in) ? "IN" : "OUT",
-				ep->epAddr, hid_device_name[cur_iface->conf.type], ep->interval);
+				ep->addr, hid_device_name[cur_iface->conf.type], ep->interval);
 			break;
 
 		case HID_DESCRIPTOR_HID:

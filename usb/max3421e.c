@@ -21,7 +21,7 @@ uint8_t max3421e_read_u08(uint8_t reg) {
   return ret;
 }
 
-const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t* data) {
+const uint8_t *max3421e_write(uint8_t reg, uint8_t n, const uint8_t *data) {
   spi_max_start();
   spi8(reg | MAX3421E_WRITE);
   spi_write(data, n);
@@ -63,14 +63,6 @@ uint16_t max3421e_reset() {
     delay_usec(25);
   }
   return 0;
-}
-
-void max3421e_clear_fifo(int8_t junk_count) {
-  if( junk_count > 0 ) {
-    max3421e_read( MAX3421E_RCVFIFO, junk_count, NULL );
-  }
-  max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_RCVDAVIRQ );
-  max3421e_write_u08( MAX3421E_RCVBC, 0 );
 }
 
 void max3421e_busprobe() {
@@ -161,8 +153,6 @@ void max3421e_init() {
   // switch off leds
   max3421e_write_u08( MAX3421E_IOPINS2, 0xff );
 }
-
-#include "timer.h"
 
 uint8_t max3421e_poll() {
   uint8_t hirq = max3421e_read_u08( MAX3421E_HIRQ );

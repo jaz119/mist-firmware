@@ -180,7 +180,7 @@ static uint8_t mcp_exec(
     if (info->usb_error)
     {
         usbrtc_debugf("%s: OUT ep%d failed for 0x%x, error 0x%02x",
-            __FUNCTION__, info->ep_out.epAddr, cmd, info->usb_error);
+            __FUNCTION__, info->ep_out.addr, cmd, info->usb_error);
         return info->usb_error;
     }
 
@@ -194,20 +194,20 @@ static uint8_t mcp_exec(
     if (info->usb_error)
     {
         usbrtc_debugf("%s: IN ep%d failed for 0x%x, error 0x%02x",
-            __FUNCTION__, info->ep_in.epAddr, cmd, info->usb_error);
+            __FUNCTION__, info->ep_in.addr, cmd, info->usb_error);
         return info->usb_error;
     }
     else if (resp->cmd_echo != cmd)
     {
         usbrtc_debugf("%s: IN ep%d failed for 0x%x, wrong echo 0x%x",
-            __FUNCTION__, info->ep_in.epAddr, cmd, resp->cmd_echo);
+            __FUNCTION__, info->ep_in.addr, cmd, resp->cmd_echo);
         info->usb_error = hrBABBLE + 1;
         return info->usb_error;
     }
     else if (resp->cmd_status)
     {
         usbrtc_debugf("%s: IN ep%d failed for 0x%x, response 0x%x:0x%x:0x%x",
-            __FUNCTION__, info->ep_in.epAddr, cmd, resp->cmd_status,
+            __FUNCTION__, info->ep_in.addr, cmd, resp->cmd_status,
             resp->i2c_engine_state, resp->i2c_cur_state);
     }
 
@@ -306,14 +306,14 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint16_t len)
                 bool is_in = (p->ep_desc.bEndpointAddress & 0x80);
                 ep_t *ep = (is_in) ? &info->ep_in : &info->ep_out;
 
-                ep->bmNakPower = USB_NAK_DEFAULT;
-                ep->epAddr = (p->ep_desc.bEndpointAddress & 0x0f);
-                ep->epType = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
+                ep->nakPower   = USB_NAK_DEFAULT;
+                ep->addr       = (p->ep_desc.bEndpointAddress & 0x0f);
+                ep->type       = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
                 ep->maxPktSize = p->ep_desc.wMaxPacketSize[0];
                 ep->interval   = p->ep_desc.bInterval;
 
                 iprintf(" -> %s endpoint %d, interval: %d ms\n",
-                    (is_in) ? "IN" : "OUT", ep->epAddr, REPORT_INTL);
+                    (is_in) ? "IN" : "OUT", ep->addr, REPORT_INTL);
                 break;
         }
 
@@ -325,7 +325,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint16_t len)
         p = (union buf_u*)(p->raw + p->conf_desc.bLength);
     }
 
-    return (info->ep_in.epType == EP_TYPE_INTR && info->ep_out.epType == EP_TYPE_INTR)
+    return (info->ep_in.type == EP_TYPE_INTR && info->ep_out.type == EP_TYPE_INTR)
         ? 0 : USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 }
 
@@ -374,7 +374,7 @@ static uint8_t mcp_init(
 
     // Check of mcp2221 chip I2C bus state
     if (!mcp_i2c_wait_for(dev, buf.raw, I2C_IDLE, TIMEOUT_MS))
-        return USB_ERROR_NO_SUCH_DEVICE;
+        return info->usb_error;
 
     iprintf("mcp2221: chip found, rev: %c%c %c.%c\n",
         buf.resp.hw_rev_major, buf.resp.hw_rev_minor,
@@ -403,7 +403,7 @@ static uint8_t mcp_init(
         }
     }
 
-    return USB_ERROR_NO_SUCH_DEVICE;
+    return info->usb_error;
 }
 
 static uint8_t mcp_release(usb_device_t *dev)

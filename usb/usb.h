@@ -9,14 +9,14 @@
 /* before giving up and returning 0x4 is stored in bmNakPower as a power of 2.*/
 /* The actual nak_limit is then calculated as nak_limit = ( 2^bmNakPower - 1) */
 #define USB_NAK_MAX_POWER     16    // NAK binary order maximum value
-#define USB_NAK_DEFAULT       8     // default 255 NAKs before giving up
+#define USB_NAK_DEFAULT       7     // default 127 NAKs before giving up
 #define USB_NAK_NOWAIT        1     // Single NAK stops transfer
 #define USB_NAK_NONAK         0     // Do not count NAKs, stop retrying after USB Timeout
 
 #define USB_XFER_TIMEOUT      1500  // USB transfer timeout (msec), per section 9.2.6.1 of USB 2.0 spec
-#define USB_ACK_TIMEOUT       3     // USB ACK timeout (msec)
+#define USB_ACK_TIMEOUT       500   // USB ACK timeout (msec)
 #define USB_SETTLE_DELAY      200   // Settle delay (msec)
-#define USB_NACK_DELAY        25    // USB NACK delay (usec)
+#define USB_NACK_DELAY        100   // USB NACK delay (usec)
 #define USB_RETRY_DELAY       50    // USB timeout retry delay (usec)
 
 #define EP_TYPE_CTRL          0U
@@ -27,20 +27,20 @@
 
 typedef struct {
   uint16_t maxPktSize;  // Max packet size
-  uint8_t epType;       // Type
-  uint8_t epAddr;       // Address
+  uint8_t type;         // Type
+  uint8_t addr;         // Address
   uint8_t interval;     // Polling interval
 
   union {
-    uint8_t epAttribs;
+    uint8_t attrs;
 
     struct {
       // Send toggle, when zero bmSNDTOG0, bmSNDTOG1 otherwise
-      uint8_t bmSndToggle: 1;
+      uint8_t sndToggle: 1;
       // Send toggle, when zero bmRCVTOG0, bmRCVTOG1 otherwise
-      uint8_t bmRcvToggle: 1;
+      uint8_t rcvToggle: 1;
       // Binary order for NAK_LIMIT value
-      uint8_t bmNakPower:  6;
+      uint8_t nakPower:  6;
     };
   };
 } ep_t;
@@ -97,6 +97,7 @@ typedef struct {
 #define USB_ERROR_CONFIGURATION_SIZE_MISMATCH               0xE2
 #define USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED           0xE3
 #define USB_ERROR_INVALID_MAX_PKT_SIZE                      0xE4
+#define USB_ERROR_TRANSFER_SND_TIMEOUT                      0xEE
 #define USB_ERROR_TRANSFER_TIMEOUT                          0xEF
 
 struct usb_device_entry;
@@ -330,11 +331,11 @@ usb_device_t *usb_get_device(usb_dev_type_t);
 usb_device_t *usb_get_devices();
 
 // device-specific functions
-uint8_t usb_in_transfer( usb_device_t *, ep_t *ep, uint16_t *nbytesptr, uint8_t* data );
-uint8_t usb_out_transfer( usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t* data );
+uint8_t usb_in_transfer( usb_device_t *, ep_t *ep, uint16_t *nbytesptr, uint8_t *data );
+uint8_t usb_out_transfer( usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t *data );
 uint8_t usb_ctrl_req( usb_device_t *, uint8_t bmReqType,
                       uint8_t bRequest, uint8_t wValLo, uint8_t wValHi,
-                      uint16_t wInd, uint16_t nbytes, uint8_t* dataptr );
+                      uint16_t wInd, uint16_t nbytes, uint8_t *dataptr );
 void usb_hw_init();
 uint8_t usb_poll();
 void usb_SetHubPreMask(void);
