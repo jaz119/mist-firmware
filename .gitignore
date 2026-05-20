@@ -17,8 +17,7 @@
 # ignore dropbox files
 .dropbox.attr
 
-# ignore directories
-
+# ignore binaries
 firmware.bin
 firmware.elf
 firmware.hex
@@ -28,5 +27,5 @@ mkupg
 initest
 cuetest
 fattest
+hidtest
 crt.lst
-

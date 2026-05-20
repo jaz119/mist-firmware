@@ -267,7 +267,7 @@ static void acsi_init(bool cold_boot) {
   }
 }
 
-static void get_dma_state() {
+static void acsi_poll() {
   EnableFpga();
   SPI(MIST_GET_DMASTATE);
   spi_read(AcsiBus.command, 16);
@@ -610,25 +610,11 @@ void tos_reset(bool cold_boot) {
 }
 
 void tos_poll() {
-  // 1 == button not pressed, 2 = 1 sec exceeded, else timer running
-  static unsigned long timer = 1;
-
-  get_dma_state();
+  acsi_poll();
 
   // check the user button
-  if(!MenuButton() && UserButton()) {
-    if(timer == 1)
-      timer = GetTimer(1000);
-    else if(timer != 2)
-      if(CheckTimer(timer)) {
-        tos_reset(1);
-        timer = 2;
-      }
-  } else {
-    // released while still running (< 1 sec)
-    if(!(timer & 3))
-      tos_reset(0);
-    timer = 1;
+  if (UserButton()) {
+    tos_reset(true);
   }
 }
 

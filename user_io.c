@@ -77,7 +77,7 @@ static uint8_t latest_keyb_priority = 0;  // keyboard=0, joypad with key mapping
 #define Z 2
 #define MOUSE_FREQ 20   // 20 ms -> 50hz
 
-ALIGNED(4) static int32_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
+static int32_t mouse_pos[2][3] = { {0, 0, 0}, {0, 0, 0} };
 static uint32_t mouse_flags[2] = { 0, 0 };
 static unsigned long mouse_timer;
 
@@ -120,7 +120,7 @@ static uint32_t autofire_mask;
 static int autofire_joy;
 
 // ATA drives
-ALIGNED(4) hardfileTYPE hardfiles[HARDFILES];
+hardfileTYPE hardfiles[HARDFILES];
 
 static uint8_t i2c_flags;
 
@@ -1957,7 +1957,7 @@ static unsigned short keycode(unsigned short in) {
 
 static void check_reset(unsigned short modifiers, char useKeys)
 {
-	ALIGNED(4) static const unsigned short combo[] = {
+	static const unsigned short combo[] = {
 		0x45,  // lctrl+lalt+ralt
 		0x89,  // lctrl+lgui+rgui
 		0x105, // lctrl+lalt+del
@@ -1980,7 +1980,11 @@ static void check_reset(unsigned short modifiers, char useKeys)
 				OsdReset(RESET_NORMAL);
 				break;
 
-			case CORE_TYPE_8BIT:
+			case CORE_TYPE_MISTERY:
+				tos_reset(true);
+				break;
+
+			default:
 				kbd_reset = 1;
 				break;
 		}
