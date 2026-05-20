@@ -527,40 +527,19 @@ RAMFUNC static unsigned char MMC_Command(unsigned char cmd, unsigned long arg)
     crc = 0;
 
     // flush spi, give card a moment to wake up (needed for old 2GB Panasonic card)
-    //    spi_n(0xff, 8);  // this is not flash save if not in ram
-    // (wait for busy instead)
-    //for(b=0;b<8;b++) SPI(0xff);
     if (!MMC_WaitBusy(1000)) {
         return(0x80); // busy forever?
     }
+
     SPI(cmd);
     MMC_CRC(cmd);
 
-#if 1
-    // code 100 bytes smaller than below
-    for(b=0;b<4;b++) {
-      c = ((unsigned char*)&arg)[3];
-      SPI(c);
-      MMC_CRC(c);
-      arg <<= 8;
+    for(b = 0; b < 4; b++) {
+        c = (unsigned char)(arg >> 24);
+        SPI(c);
+        MMC_CRC(c);
+        arg <<= 8;
     }
-#else
-    c = (unsigned char)(arg >> 24);
-    SPI(c);
-    MMC_CRC(c);
-
-    c = (unsigned char)(arg >> 16);
-    SPI(c);
-    MMC_CRC(c);
-
-    c = (unsigned char)(arg >> 8);
-    SPI(c);
-    MMC_CRC(c);
-
-    c = (unsigned char)(arg);
-    SPI(c);
-    MMC_CRC(c);
-#endif
 
     crc <<= 1;
     crc++;
