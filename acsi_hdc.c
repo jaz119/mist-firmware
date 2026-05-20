@@ -120,7 +120,7 @@ static int HDC_GetCommandByteCount(SCSI_CTRLR *ctr)
 /**
  * Get info string for ACSI command packets.
  */
-#ifdef TOS_DEBUG
+#ifdef DEBUG_TOS
 const char *HDC_CmdInfoStr(SCSI_CTRLR *ctr)
 {
     static char buf[64];

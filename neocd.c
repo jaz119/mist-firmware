@@ -103,7 +103,7 @@ static void SeekToLBA(int lba, int play) {
 
 	int offset = (lba - toc.tracks[index].start) * toc.tracks[index].sector_size + toc.tracks[index].offset;
 	f_lseek(&toc.file->file, offset);
-	neocd_debugf("SeekToLBA lba=%lu offset=%08x", lba, offset);
+	neocd_debugf("SeekToLBA lba=%d offset=%08x", lba, offset);
 	if (play)
 	{
 		neocdd.audioOffset = 0;
@@ -388,7 +388,9 @@ static void neocd_command() {
 			neocdd.stat[6] = bin2bcd(msf.f) >> 4;
 			neocdd.stat[7] = bin2bcd(msf.f) & 0xF;
 			neocdd.stat[8] = toc.tracks[neocdd.index].type << 2;
-			neocd_debugf("Command TOC 0, lba = %i, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X, status = %02X%08X", lba_, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2], command[1], command[0], (uint32_t)(GetStatus(CRC_START) >> 32), (uint32_t)GetStatus(CRC_START));
+			neocd_debugf("Command TOC 0, lba = %d, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X, status = %02lX%08lX",
+				lba_, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2],
+				command[1], command[0], (uint32_t)(GetStatus(CRC_START) >> 32), (uint32_t)GetStatus(CRC_START));
 			}
 			break;
 
@@ -405,7 +407,9 @@ static void neocd_command() {
 			neocdd.stat[6] = bin2bcd(msf.f) >> 4;
 			neocdd.stat[7] = bin2bcd(msf.f) & 0xF;
 			neocdd.stat[8] = toc.tracks[neocdd.index].type << 2;
-			neocd_debugf("Command TOC 1, lba = %i, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X, status = %02X%08X", lba_, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2], command[1], command[0], (uint32_t)(GetStatus(CRC_START) >> 32), (uint32_t)GetStatus(CRC_START));
+			neocd_debugf("Command TOC 1, lba = %d, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X, status = %02lX%08lX",
+				lba_, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2],
+				command[1], command[0], (uint32_t)(GetStatus(CRC_START) >> 32), (uint32_t)GetStatus(CRC_START));
 			}
 			break;
 
@@ -419,7 +423,9 @@ static void neocd_command() {
 			neocdd.stat[6] = 0;
 			neocdd.stat[7] = 0;
 			neocdd.stat[8] = 0;
-			neocd_debugf("Command TOC 2, index = %i, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X, status = %02X%08X", neocdd.index, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2], command[1], command[0], (uint32_t)(GetStatus(CRC_START) >> 32), (uint32_t)GetStatus(CRC_START));
+			neocd_debugf("Command TOC 2, index = %d, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X, status = %02lX%08lX",
+				neocdd.index, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2],
+				command[1], command[0], (uint32_t)(GetStatus(CRC_START) >> 32), (uint32_t)GetStatus(CRC_START));
 			}
 			break;
 
@@ -436,7 +442,9 @@ static void neocd_command() {
 			neocdd.stat[6] = bin2bcd(msf.f) >> 4;
 			neocdd.stat[7] = bin2bcd(msf.f) & 0xF;
 			neocdd.stat[8] = 0;
-			neocd_debugf("Command TOC 3, lba = %i, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X", lba_, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2], command[1], command[0]);
+			neocd_debugf("Command TOC 3, lba = %d, command = %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+				lba_, command[9], command[8], command[7], command[6], command[5], command[4], command[3], command[2],
+				command[1], command[0]);
 			}
 			break;
 

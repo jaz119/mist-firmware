@@ -162,7 +162,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				switch(tag) {
 				case 8:
 					// handle found buttons
-					hidp_extreme_debugf("INPUT(%u)", value);
+					hidp_extreme_debugf("INPUT(%lu)", value);
 					if(btns) {
 						if((conf->type == REPORT_TYPE_JOYSTICK) ||
 						   (conf->type == REPORT_TYPE_MOUSE)) {
@@ -234,19 +234,19 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 9:
-					hidp_extreme_debugf("OUTPUT(%u)", value);
+					hidp_extreme_debugf("OUTPUT(%lu)", value);
 					usage_count = 0;
 					btns = 0;
 					break;
 
 				case 11:
-					hidp_extreme_debugf("FEATURE(%u)", value);
+					hidp_extreme_debugf("FEATURE(%lu)", value);
 					usage_count = 0;
 					btns = 0;
 					break;
 
 				case 10:
-					hidp_extreme_debugf("COLLECTION(%u)", value);
+					hidp_extreme_debugf("COLLECTION(%lu)", value);
 					collection_depth++;
 					usage_count = 0;
 
@@ -267,7 +267,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 12:
-					hidp_extreme_debugf("END_COLLECTION(%u)", value);
+					hidp_extreme_debugf("END_COLLECTION(%lu)", value);
 					collection_depth--;
 					if(phys_log_collection) {
 						hidp_extreme_debugf("  -> phys/log end");
@@ -289,7 +289,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				// global item
 				switch(tag) {
 				case 0:
-					hidp_extreme_debugf("USAGE_PAGE(0x%x)", value);
+					hidp_extreme_debugf("USAGE_PAGE(0x%lx)", value);
 					generic_desktop = -1;
 
 					if(usage_id == USAGE_PAGE_KEYBOARD) {
@@ -326,7 +326,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					} else {
 						logical_maximum = value;
 					}
-					hidp_extreme_debugf("LOGICAL_MAXIMUM(%u)", value);
+					hidp_extreme_debugf("LOGICAL_MAXIMUM(%lu)", value);
 					break;
 
 				case 3:
@@ -337,20 +337,20 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 4:
-					hidp_extreme_debugf("PHYSICAL_MAXIMUM(%u)", value);
+					hidp_extreme_debugf("PHYSICAL_MAXIMUM(%lu)", value);
 					physical_maximum = value;
 					break;
 
 				case 5:
-					hidp_extreme_debugf("UNIT_EXPONENT(%u)", value);
+					hidp_extreme_debugf("UNIT_EXPONENT(%lu)", value);
 					break;
 
 				case 6:
-					hidp_extreme_debugf("UNIT(%u)", value);
+					hidp_extreme_debugf("UNIT(%lu)", value);
 					break;
 
 				case 7:
-					hidp_extreme_debugf("REPORT_SIZE(%u)", value);
+					hidp_extreme_debugf("REPORT_SIZE(%lu)", value);
 					report_size = value;
 					break;
 
@@ -365,7 +365,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					}
 
 					// Next report is beginning from this point
-					hidp_extreme_debugf("REPORT_ID(%u)", value);
+					hidp_extreme_debugf("REPORT_ID(%lu)", value);
 
 					conf->report_size = 0;
 					conf->report_id = value;
@@ -382,7 +382,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 9:
-					hidp_extreme_debugf("REPORT_COUNT(%u)", value);
+					hidp_extreme_debugf("REPORT_COUNT(%lu)", value);
 					report_count = value;
 					break;
 
@@ -399,7 +399,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				switch(tag) {
 				case 0:
 					// we only support mice, keyboards and joysticks
-					hidp_extreme_debugf("USAGE(0x%x)", value);
+					hidp_extreme_debugf("USAGE(0x%lx)", value);
 
 					if(usage_id == USAGE_KEYBOARD && generic_desktop == 1) {
 						// usage(keyboard) is always allowed
@@ -471,12 +471,12 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 				case 1:
 					usage_minimum = value;
-					hidp_extreme_debugf("USAGE_MINIMUM(%u)", value);
+					hidp_extreme_debugf("USAGE_MINIMUM(%lu)", value);
 					break;
 
 				case 2:
 					usage_maximum = value;
-					hidp_extreme_debugf("USAGE_MAXIMUM(%u)", value);
+					hidp_extreme_debugf("USAGE_MAXIMUM(%lu)", value);
 					if (usage_maximum > usage_minimum) {
 						usage_count += (usage_maximum - usage_minimum);
 					}

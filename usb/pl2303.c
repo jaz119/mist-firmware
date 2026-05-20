@@ -208,11 +208,11 @@ static uint8_t pl2303_parse_conf0(usb_device_t *dev, uint16_t len) {
       if(epidx < 3) {
 
 	// Fill in the endpoint info structure
-	info->ep[epidx].epAddr	   = (p->ep_desc.bEndpointAddress & 0x0F);
-	info->ep[epidx].epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
+	info->ep[epidx].addr  = (p->ep_desc.bEndpointAddress & 0x0F);
+	info->ep[epidx].type  = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 	info->ep[epidx].maxPktSize = p->ep_desc.wMaxPacketSize[0];
-	info->ep[epidx].epAttribs  = 0;
-	info->ep[epidx].bmNakPower = USB_NAK_NOWAIT;
+	info->ep[epidx].attrs = 0;
+	info->ep[epidx].nakPower = USB_NAK_NOWAIT;
 
 	// Handle interrupt endpoints
 	if ((p->ep_desc.bmAttributes & 0x03) == 3 &&
@@ -239,7 +239,7 @@ static uint8_t pl2303_parse_conf0(usb_device_t *dev, uint16_t len) {
 	    (p->ep_desc.bEndpointAddress & 0x80) == 0x00) {
 	  info->ep_bulk_out_idx = epidx;
 	  pl2303_debugf("bulk out endpoint %d", p->ep_desc.bEndpointAddress & 0x0F);
-	  info->ep[epidx].bmNakPower = USB_NAK_DEFAULT;   // allow retries to avoid data loss
+	  info->ep[epidx].nakPower = USB_NAK_DEFAULT;   // allow retries to avoid data loss
 	}
 
 	epidx++;

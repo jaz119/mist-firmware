@@ -74,11 +74,11 @@ static uint8_t storage_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 
 	if(epidx != -1) {
 	  // Fill in the endpoint info structure
-	  info->ep[epidx].epAddr     = (p->ep_desc.bEndpointAddress & 0x0F);
-	  info->ep[epidx].epType     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
+	  info->ep[epidx].addr     = (p->ep_desc.bEndpointAddress & 0x0F);
+	  info->ep[epidx].type     = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 	  info->ep[epidx].maxPktSize = p->ep_desc.wMaxPacketSize[0];
-	  info->ep[epidx].epAttribs  = 0;
-	  info->ep[epidx].bmNakPower = USB_NAK_DEFAULT;
+	  info->ep[epidx].attrs  = 0;
+	  info->ep[epidx].nakPower = USB_NAK_DEFAULT;
 	}
       }
       break;
@@ -104,10 +104,10 @@ static uint8_t storage_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 static uint8_t clear_ep_halt(usb_device_t *dev, uint8_t index) {
   usb_storage_info_t *info = &(dev->storage_info);
 
-  iprintf("clear ep halt for %u\n", info->ep[index].epAddr);
+  iprintf("clear ep halt for %u\n", info->ep[index].addr);
 
   return usb_ctrl_req(dev, USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_ENDPOINT,
-		      USB_REQUEST_CLEAR_FEATURE, USB_FEATURE_ENDPOINT_HALT, 0, info->ep[index].epAddr, 0, NULL);
+		      USB_REQUEST_CLEAR_FEATURE, USB_FEATURE_ENDPOINT_HALT, 0, info->ep[index].addr, 0, NULL);
 }
 
 static uint8_t mass_storage_reset(usb_device_t *dev) {
@@ -308,7 +308,7 @@ static uint8_t usb_storage_init(usb_device_t *dev, usb_device_descriptor_t *dev_
   uint8_t i, rcode = 0;
 
   for(i=0;i<2;i++)
-    info->ep[i].epAddr = 0;
+    info->ep[i].addr = 0;
 
   info->state = 0;
 

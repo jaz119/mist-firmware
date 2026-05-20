@@ -143,7 +143,7 @@ static void SendSector(uint16_t len, unsigned char dm) {
 		if (toc.tracks[pcecdd.index].sector_size != 2048)
 			f_lseek(&toc.file->file, f_tell(&toc.file->file) + 16);
 
-		pcecd_debugf("Send data sector, lba: %lu, pos: %lu", pcecdd.lba, (uint32_t) f_tell(&toc.file->file));
+		pcecd_debugf("Send data sector, lba: %u, pos: %lu", pcecdd.lba, (uint32_t) f_tell(&toc.file->file));
 		f_read(&toc.file->file, sector_buffer, 2048, &br);
 
 		if (toc.tracks[pcecdd.index].sector_size != 2048)
@@ -384,7 +384,7 @@ static void pcecd_command() {
 		{
 			pcecdd.latency = 0;//(int)(get_cd_seek_ms(pcecdd.lba, new_lba)/13.33);
 		}
-		pcecd_debugf("seek time ticks: %d", pcecdd.latency);
+		pcecd_debugf("seek time ticks: %lu", pcecdd.latency);
 
 		pcecdd.lba = new_lba;
 		pcecdd.cnt = cnt_;
@@ -451,7 +451,7 @@ static void pcecd_command() {
 			pcecdd.latency = 0;//(int)(get_cd_seek_ms(this->lba, new_lba) / 13.33);
 		}
 
-		pcecd_debugf("seek time ticks: %d", pcecdd.latency);
+		pcecd_debugf("seek time ticks: %lu", pcecdd.latency);
 
 		pcecdd.lba = new_lba;
 		int index = cue_gettrackbylba(new_lba);

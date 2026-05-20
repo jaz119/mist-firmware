@@ -127,7 +127,7 @@ static void scsi_read_format_capacities(uint8_t *cmd) {
 static uint8_t scsi_read(uint8_t *cmd) {
 	uint32_t lba = cmd[2]<<24 | cmd[3]<<16 | cmd[4]<<8 | cmd[5];
 	uint16_t len = cmd[7]<<8 | cmd[8];
-	storage_debugf("Read lba=%d len=%d", lba, len);
+	storage_debugf("Read lba=%lu len=%d", lba, len);
 	while (len) {
 		uint8_t ret;
 		uint16_t read = MIN(len, SECTOR_BUFFER_SIZE/512);
@@ -146,7 +146,7 @@ static uint8_t scsi_read(uint8_t *cmd) {
 static uint8_t scsi_write(uint8_t *cmd) {
 	uint32_t lba = cmd[2]<<24 | cmd[3]<<16 | cmd[4]<<8 | cmd[5];
 	uint16_t len = cmd[7]<<8 | cmd[8];
-	storage_debugf("Write lba=%d len=%d", lba, len);
+	storage_debugf("Write lba=%lu len=%d", lba, len);
 	while (len) {
 		uint8_t ret;
 		uint16_t write = MIN(len, SECTOR_BUFFER_SIZE/512);

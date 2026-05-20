@@ -80,7 +80,7 @@ uint8_t usb_in_transfer(usb_device_t *dev, ep_t *ep, uint16_t *size, uint8_t *bu
             // send junk report
             memset(buf, 0xA5, *size);
             buf[0] = iface->conf.report_id;
-            printf("%s: EP%d, report ID = 0x%02x\n", __FUNCTION__, ep->epAddr, buf[0]);
+            printf("%s: EP%d, report ID = 0x%02x\n", __FUNCTION__, ep->addr, buf[0]);
             // hexdump(buf, *size, 0);
             return 0;
         }
@@ -91,7 +91,7 @@ uint8_t usb_in_transfer(usb_device_t *dev, ep_t *ep, uint16_t *size, uint8_t *bu
 
 uint8_t usb_out_transfer(usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t* data)
 {
-    printf("%s: EP%d, report ID = 0x%02x\n", __FUNCTION__, ep->epAddr, data[0]);
+    printf("%s: EP%d, report ID = 0x%02x\n", __FUNCTION__, ep->addr, data[0]);
     hexdump(data, nbytes, 0);
     return 0;
 }
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
     uint8_t rcode;
 
     memset(&dev, 0, sizeof(usb_device_t));
-    dev.ep0.bmNakPower = USB_NAK_DEFAULT;
+    dev.ep0.nakPower = USB_NAK_DEFAULT;
     dev.ep0.maxPktSize = 8;
 
     if ((rcode = usb_get_dev_descr(&dev, sizeof(usb_device_descriptor_t), &dev_desc))) {

@@ -473,7 +473,7 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 						if(dev[j].hid_info.iface[k].device_type == HID_DEVICE_MOUSE) {
 							uint8_t jindex = dev[j].hid_info.iface[k].jindex;
 							if(jindex > c_jindex) {
-								hid_debugf("decreasing jindex of mouse #%d from %d to %d",
+								hid_debugf("decreasing jindex of mouse #%lu from %d to %d",
 									j, jindex, jindex - 1);
 								dev[j].hid_info.iface[k].jindex--;
 							}

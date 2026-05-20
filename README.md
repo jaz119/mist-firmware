@@ -42,4 +42,4 @@ The purpose of this fork is to get rid of outdated code and further improve it.
     - *removed legacy ST core support*;
     - *removed direct SD card mode*;
 
-Binaries can be found in [Latest Build](https://github.com/jaz119/mist-firmware/releases/tag/latest-clean).
+Binaries can be found in [Latest Build](https://github.com/jaz119/mist-firmware/releases/tag/latest-build).

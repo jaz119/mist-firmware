@@ -108,7 +108,7 @@ static void InsertFloppy(adfTYPE *drive, const unsigned char *name)
 	debugf("file readonly: 0x%u", readonly);
 	debugf("file size: %lu (%lu KB)", (uint32_t) f_size(&drive->file), (uint32_t) (f_size(&drive->file) >> 10));
 	debugf("drive tracks: %u", drive->tracks);
-	debugf("drive status: 0x%02X", drive->status);
+	debugf("drive status: 0x%02lX", drive->status);
 }
 
 static char FloppyFileSelected(uint8_t idx, const char *SelectedName) {

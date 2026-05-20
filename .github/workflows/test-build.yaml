@@ -20,7 +20,7 @@ jobs:
           - name: Update Release
             uses: softprops/action-gh-release@v2
             with:
-                tag_name: latest-${{ github.ref_name }}
+                tag_name: latest-build
                 name: "Latest Build: ${{ github.ref_name }}"
                 body: "The latest build from the branch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}"
                 fail_on_unmatched_files: true

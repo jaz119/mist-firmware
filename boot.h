@@ -2,7 +2,6 @@
 // bootscreen functions
 // 2014, rok.krajnc@gmail.com
 
-
 #ifndef __BOOT_H__
 #define __BOOT_H__
 

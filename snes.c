@@ -44,7 +44,7 @@ static uint32_t score_header(FIL *file, uint32_t offset, uint32_t addr)
 	UINT br;
 	uint8_t *data = sector_buffer;
 
-	snes_debugf("Header address: %08x offset: %d", addr, offset);
+	snes_debugf("Header address: %08lx offset: %lu", addr, offset);
 
 	if ((f_lseek(file, offset + addr) != FR_OK) ||
 	    (f_tell(file) != (offset + addr)) ||

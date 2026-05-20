@@ -317,7 +317,7 @@ static void tos_load_cartridge(const char *name) {
     return;
 
   if(f_size(&file) > 128*1024) {
-    tos_debugf("Cartridge file too big: %ld", f_size(&file));
+    tos_debugf("Cartridge file too big: %lu", (uint32_t) f_size(&file));
     f_close(&file);
     return;
   }

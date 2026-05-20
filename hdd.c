@@ -1237,7 +1237,7 @@ static void ATA_ReadSectors(
   UINT br;
 
   lba=chs2lba(cylinder, head, sector, unit, lbamode);
-  hdd_debugf("IDE%d: read %s, %d.%d.%d:%d, %d", unit, (lbamode ? "LBA" : "CHS"), cylinder, head, sector, lba, sector_count);
+  hdd_debugf("IDE%d: read %s, %d.%d.%d:%lu, %d", unit, (lbamode ? "LBA" : "CHS"), cylinder, head, sector, lba, sector_count);
   while (sector_count)
   {
     block_count = multiple ? sector_count : 1;
@@ -1419,7 +1419,7 @@ static void ATA_WriteSectors(unsigned char* tfr,
 
   // write sectors
   WriteStatus(IDE_STATUS_REQ); // pio out (class 2) command type
-  hdd_debugf("IDE%d: write %s, %d.%d.%d:%d, %d", unit, (lbamode ? "LBA" : "CHS"), cylinder, head, sector, lba, sector_count);
+  hdd_debugf("IDE%d: write %s, %d.%d.%d:%lu, %d", unit, (lbamode ? "LBA" : "CHS"), cylinder, head, sector, lba, sector_count);
 
   lba+=hdf[unit].offset;
   if (hdf[unit].type & HDF_FILE) {
@@ -1725,7 +1725,7 @@ unsigned char OpenHardfile(unsigned char unit, bool amiga)
           IDXIndex(hdf[unit].idxfile, unit);
           GetHardfileGeometry(&hdf[unit], amiga);
           hdd_debugf("HARDFILE %d:", unit);
-          hdd_debugf("file: \"%s\"", hardfile[unit]->name);
+          hdd_debugf("file: \"%s\"", hardfile[unit]->path);
           hdd_debugf("size: %lu (%lu MB)", (uint32_t) f_size(&hdf[unit].idxfile->file), (uint32_t) (f_size(&hdf[unit].idxfile->file) >> 20));
           hdd_debugf("CHS: %u.%u.%u", hdf[unit].cylinders, hdf[unit].heads, hdf[unit].sectors);
           hdd_debugf(" (%lu MB)", ((((unsigned long) hdf[unit].cylinders) * hdf[unit].heads * hdf[unit].sectors) >> 11));

@@ -112,12 +112,12 @@ bool FindDrive(void) {
 
 	// some debug output
 	iprintf("partition type: %s\n", fs_type_to_string());
-	debugf("fat_size: %u", fs.fsize);
+	debugf("fat_size: %lu", fs.fsize);
 	debugf("fat_number: %u", fs.n_fats);
-	debugf("fat_start: %u", fs.fatbase);
-	debugf("root_dir_start: %u", fs.dirbase);
+	debugf("fat_start: %lu", fs.fatbase);
+	debugf("root_dir_start: %lu", fs.dirbase);
 	debugf("dir_entries: %u", fs.n_rootdir);
-	debugf("data_start: %u", fs.database);
+	debugf("data_start: %lu", fs.database);
 	if (fs.fs_type != FS_EXFAT)
 		iprintf("free_clusters: %lu\n", fs.free_clst);
 	iprintf("cluster_size: %u KiB\n", fs.csize);

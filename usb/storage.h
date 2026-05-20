@@ -92,7 +92,7 @@ typedef struct {
   uint8_t bmILI                 : 1;
   uint8_t bmEOM                 : 1;
   uint8_t bmFileMark            : 1;
-  
+
   uint8_t Information[4];
   uint8_t bAdditionalLength;
   uint8_t CmdSpecificInformation[4];
