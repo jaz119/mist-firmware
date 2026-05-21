@@ -191,7 +191,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 		return rcode;
 
 	// search for device in quirks table
-	const hid_dev_info_t *known_dev = get_hid_dev(dev->vid, dev->pid);
+	info->quirks = get_hid_dev(dev->vid, dev->pid);
 
 	/* scan through all descriptors */
 	p = &buf;
@@ -206,17 +206,16 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			cur_iface = NULL;
 			ep_count = 0;
 
-			if (info->bNumIfaces >= MAX_IFACES
+			if (info->numIfaces >= MAX_IFACES
 				|| p->iface_desc.bInterfaceClass != USB_CLASS_HID) {
-				if (!known_dev || !(known_dev->has && known_dev->has(&p->iface_desc))) {
+				if (!info->quirks || !(info->quirks->has && info->quirks->has(&p->iface_desc)))
 					break;
-				}
 			}
 
 			iprintf("HID interface %d:\n", p->iface_desc.bInterfaceNumber);
 
 			// ok, let's use this interface
-			cur_iface = &info->iface[info->bNumIfaces];
+			cur_iface = &info->iface[info->numIfaces];
 			memset(cur_iface, 0, sizeof(usb_hid_iface_info_t));
 
 			cur_iface->ignore_boot_mode = false;
@@ -230,7 +229,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 				cur_iface->device_type = HID_DEVICE_MOUSE;
 			}
 
-			info->bNumIfaces++;
+			info->numIfaces++;
 			break;
 
 		case USB_DESCRIPTOR_ENDPOINT:
@@ -240,7 +239,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			if (ep_count > 2) {
 				// skip vendor specific iface
 				if (cur_iface) {
-					info->bNumIfaces--;
+					info->numIfaces--;
 					cur_iface = NULL;
 				}
 				break;
@@ -282,7 +281,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			}
 
 			// invalid HID descriptor
-			info->bNumIfaces--;
+			info->numIfaces--;
 			break;
 
 		case USB_DESCRIPTOR_INTERFACE_AD:
@@ -341,7 +340,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	}
 
 	// check if we found valid hid interfaces
-	if (!info->bNumIfaces) {
+	if (!info->numIfaces) {
 		hid_debugf("no interface(s) found");
 		return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
 	}
@@ -354,14 +353,13 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	}
 
 	// apply device init quirks
-	const hid_dev_info_t* hid_dev = get_hid_dev(vid, pid);
-	if (hid_dev && hid_dev->init_quirk) {
-		if (!hid_dev->init_quirk(dev))
+	if (info->quirks && info->quirks->init_quirk) {
+		if (!info->quirks->init_quirk(dev))
 			return USB_ERROR_NO_SUCH_DEVICE;
 	}
 
 	// process all supported interfaces
-	for (uint32_t i=0; i<info->bNumIfaces; i++) {
+	for (uint32_t i=0; i<info->numIfaces; i++) {
 		usb_hid_iface_info_t *iface = &info->iface[i];
 
 		if (iface->conf.type == HID_DEVICE_MOUSE) {
@@ -436,7 +434,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	}
 
 	hid_debugf("all configured");
-	info->bPollEnable = true;
+	info->pollEnable = true;
 	return 0;
 }
 
@@ -445,7 +443,7 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 
 	hid_debugf("%s()", __FUNCTION__);
 
-	for(uint32_t i=0; i<info->bNumIfaces; i++) {
+	for(uint32_t i=0; i<info->numIfaces; i++) {
 		// check if a joystick is released
 		if(info->iface[i].device_type == HID_DEVICE_JOYSTICK) {
 			uint8_t c_jindex = joystick_index(info->iface[i].jindex);
@@ -514,6 +512,8 @@ FORCE_ARM static int32_t collect_bits(
 /* processes a single USB interface */
 FORCE_ARM static void usb_process_iface(
 	usb_device_t *dev, usb_hid_iface_info_t *iface, uint16_t read, uint8_t *buf) {
+
+	usb_hid_info_t *info = &(dev->hid_info);
 
 	// successfully received some bytes
 	hid_report_t *conf = &iface->conf;
@@ -687,22 +687,20 @@ FORCE_ARM static void usb_process_iface(
 	virtual_joystick_keyboard(vjoy);
 
 	// apply device poll quirks
-	const hid_dev_info_t* hid_dev = get_hid_dev(dev->vid, dev->pid);
-	if (hid_dev && hid_dev->poll_quirk) {
-		hid_dev->poll_quirk(dev, iface, buf);
-	}
+	if (info->quirks && info->quirks->poll_quirk)
+		info->quirks->poll_quirk(dev, iface, buf);
 }
 
 FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 	usb_hid_info_t *info = &(dev->hid_info);
 
-	if (!info->bPollEnable)
+	if (!info->pollEnable)
 		return 0;
 
 	uint8_t rcode = 0;
 	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ + 4];
 
-	for (int i=0; i<info->bNumIfaces; i++)
+	for (int i=0; i<info->numIfaces; i++)
 	{
 		usb_hid_iface_info_t *iface = &info->iface[i];
 

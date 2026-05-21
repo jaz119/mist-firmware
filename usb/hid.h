@@ -63,17 +63,20 @@ typedef struct {
   uint16_t key_state;         // needed to detect key state changes in 5200daptor
   uint8_t iface_idx;
 
-  uint8_t ignore_boot_mode: 1;  // don't use boot mode even if device supports it
-  uint8_t has_boot_mode: 1;     // device supports boot mode
-  uint8_t device_type;
+  uint8_t ignore_boot_mode: 1;  // don't use Boot mode even if device supports it
+  uint8_t has_boot_mode: 1;   // device supports Boot mode
+  uint8_t device_type;        // HID device type
 
   hid_report_t conf;          // HID report struct
 
 } usb_hid_iface_info_t;
 
+typedef struct hid_dev_info_t hid_dev_info_t;
+
 typedef struct {
-  bool bPollEnable;           // poll enable flag
-  uint8_t  bNumIfaces;
+  bool pollEnable;            // poll enable flag
+  const hid_dev_info_t *quirks; // quirks info
+  uint8_t  numIfaces;         // ifaces count
   usb_hid_iface_info_t iface[MAX_IFACES];
 } usb_hid_info_t;
 

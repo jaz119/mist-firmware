@@ -4,7 +4,7 @@
 #include "usb/usb.h"
 
 // HID device quirks
-typedef struct {
+typedef struct hid_dev_info_t {
     uint16_t vid;
     uint16_t pid;
     const char *name;
