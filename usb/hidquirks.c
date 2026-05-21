@@ -405,7 +405,56 @@ static void poll_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint
     }
 }
 
-ALIGNED(4) static const hid_dev_info_t hid_devs[] = {
+// Qanba Q4RAF
+static const joy_btn_remap_t qanba_q4raf[] = {
+    {4, JOY_A}, {5, JOY_B}, {6, JOY_B}, {7, JOY_A}, {8, JOY_X},
+    {9, JOY_SELECT}, {11, JOY_SELECT}, {13, JOY_START}
+};
+// SNES Generic Pad
+static const joy_btn_remap_t snes_clone[] = {
+    {4, JOY_B}, {5, JOY_A}, {6, JOY_B}, {7, JOY_UP}, {8, JOY_L | JOY_L2},
+    {9, JOY_R | JOY_R2}, {12, JOY_SELECT}, {13, JOY_START}
+};
+// iBuffalo SFC BSGP801
+static const joy_btn_remap_t ibuffalo_snes[] = {
+    {4, JOY_A}, {5, JOY_B}, {6, JOY_B}, {7, JOY_UP}, {8, JOY_L | JOY_L2},
+    {9, JOY_R | JOY_R2}, {10, JOY_SELECT}, {11, JOY_START}
+};
+// Retrolink N64/GC
+static const joy_btn_remap_t retrolink_n64[] = {
+    {6, JOY_A}, {7, JOY_B}, {8, JOY_L | JOY_SELECT}, {9, JOY_R | JOY_SELECT},
+    {10, JOY_A}, {11, JOY_L | JOY_SELECT}, {12, JOY_B}, {13, JOY_START}
+};
+// ROYDS Stick.EX
+static const joy_btn_remap_t royds_stick[]  = {
+    {4, JOY_B}, {5, JOY_X}, {6, JOY_A}, {7, JOY_Y}, {8, JOY_L}, {9, JOY_R},
+    {10, JOY_L2}, {11, JOY_R2}, {12, JOY_SELECT}, {13, JOY_START}
+};
+// NEOGEO-daptor
+static const joy_btn_remap_t neogeo_daptor[] = {
+    {4, JOY_B}, {5, JOY_A}, {6, JOY_Y | JOY_L}, {7, JOY_X | JOY_R},
+    {8, JOY_START}, {9, JOY_SELECT}
+};
+// 8BitDo SFC30
+static const joy_btn_remap_t sfc30_8bitdo[] = {
+    {4, JOY_A}, {5, JOY_B}, {7, JOY_X}, {8, JOY_Y}, {10, JOY_L | JOY_L2},
+    {11, JOY_R | JOY_R2}, {14, JOY_SELECT}, {15, JOY_START}
+};
+// 8BitDo FC30
+static const joy_btn_remap_t fc30_8bitdo[] = {
+    {4, JOY_A}, {5, JOY_B}, {7, JOY_X}, {8, JOY_Y}, {10, JOY_L | JOY_L2},
+    {11, JOY_R | JOY_R2}, {12, JOY_L | JOY_L2}, {13, JOY_R | JOY_R2},
+    {14, JOY_SELECT}, {15, JOY_START}
+};
+// 8BitDo M30 2.4g
+static const joy_btn_remap_t m30_8bitdo[] = {
+    {4, JOY_Y}, {5, JOY_B}, {6, JOY_A}, {7, JOY_X}, {9, JOY_SELECT},
+    {10, JOY_L}, {11, JOY_R}, {13, JOY_START}
+};
+
+#define INIT_REMAP(arr)   { arr, ARRAY_SIZE(arr) }
+
+static const hid_dev_info_t hid_devs[] = {
     { 0x045E, 0x028E, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x045E, 0x028F, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x045E, 0x02D1, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
@@ -436,24 +485,24 @@ ALIGNED(4) static const hid_dev_info_t hid_devs[] = {
     { 0x054C, 0x05C4, "Sony DualShock 4" },
     { 0x054C, 0x09CC, "Sony DualShock 4" },
     { 0x054C, 0x0CE6, "Sony DualSense" },
-    { 0x0CA3, 0x0024, "8BitDo M30 2.4g" },
-    { 0x1002, 0x9000, "8BitDo FC30" },
-    { 0x1235, 0xAB11, "8BitDo SFC30" },
-    { 0x1235, 0xAB21, "8BitDo SFC30"},
+    { 0x1002, 0x9000, "8BitDo FC30", NULL, NULL, NULL, INIT_REMAP(fc30_8bitdo) },
+    { 0x1235, 0xAB11, "8BitDo SFC30", NULL, NULL, NULL, INIT_REMAP(sfc30_8bitdo) },
+    { 0x1235, 0xAB21, "8BitDo SFC30", NULL, NULL, NULL, INIT_REMAP(sfc30_8bitdo) },
+    { 0x0CA3, 0x0024, "8BitDo M30 2.4g", NULL, NULL, NULL, INIT_REMAP(m30_8bitdo) },
     { 0x2DC8, 0x6001, "8BitDo SN30 Pro" },
     { 0x040B, 0x6533, "Competition Pro" },
     { 0x0738, 0x2217, "Competition Pro" },
     { 0x046D, 0xC52B, "Unifying Receiver", logi_K400r_init },
     { 0x04D8, 0xF6EC, "NEOGEO-daptor", init_5200daptor, poll_5200daptor },
-    { 0x04D8, 0xF421, "NEOGEO-daptor" },
+    { 0x04D8, 0xF421, "NEOGEO-daptor", NULL, NULL, NULL, INIT_REMAP(neogeo_daptor) },
     { 0x04D8, 0xF672, "Vision-daptor" },
     { 0x04D8, 0xF947, "2600-daptor II" },
-    { 0x0411, 0x00C6, "iBuffalo SFC BSGP801" },
-    { 0x0583, 0x2060, "iBuffalo SFC BSGP801" },
-    { 0x081F, 0xE401, "SNES Generic Pad" },
-    { 0x0F30, 0x1012, "Qanba Q4RAF" },
-    { 0x1F4F, 0x0003, "ROYDS Stick.EX" },
-    { 0x0079, 0x0006, "Retrolink N64/GC" },
+    { 0x0411, 0x00C6, "iBuffalo SFC BSGP801", NULL, NULL, NULL, INIT_REMAP(ibuffalo_snes) },
+    { 0x0583, 0x2060, "iBuffalo SFC BSGP801", NULL, NULL, NULL, INIT_REMAP(ibuffalo_snes) },
+    { 0x081F, 0xE401, "SNES Generic Pad", NULL, NULL, NULL, INIT_REMAP(snes_clone) },
+    { 0x0F30, 0x1012, "Qanba Q4RAF", NULL, NULL, NULL, INIT_REMAP(qanba_q4raf) },
+    { 0x1F4F, 0x0003, "ROYDS Stick.EX", NULL, NULL, NULL, INIT_REMAP(royds_stick) },
+    { 0x0079, 0x0006, "Retrolink N64/GC", NULL, NULL, NULL, INIT_REMAP(retrolink_n64) },
     { 0x0079, 0x0011, "Retrolink NES" },
     { 0x1345, 0x1030, "Retro Freak gamepad" },
     { 0x1C59, 0x0026, "Retro Games gamepad" },

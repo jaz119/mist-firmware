@@ -1295,7 +1295,7 @@ void user_io_poll() {
 	uint16_t joy_state = 0, joy_map = 0;
 
 	if(GetDB9(0, &joy_state)) {
-		joy_map = virtual_joystick_mapping(0x00db, 0x0000, joy_state);
+		joy_map = virtual_joystick_mapping(0x00db, 0x0000, joy_state, NULL);
 
 		uint8_t idx = joystick_renumber(0);
 		uint8_t id = mist_cfg.joystick_db9_fixed_index ? idx : joystick_count();
@@ -1308,7 +1308,7 @@ void user_io_poll() {
 	}
 
 	if(GetDB9(1, &joy_state)) {
-		joy_map = virtual_joystick_mapping(0x00db, 0x0001, joy_state);
+		joy_map = virtual_joystick_mapping(0x00db, 0x0001, joy_state, NULL);
 
 		uint8_t idx = joystick_renumber(1);
 		uint8_t id = mist_cfg.joystick_db9_fixed_index ? idx : joystick_count() + 1;

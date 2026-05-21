@@ -27,15 +27,15 @@ This file defines how to handle mapping in the MiST controllers in various ways:
 #include <string.h>
 #include <stdlib.h>
 
-#include "timer.h"
 #include "debug.h"
 #include "joymapping.h"
+#include "hidquirks.h"
 #include "user_io.h"
 #include "mist_cfg.h"
 
-// up to 8 buttons can be remapped
-#define MAX_VIRTUAL_JOYSTICK_REMAP 8
-#define MAX_JOYSTICK_KEYBOARD_MAP 16
+// Up to 3 device remap profiles
+#define MAX_VIRTUAL_JOYSTICK_REMAP	3
+#define MAX_JOYSTICK_KEYBOARD_MAP	16
 
 /*****************************************************************************\
    Virtual joystick remap - custom parsing
@@ -44,7 +44,7 @@ This file defines how to handle mapping in the MiST controllers in various ways:
 
 static joymapping_t joystick_mappers[MAX_VIRTUAL_JOYSTICK_REMAP];
 
-static const uint16_t default_joystick_mapping [16] = {
+static const uint16_t default_joystick_mapping[16] = {
 	JOY_RIGHT,
 	JOY_LEFT,
 	JOY_DOWN,
@@ -62,14 +62,6 @@ static const uint16_t default_joystick_mapping [16] = {
 	JOY_L3,
 	JOY_R3
 };
-
-/*static void dump_mapping() {
-	for(int i=0;i<MAX_VIRTUAL_JOYSTICK_REMAP;i++) {
-		if(joystick_mappers[i].vid && joystick_mappers[i].pid) {
-			iprintf("map[%d]: VID: %04x PID: %04x tag: %d\n", i, joystick_mappers[i].vid, joystick_mappers[i].pid, joystick_mappers[i].tag);
-		}
-	}
-}*/
 
 static int idx = 0;
 
@@ -185,10 +177,10 @@ char virtual_joystick_remap(char *s, char action, int tag) {
 
 void virtual_joystick_remap_update(joymapping_t *map) {
 	for(uint32_t i=0; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
-		if((joystick_mappers[i].vid == map->vid &&
-		    joystick_mappers[i].pid == map->pid &&
-		    joystick_mappers[i].tag == map->tag) ||
-		    !joystick_mappers[i].vid) {
+		if((joystick_mappers[i].vid == map->vid
+		  && joystick_mappers[i].pid == map->pid
+		  && joystick_mappers[i].tag == map->tag)
+		  || !joystick_mappers[i].vid) {
 			memcpy(&joystick_mappers[i], map, sizeof(joymapping_t));
 			return;
 		}
@@ -200,10 +192,9 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 	// first search for the entry to update with the largest tag
 	int old = -1, new = -1, oldtag = 0;
 	for(uint32_t i=0; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
-		if(joystick_mappers[i].vid == vid &&
-		   joystick_mappers[i].pid == pid &&
-		   joystick_mappers[i].tag >= oldtag) {
-
+		if(joystick_mappers[i].vid == vid
+		  && joystick_mappers[i].pid == pid
+		  && joystick_mappers[i].tag >= oldtag) {
 			old = i;
 		}
 	}
@@ -211,10 +202,9 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 
 	// now search if the entry with the same newtag already there
 	for(uint32_t i=0; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
-		if(joystick_mappers[i].vid == vid &&
-		   joystick_mappers[i].pid == pid &&
-		   joystick_mappers[i].tag == newtag) {
-
+		if(joystick_mappers[i].vid == vid
+		  && joystick_mappers[i].pid == pid
+		  && joystick_mappers[i].tag == newtag) {
 			new = i;
 			break;
 		}
@@ -227,7 +217,7 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 		memcpy(&joystick_mappers[new].mapping, &joystick_mappers[old].mapping, 16*sizeof(uint16_t));
 		// delete the old entry
 		for(uint32_t i = old; i<MAX_VIRTUAL_JOYSTICK_REMAP; i++) {
-			if (i==(MAX_VIRTUAL_JOYSTICK_REMAP-1)) {
+			if (i == (MAX_VIRTUAL_JOYSTICK_REMAP-1)) {
 				memset(&joystick_mappers[i], 0, sizeof(joymapping_t));
 			} else {
 				memcpy(&joystick_mappers[i], &joystick_mappers[i+1].mapping, sizeof(joymapping_t));
@@ -238,144 +228,32 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
 
 /*****************************************************************************/
 
-/* Translates USB input into internal virtual joystick,
-   with some default handling for common/known gampads */
+/*
+ * Translates USB input into internal virtual joystick
+ */
 
-uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_t joy_input ) {
+FORCE_ARM uint16_t virtual_joystick_mapping(
+	uint16_t vid, uint16_t pid, uint16_t joy_input, const joy_remap_t *remap ) {
+
+	// no events - no work
+	if (!joy_input) return 0;
 
 	// defines translations between physical buttons and virtual joysticks
 	uint16_t mapping[16];
-	// keep directions by default
-	for(int i=0; i<4; i++)
-	   mapping[i]=default_joystick_mapping[i];
-	// blank the rest
-	for(int i=4; i<16; i++) mapping[i]=0;
 
-	uint8_t use_default=1;
-	uint8_t btn_off = 3; // start at three since array is 0 based, so 4 = button 1
-
-	// mapping for Qanba Q4RAF
-	if( vid==0x0F30 && pid==0x1012) {
-	  mapping[btn_off+1]  = JOY_A;
-	  mapping[btn_off+2]  = JOY_B;
-	  mapping[btn_off+4]  = JOY_A;
-	  mapping[btn_off+3]  = JOY_B;
-	  mapping[btn_off+5]  = JOY_X; //for jump
-	  mapping[btn_off+6]  = JOY_SELECT;
-	  mapping[btn_off+8]  = JOY_SELECT;
-	  mapping[btn_off+10] = JOY_START;
-	  use_default=0;
+	// Init all by defaults
+	for (int i = 0; i < 16; i++) {
+		mapping[i] = default_joystick_mapping[i];
 	}
 
-	// mapping for no-brand cheap snes clone pad
-	if(vid==0x081F && pid==0xE401) {
-	  mapping[btn_off+2]  = JOY_A;
-	  mapping[btn_off+3]  = JOY_B;
-	  mapping[btn_off+1]  = JOY_B; // allow two ways to hold the controller
-	  mapping[btn_off+4]  = JOY_UP;
-	  mapping[btn_off+5]  = JOY_L | JOY_L2; // also bind to buttons for flippers
-	  mapping[btn_off+6]  = JOY_R | JOY_R2;
-	  mapping[btn_off+9]  = JOY_SELECT;
-	  mapping[btn_off+10] = JOY_START;
-	  use_default=0;
-	}
-
-	// mapping for iBuffalo SNES pad - BSGP801
-	if(vid==0x0583 && pid==0x2060) {
-	  mapping[btn_off+1] = JOY_A;
-	  mapping[btn_off+2] = JOY_B;
-	  mapping[btn_off+3] = JOY_B;  // allow two ways to hold the controller
-	  mapping[btn_off+4] = JOY_UP;
-	  mapping[btn_off+5] = JOY_L | JOY_L2; // also bind to buttons for flippers
-	  mapping[btn_off+6] = JOY_R | JOY_R2;
-	  mapping[btn_off+7] = JOY_SELECT;
-	  mapping[btn_off+8] = JOY_START;
-	  use_default=0;
-	}
-
-	//mapping for Buffalo NES pad - BGCFC801
-	if(vid==0x0411 && pid==0x00C6) {
-	  mapping[btn_off+1] = JOY_A;
-	  mapping[btn_off+2] = JOY_B;
-	  mapping[btn_off+3] = JOY_B;  // allow two ways to hold the controller
-	  mapping[btn_off+4] = JOY_UP;
-	  mapping[btn_off+5] = JOY_L | JOY_L2; // also bind to buttons for flippers
-	  mapping[btn_off+6] = JOY_R | JOY_R2;
-	  mapping[btn_off+7] = JOY_SELECT;
-	  mapping[btn_off+8] = JOY_START;
-	  use_default=0;
-	}
-
-	//mapping for RetroLink N64 and Gamecube pad (same vid/pid)
-	if(vid==VID_RETROLINK && pid==0x0006) {
-	  mapping[btn_off+7] = JOY_A;  // A on N64 pad
-	  mapping[btn_off+9] = JOY_B;  // B on N64 pad
-	  mapping[btn_off+3] = JOY_A;  // A on GC pad
-	  mapping[btn_off+4] = JOY_B;  // B on GC pad
-	  mapping[btn_off+5] = JOY_L | JOY_SELECT;
-	  mapping[btn_off+8] = JOY_L | JOY_SELECT; // Z button on N64 pad
-	  mapping[btn_off+6] = JOY_R | JOY_SELECT;
-	  mapping[btn_off+10] = JOY_START;
-	  use_default=0;
-	}
-
-	//mapping for ROYDS Stick.EX
-	if(vid==0x1F4F && pid==0x0003) {
-	  mapping[btn_off+3] = JOY_A;  // Circle (usually select in PSx)
-	  mapping[btn_off+1] = JOY_B;  // Cross  (usually cancel in PSx)
-	  mapping[btn_off+2] = JOY_X;  // Triangle
-	  mapping[btn_off+4] = JOY_Y;  // Square
-	  mapping[btn_off+5] = JOY_L;
-	  mapping[btn_off+6] = JOY_R;
-	  mapping[btn_off+7] = JOY_L2;
-	  mapping[btn_off+8] = JOY_R2;
-	  mapping[btn_off+9] = JOY_SELECT;
-	  mapping[btn_off+10] = JOY_START;
-	  use_default=0;
-	}
-
-	//mapping for NEOGEO-daptor
-	if(vid==VID_DAPTOR && pid==0xF421) {
-	  mapping[btn_off+1] = JOY_B;  // red button "A" on pad (inverted order with NES/SNES
-	  mapping[btn_off+2] = JOY_A;  // yellow button "B" on pad (inverted order with NES/SNES
-	  mapping[btn_off+3] = JOY_Y | JOY_L;  // green button, "C" on pad (mapped to Y and L in SNES convention)
-	  mapping[btn_off+4] = JOY_X | JOY_R;  // blue button "D"
-	  mapping[btn_off+5] = JOY_START;
-	  mapping[btn_off+6] = JOY_SELECT;
-	  use_default=0;
-	}
-
-	//mapping for 8bitdo SFC30
-	if(vid==0x1235 && (pid==0xab11 || pid==0xab21)) {
-		mapping[btn_off+1] = JOY_A;
-	  mapping[btn_off+2] = JOY_B;
-	  //mapping[btn_off+3] // physical button #3 not used
-		mapping[btn_off+4] = JOY_X;
-		mapping[btn_off+5] = JOY_Y;
-	  //mapping[btn_off+6] // physical button #6 not used
-		mapping[btn_off+7] = JOY_L | JOY_L2; // also bind to buttons for flippers
-	  mapping[btn_off+8] = JOY_R | JOY_R2; // also bind to buttons for flippers
-	  //9 and 10 not used
-		mapping[btn_off+11] = JOY_SELECT;
-		mapping[btn_off+12] = JOY_START;
-		use_default=0;
-	}
-
-		//mapping for 8bitdo FC30
-	if(vid==0x1002 && pid==0x9000) {
-		mapping[btn_off+1] = JOY_A;
-	  mapping[btn_off+2] = JOY_B;
-	  //mapping[btn_off+3] // physical button #3 not used
-		mapping[btn_off+4] = JOY_X;
-		mapping[btn_off+5] = JOY_Y;
-	  //mapping[btn_off+6] // physical button #6 not used
-		mapping[btn_off+7] = JOY_L | JOY_L2; // also bind to buttons for flippers
-	  mapping[btn_off+8] = JOY_R | JOY_R2; // also bind to buttons for flippers
-		mapping[btn_off+9] = JOY_L | JOY_L2; // also bind to buttons for flippers
-	  mapping[btn_off+10] = JOY_R | JOY_R2; // also bind to buttons for flippers
-		mapping[btn_off+11] = JOY_SELECT;
-		mapping[btn_off+12] = JOY_START;
-		use_default=0;
+	// Apply remap quirks for common/known gampads
+	if (remap && remap->count) {
+		for (int n=0; n<remap->count; n++) {
+			uint8_t i = remap->btn[n].idx;
+			if (i < 16) {
+				mapping[i] = remap->btn[n].value;
+			}
+		}
 	}
 
 	// Apply remap information from various config sources if present
@@ -383,27 +261,26 @@ uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_t joy_inpu
 	// 0 - mist.ini
 	// 1 - mistcfg.ini
 	// 2 - [corename].cfg
+	// 3 - Menu
 	int tag = 0;
-	for(int j=0; j<MAX_VIRTUAL_JOYSTICK_REMAP; j++) {
-		if(joystick_mappers[j].vid==vid && joystick_mappers[j].pid==pid && joystick_mappers[j].tag >= tag) {
-			for(int i=0; i<16; i++)
-				mapping[i]=joystick_mappers[j].mapping[i];
-			use_default=0;
+	for (int j=0; j<MAX_VIRTUAL_JOYSTICK_REMAP; j++) {
+		if (joystick_mappers[j].vid == vid
+		  && joystick_mappers[j].pid == pid
+		  && joystick_mappers[j].tag >= tag) {
+			for (int i=0; i<16; i++)
+				mapping[i] = joystick_mappers[j].mapping[i];
 			tag = joystick_mappers[j].tag + 1;
 		}
 	}
 
-	// apply default mapping to rest of buttons if requested
-	if (use_default) {
-	  for(int i=4; i<16; i++)
-		if (mapping[i]==0) mapping[i]=default_joystick_mapping[i];
-	}
-
+	// Get map of pressed buttons
 	uint16_t vjoy = 0;
-	for(int i=0; i<16; i++)
-	  if (joy_input & (0x01<<i))  vjoy |= mapping[i];
+	for (int i=0; i<16; i++)
+		if (joy_input & BIT(i))
+			vjoy |= mapping[i];
 
-  return vjoy;
+	hid_debugf("%s: 0x%04x => 0x%04x", __FUNCTION__, joy_input, vjoy);
+	return vjoy;
 }
 
 /*****************************************************************************\
@@ -429,7 +306,7 @@ void joy_key_map_init(void) {
 
 char joystick_key_map(char *s, char action, int tag) {
   uint32_t count;
-  uint32_t assign=0;
+  uint32_t assign = 0;
   uint32_t len = strlen(s);
   uint32_t scancode=0;
   char *token;
@@ -450,27 +327,27 @@ char joystick_key_map(char *s, char action, int tag) {
       joy_key_map[i].modifier = 0;
       for(uint32_t j=0; j<6; j++)
         joy_key_map[i].keys[j] = 0;
-      count  = 0;
-      token  = strtok (s, ",");
-      while(s) {
+      count = 0;
+      assign = 0;
+      token = strtok (s, ",");
+      while(token != NULL) {
         if (count==0) {
-          joy_key_map[i].mask = strtol(s, NULL, 16);
-        } else {
-          scancode = strtol(s, NULL, 16);
+            joy_key_map[i].mask = strtol(token, NULL, 16);
+          } else {
+          scancode = strtol(token, NULL, 16);
           // set as modifier if scancode is on the relevant range (224 to 231)
-          if(scancode>223) {
+          if(scancode >= 224 && scancode <= 231) {
             //  bit  0     1      2    3    4     5      6    7
             //  key  LCTRL LSHIFT LALT LGUI RCTRL RSHIFT RALT RGUI
             //
-            scancode -= 223;
-            joy_key_map[i].modifier |= (0x01 << (scancode-1));
+            joy_key_map[i].modifier |= BIT(scancode - 224);
           } else {
             // max 6 keys
-            if (assign < 7)
+            if (assign < 6)
               joy_key_map[i].keys[assign++] = scancode;
           }
         }
-        s = strtok (NULL, ",");
+        token = strtok(NULL, ",");
         count+=1;
       }
       return 0; // finished processing input string so exit
@@ -483,14 +360,14 @@ char joystick_key_map(char *s, char action, int tag) {
 
 bool virtual_joystick_keyboard( uint16_t vjoy ) {
 	// ignore if globally switched off
-	if(mist_cfg.joystick_disable_shortcuts)
+	if (mist_cfg.joystick_disable_shortcuts)
 		return false;
 
 	// use button combinations as shortcut for certain keys
-	ALIGNED(4) uint8_t buf[6] = { 0,0,0,0,0,0 };
+	uint8_t buf[6] = { 0,0,0,0,0,0 };
 
 	// if OSD is open control it via USB joystick
-	if(user_io_osd_is_visible() && !mist_cfg.joystick_ignore_osd) {
+	if (user_io_osd_is_visible() && !mist_cfg.joystick_ignore_osd) {
 		int idx = 0;
 		if(vjoy & JOY_A)     buf[idx++] = 0x28; // ENTER
 		if(vjoy & JOY_B)     buf[idx++] = 0x29; // ESC
@@ -500,13 +377,13 @@ bool virtual_joystick_keyboard( uint16_t vjoy ) {
 
 		// up and down uses SELECT or L for faster scrolling
 
-		if(vjoy & JOY_UP) {
+		if (vjoy & JOY_UP) {
 			if (vjoy & JOY_SELECT || vjoy & JOY_L) buf[idx] = 0x4B; // page up
 			else buf[idx] = 0x52; // up arrow
 			if (idx < 6) idx++; //avoid overflow if we assigned 6 already
 		}
 
-		if(vjoy & JOY_DOWN) {
+		if (vjoy & JOY_DOWN) {
 			if (vjoy & JOY_SELECT || vjoy & JOY_L) buf[idx] = 0x4E; // page down
 			else buf[idx] = 0x51; // down arrow
 			if (idx < 6) idx++; //avoid overflow if we assigned 6 already
@@ -524,11 +401,11 @@ bool virtual_joystick_keyboard( uint16_t vjoy ) {
 		if (vjoy & JOY_START) {
 			//iprintf("joy2key START is pressed\n");
 			int idx = 0;
-			if(vjoy & JOY_A)       buf[idx++] = 0x28; // ENTER
-			if(vjoy & JOY_B)       buf[idx++] = 0x2C; // SPACE
-			if(vjoy & JOY_L)       buf[idx++] = 0x29; // ESC
-			if(vjoy & JOY_R)       buf[idx++] = 0x3A; // F1
-			if(vjoy & JOY_SELECT)  buf[idx++] = 0x45;  //F12 // i.e. open OSD in most cores
+			if (vjoy & JOY_A)       buf[idx++] = 0x28; // ENTER
+			if (vjoy & JOY_B)       buf[idx++] = 0x2C; // SPACE
+			if (vjoy & JOY_L)       buf[idx++] = 0x29; // ESC
+			if (vjoy & JOY_R)       buf[idx++] = 0x3A; // F1
+			if (vjoy & JOY_SELECT)  buf[idx++] = 0x45;  //F12 // i.e. open OSD in most cores
 		} else {
 
 			// shortcuts with SELECT - mouse emulation
@@ -552,39 +429,25 @@ bool virtual_joystick_keyboard( uint16_t vjoy ) {
 	// process mapped keyboard commands from mist.ini
 	uint8_t mapped_hit = 0;
 	uint8_t modifier = 0;
-	uint8_t has_mapping = 0;
 	//uint8_t joy_buf[6] = { 0,0,0,0,0,0 };
-	for(uint32_t i=0; i<MAX_JOYSTICK_KEYBOARD_MAP; i++) {
-		if(vjoy & joy_key_map[i].mask) {
-			has_mapping = 1;
-			//iprintf("joy2key:%d\n", joy_key_map[i].mask);
+	for (uint32_t i=0; i<MAX_JOYSTICK_KEYBOARD_MAP; i++) {
+		if (vjoy & joy_key_map[i].mask) {
 			if (joy_key_map[i].modifier) {
 				modifier |= joy_key_map[i].modifier;
-				mapped_hit=1;
-				//iprintf("joy2key hit (modifier):%d\n", joy_key_map[i].modifier);
 			}
 			// only override up to 6 keys,
 			// and preserve overrides from further up this function
-			uint32_t k = 0;
 			for (uint32_t j=0; j<6; j++) {
-				if(buf[j]!=0) k=j+1; //next index to assign
-			}
-			for (uint32_t j=0; j<6; j++) {
-				if (k>=6) break; // max keys reached
+				if (idx >= 6) break; // max keys reached
 				if (joy_key_map[i].keys[j]) {
-					buf[k++] = joy_key_map[i].keys[j];
-					mapped_hit=1;
-					//iprintf("joy2key hit:%d\n", joy_key_map[i].keys[j]);
+					buf[idx++] = joy_key_map[i].keys[j];
 				}
 			}
 		}
 	}
-	// generate key events but only if no other keys were pressed
-	if (has_mapping && mapped_hit) {
-		user_io_kbd(modifier, buf, UIO_PRIORITY_GAMEPAD, 0, 0);
-	} else {
-		user_io_kbd(0x00, buf, UIO_PRIORITY_GAMEPAD, 0, 0);
-	}
+
+	// generate key events
+	user_io_kbd(modifier, buf, UIO_PRIORITY_GAMEPAD, 0, 0);
 
 	return (buf[0] ? true : false);
 }

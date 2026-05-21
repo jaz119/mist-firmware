@@ -24,10 +24,7 @@
 
 #include <stdbool.h>
 #include <inttypes.h>
-
-// VID of vendors who are consistent
-#define VID_DAPTOR      0x04D8
-#define VID_RETROLINK   0x0079
+#include "attrs.h"
 
 typedef struct {
     uint16_t vid;
@@ -35,6 +32,8 @@ typedef struct {
     uint16_t mapping[16];
     int      tag;
 } joymapping_t;
+
+typedef struct joy_remap_t joy_remap_t;
 
 /*****************************************************************************/
 
@@ -47,7 +46,7 @@ void virtual_joystick_remap_update(joymapping_t*);
 void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag);
 
 // runtime mapping
-uint16_t virtual_joystick_mapping (uint16_t vid, uint16_t pid, uint16_t joy_input);
+FORCE_ARM uint16_t virtual_joystick_mapping( uint16_t vid, uint16_t pid, uint16_t joy_input, const joy_remap_t * );
 
 /*****************************************************************************/
 
@@ -56,7 +55,7 @@ void joystick_key_map_init(void);
 char joystick_key_map(char *, char, int);
 
 // runtime mapping
-bool virtual_joystick_keyboard ( uint16_t vjoy );
+bool virtual_joystick_keyboard( uint16_t vjoy );
 
 /*****************************************************************************/
 

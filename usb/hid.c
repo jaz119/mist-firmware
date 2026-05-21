@@ -212,6 +212,9 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 					break;
 			}
 
+			if (info->quirks && info->quirks->name)
+				iprintf("[ %s ]\n", info->quirks->name);
+
 			iprintf("HID interface %d:\n", p->iface_desc.bInterfaceNumber);
 
 			// ok, let's use this interface
@@ -308,7 +311,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 		return USB_ERROR_CONFIGURATION_SIZE_MISMATCH;
 	}
 
-	hid_debugf("found %d interface(s)", info->bNumIfaces);
+	hid_debugf("found %d interface(s)", info->numIfaces);
 	return 0;
 }
 
@@ -643,8 +646,10 @@ FORCE_ARM static void usb_process_iface(
 
 	// map virtual joypad
 	uint32_t vjoy = jmap;
+	const joy_remap_t *remap_quirk = (info->quirks) ? &info->quirks->remap : NULL;
+
 	vjoy |= (btn_extra << 8);
-	vjoy = virtual_joystick_mapping(dev->vid, dev->pid, vjoy);
+	vjoy = virtual_joystick_mapping(dev->vid, dev->pid, vjoy, remap_quirk);
 
 	// now go back to original variables for downstream processing
 	btn_extra = ((vjoy & 0xFF00) >> 8);
