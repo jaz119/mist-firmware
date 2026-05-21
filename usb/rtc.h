@@ -3,7 +3,6 @@
 
 #include "utils.h"
 
-struct ep_t;
 typedef struct usb_device_entry usb_device_t;
 
 // internal time format: year,month,day,hour,min,sec,wday

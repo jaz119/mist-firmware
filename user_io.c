@@ -244,7 +244,7 @@ static void user_io_send_rtc(void) {
 	spi8(bin2bcd(date[T_DAY]));
 	spi8(bin2bcd(date[T_MONTH]));
 	spi8(bin2bcd(date[T_YEAR]-100));
-	spi8(bin2bcd(date[T_WDAY])-1); //day 1-7 -> 0-6
+	spi8(bin2bcd(date[T_WDAY])-1); // day 1-7 -> 0-6
 	spi8(0x40); // flag
 	DisableIO();
 }
@@ -1334,7 +1334,7 @@ void user_io_poll() {
 		if(CheckTimer(emu_timer)) {
 			emu_timer = GetTimer(EMU_MOUSE_FREQ);
 
-			if(emu_state & JOY_MOVE) {
+			if(emu_state & ( JOY_RIGHT | JOY_LEFT | JOY_UP | JOY_DOWN )) {
 				unsigned char b = 0;
 				char x = 0, y = 0;
 				if((emu_state & (JOY_LEFT | JOY_RIGHT)) == JOY_LEFT)  x = -1;
