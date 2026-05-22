@@ -20,7 +20,6 @@ typedef struct {
   uint8_t joystick_disable_shortcuts;
   uint8_t joystick0_prefer_db9;
   uint8_t joystick_db9_fixed_index;
-  uint8_t joystick_emu_fixed_index;
   uint8_t joystick_analog_mult;
   uint8_t joystick_autofire_combo;
   uint8_t joystick_disable_swap;
@@ -34,7 +33,6 @@ typedef struct {
   uint8_t ypbpr;
   uint8_t keep_video_mode;
   uint8_t sdram64;
-  uint8_t amiga_mod_keys;
   uint8_t usb_storage;
 } mist_cfg_t;
 

@@ -54,7 +54,6 @@ mist_cfg_t mist_cfg = {
   .joystick_disable_shortcuts = 1,
   .joystick0_prefer_db9 = 0,
   .joystick_db9_fixed_index = 0,
-  .joystick_emu_fixed_index = 0,
   .joystick_analog_mult = 128,
   .joystick_analog_offset = 0,
   .joystick_autofire_combo = 0,
@@ -63,12 +62,11 @@ mist_cfg_t mist_cfg = {
   .key_menu_as_rgui = 0,
   .keep_video_mode = 1,
   .keyrah_mode = 0,
-  .reset_combo = 0,
+  .reset_combo = 1,
   .usb_storage = 0,
   .sdram64 = 0,
   .ypbpr = 0,
   .keep_video_mode = 0,
-  .amiga_mod_keys = 0
 };
 
 minimig_cfg_t minimig_cfg = {
@@ -106,7 +104,6 @@ static const ini_var_t mist_ini_vars[] = {
   {"JOYSTICK_IGNORE_OSD", (void*)(&(mist_cfg.joystick_ignore_osd)), UINT8, 0, 1, 1},
   {"JOYSTICK0_PREFER_DB9", (void*)(&(mist_cfg.joystick0_prefer_db9)), UINT8, 0, 1, 1},
   {"JOYSTICK_DB9_FIXED_INDEX", (void*)(&(mist_cfg.joystick_db9_fixed_index)), UINT8, 0, 1, 1},
-  {"JOYSTICK_EMU_FIXED_INDEX", (void*)(&(mist_cfg.joystick_emu_fixed_index)), UINT8, 0, 1, 1},
   {"JOYSTICK_ANALOG_MULTIPLIER", (void*)(&(mist_cfg.joystick_analog_mult)), UINT8, 1, 128, 1},
   {"JOYSTICK_ANALOG_OFFSET", (void*)(&(mist_cfg.joystick_analog_offset)), INT8, -127, 127, 1},
   {"JOYSTICK_AUTOFIRE_COMBO", (void*)(&(mist_cfg.joystick_autofire_combo)), INT8, 0, 2, 1},
@@ -124,7 +121,6 @@ static const ini_var_t mist_ini_vars[] = {
   {"JOY_KEY_MAP", (void*)joystick_key_map, CUSTOM_HANDLER, 0, 0, 1},
 #endif
   {"ROM", (void*)ini_rom_upload, CUSTOM_HANDLER, 0, 0, 1},
-  {"AMIGA_MOD_KEYS", (void*)(&(mist_cfg.amiga_mod_keys)), UINT8, 0, 3, 1},
   {"USB_STORAGE", (void*)(&(mist_cfg.usb_storage)), UINT8, 0, 1, 1},
   // [MINIMIG_CONFIG]
   {"KICK1X_MEMORY_DETECTION_PATCH", (void*)(&(minimig_cfg.kick1x_memory_detection_patch)), UINT8, 0, 1, 2},

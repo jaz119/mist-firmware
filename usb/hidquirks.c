@@ -385,7 +385,7 @@ static void poll_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint
     uint16_t keys = 0;
     for (uint32_t i=0; button_map[i].mask; i++)
         if (buf[button_map[i].byte_offset] & button_map[i].mask)
-            keys |= (1<<i);
+            keys |= BIT(i);
 
     // check if keys have changed
     if (iface->key_state != keys) {
@@ -398,10 +398,69 @@ static void poll_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint
                 buf[p++] = button_map[i].key_code[jindex];
 
         // generate key events
-        user_io_kbd(0x00, buf, UIO_PRIORITY_GAMEPAD, dev->vid, dev->pid);
+        user_io_kbd(0x00, buf, UIO_PRIORITY_GAMEPAD);
 
         // save current state of keys
         iface->key_state = keys;
+    }
+}
+
+// Keyrah keyboard scan codes translator
+static void poll_keyrah(usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf)
+{
+    static const uint8_t fn_lut[0x56] = {
+        [0x1E]=0x59, [0x1F]=0x5A, [0x20]=0x5B, [0x21]=0x5C, [0x22]=0x5D,
+        [0x23]=0x5E, [0x24]=0x5F, [0x25]=0x60, [0x26]=0x61, [0x27]=0x62,
+        [0x28]=0x58, [0x2D]=0x56, [0x2E]=0x57, [0x2F]=0x68, [0x30]=0x69,
+        [0x31]=0x55, [0x37]=0x63, [0x3A]=0x44, [0x3B]=0x45, [0x3C]=0x6C,
+        [0x3D]=0x6D, [0x3E]=0x6E, [0x3F]=0x6F, [0x4F]=0x4D, [0x50]=0x4A,
+        [0x51]=0x4E, [0x52]=0x4B, [0x54]=0x48, [0x55]=0x46
+    };
+
+    if (iface->device_type != HID_DEVICE_KEYBOARD)
+        return;
+
+    if (mist_cfg.keyrah_mode == 0)
+        return;
+
+    uint8_t *mods = buf + (iface->conf.report_id ? 1 : 0);
+    uint8_t *keys = mods + 2;
+
+    int count = 0;
+    uint8_t fn = 0, rctrl = 0, empty = 1;
+
+    // Removing of unnecessary
+    for (int i = 0; i < 6; i++)
+    {
+        if (!keys[i]) continue;
+        if (keys[i] == 0x64) fn = 1;
+        else if (keys[i] == 0x32) rctrl = 1;
+        else {
+            empty = 0;
+            keys[count++] = keys[i];
+        }
+    }
+    for (int i = count; i < 6; i++)
+        keys[i] = 0;
+
+    // Fn codes translation
+    for (int i = 0; i < count; i++)
+    {
+        if (fn) {
+            if (keys[i] < 0x56 && fn_lut[keys[i]])
+                keys[i] = fn_lut[keys[i]];
+        } else {
+            if (keys[i] == 0x53)      keys[i] = 0x68;
+            else if (keys[i] == 0x47) keys[i] = 0x69;
+            else if (keys[i] == 0x49) keys[i] = 0x6b;
+        }
+    }
+
+    // Right Control
+    if (rctrl) {
+        *mods |= 0x10;
+    } else {
+        *mods &= ~0x10;
     }
 }
 
@@ -506,6 +565,7 @@ static const hid_dev_info_t hid_devs[] = {
     { 0x0079, 0x0011, "Retrolink NES" },
     { 0x1345, 0x1030, "Retro Freak gamepad" },
     { 0x1C59, 0x0026, "Retro Games gamepad" },
+    { 0x18D8, 0x0002, "Keyrah", NULL, poll_keyrah },
 };
 
 FAST const hid_dev_info_t* get_hid_dev(uint16_t vid, uint16_t pid)

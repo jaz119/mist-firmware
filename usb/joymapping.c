@@ -447,7 +447,7 @@ bool virtual_joystick_keyboard( uint16_t vjoy ) {
 	}
 
 	// generate key events
-	user_io_kbd(modifier, buf, UIO_PRIORITY_GAMEPAD, 0, 0);
+	user_io_kbd(modifier, buf, UIO_PRIORITY_GAMEPAD);
 
 	return (buf[0] ? true : false);
 }

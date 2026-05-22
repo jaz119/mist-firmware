@@ -526,10 +526,14 @@ FORCE_ARM static void usb_process_iface(
 	if (conf->report_id && (buf[0] != conf->report_id))
 		return;
 
+	// apply device poll quirks
+	if (info->quirks && info->quirks->poll_quirk)
+		info->quirks->poll_quirk(dev, iface, buf);
+
 	// ---------- process keyboard -------------
 	if (iface->device_type == HID_DEVICE_KEYBOARD) {
 		uint8_t *data = (buf + id_offset);
-   		user_io_kbd(data[0], data + 2, UIO_PRIORITY_KEYBOARD, dev->vid, dev->pid);
+		user_io_kbd(data[0], data + 2, UIO_PRIORITY_KEYBOARD);
 		return;
 	}
 
@@ -690,10 +694,6 @@ FORCE_ARM static void usb_process_iface(
 
 	// apply keyboard mappings
 	virtual_joystick_keyboard(vjoy);
-
-	// apply device poll quirks
-	if (info->quirks && info->quirks->poll_quirk)
-		info->quirks->poll_quirk(dev, iface, buf);
 }
 
 FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {

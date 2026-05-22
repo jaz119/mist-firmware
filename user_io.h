@@ -235,7 +235,7 @@ void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
 
 // hooks from the usb layer
 void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z);
-void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid);
+void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority);
 
 #define CONFIG_ROOT 1   // create config filename in the root directory
 #define CONFIG_VHD  2   // create config filename according to VHD= in arc file
