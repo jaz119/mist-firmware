@@ -703,7 +703,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		return 0;
 
 	uint8_t rcode = 0;
-	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ + 4];
+	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ];
 
 	for (int i=0; i<info->numIfaces; i++)
 	{
@@ -719,11 +719,14 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		uint16_t read = MIN(iface->conf.report_size, sizeof(buf));
 		rcode = usb_in_transfer(dev, &(iface->ep_in), &read, buf);
 
+		iface->lastPollTime = timer_get_msec();
+
 		if (rcode == 0) {
 			usb_process_iface(dev, iface, read, buf);
+		} else if (rcode != hrNAK) {
+			iface->lastPollTime += 100;
+			break;
 		}
-
-		iface->lastPollTime = timer_get_msec();
 	}
 
 	return rcode;

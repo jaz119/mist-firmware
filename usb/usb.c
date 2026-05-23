@@ -83,11 +83,11 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	ALIGNED(4) union {
 		usb_string0_descriptor_t str0_desc;
 		usb_string_descriptor_t str_desc;
-		uint8_t buf[255];
+		uint8_t buf[256];
 	} str;
 
 	uint8_t rcode = 0, i;
-	unsigned long time = GetRTTC();
+	uint32_t time = GetRTTC();
 	usb_device_descriptor_t dev_desc;
 
 	// find an empty device entry
@@ -126,6 +126,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		uint32_t timer = timer_get_msec();
 		do {
 			rcode = usb_get_dev_descr( dev, sizeof(usb_device_descriptor_t), &dev_desc );
+			timer_delay_msec(2);
 		} while (rcode && !timer_check(timer, 20)); // Some recovery interval (2 ms as USB 2.0 9.2.6.3)
 
 		if(rcode) {
@@ -166,8 +167,6 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		}
 
 		errorf("usb: unknown device");
-
-		usb_set_addr(dev, 0);
 		dev->bAddress = 0;
 
 	} else

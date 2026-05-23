@@ -11,39 +11,33 @@ static uint8_t usb_task_state;
 
 void usb_reset_state() {
 	usb_debugf("%s()", __FUNCTION__);
+
 	hubPre = 0;
 }
 
 void usb_hw_init() {
 	usb_debugf("%s()", __FUNCTION__);
 
-	max3421e_init();   // init underlaying hardware layer
+	max3421e_init(); // init underlaying hardware layer
 
 	usb_task_state = USB_DETACHED_SUBSTATE_INITIALIZE;
 
 	usb_reset_state();
 }
 
-static uint8_t usb_wait_irq() {
+static inline uint8_t usb_wait_irq() {
 	uint32_t start = timer_get_msec();
 
 	// wait for transfer completion
-	while( !timer_check(start, USB_ACK_TIMEOUT) ) {
-		// wait for 0 on INT pin
-		if( !usb_irq_active() )
-			continue;
+	while( !usb_irq_active() );
 
-		// get transfer result
-		hrsl = max3421e_read_u08( MAX3421E_HRSL );
-
-		// clear the interrupt
-		max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
-		return ( hrsl & 0x0f );
-	}
-
-	// diag only: get SIE state
+	// get transfer result
 	hrsl = max3421e_read_u08( MAX3421E_HRSL );
-	return hrsl;
+
+	// clear the interrupt
+	max3421e_write_u08( MAX3421E_HIRQ, MAX3421E_HXFRDNIRQ );
+
+	return ( hrsl & 0x0f );
 }
 
 static uint8_t usb_set_address(
@@ -71,12 +65,11 @@ static uint8_t usb_set_address(
 	return 0;
 }
 
-/* dispatch usb packet. Assumes peripheral address is set and relevant */
-/* buffer is loaded/empty */
+/* Dispatch usb packet. */
+/* Assumes peripheral address is set and relevant buffer is loaded/empty */
 /* If NAK, tries to re-send up to nak_limit times  */
 /* If nak_limit == 0, do not count NAKs, exit after timeout */
-/* If bus timeout, re-sends up to 3 times */
-/* return codes 0x00-0x0f are HRSLT (0x00 being success), 0xef means timeout */
+/* return codes 0x00-0x0f are HRSLT (0x00 being success) */
 
 static uint8_t usb_dispatchPkt(
 	uint8_t token, ep_t *ep, uint16_t nak_limit ) {
@@ -85,7 +78,7 @@ static uint8_t usb_dispatchPkt(
 	uint8_t retry_count = 0;
 	uint32_t timeout = timer_get_msec();
 
-	while( !timer_check(timeout, USB_XFER_TIMEOUT) ) {
+	while( 1 ) {
 
 		// set toggle value
 		if( token == tokIN ) {
@@ -108,15 +101,17 @@ static uint8_t usb_dispatchPkt(
 
 		switch( rcode ) {
 		case hrNAK:
-			if( nak_limit > 0 )
-				if( ++nak_count >= nak_limit ) return rcode;
+			nak_count++;
+			if( nak_limit > 0 && nak_count == nak_limit )
+				return rcode;
 			delay_usec( USB_NACK_DELAY );
 			break;
 
 		case hrCRCERR:
 		case hrPKTERR:
 		case hrTIMEOUT:
-			if( ++retry_count >= 3 )
+			retry_count++;
+			if( !USB_RETRY_LIMIT || retry_count == USB_RETRY_LIMIT )
 				return rcode;
 			delay_usec( USB_RETRY_DELAY );
 			break;
@@ -135,8 +130,6 @@ static uint8_t usb_dispatchPkt(
 			return rcode;
 		}
 	}
-
-	return USB_ERROR_TRANSFER_TIMEOUT;
 }
 
 static uint8_t usb_InTransfer(
@@ -181,11 +174,11 @@ static uint8_t usb_InTransfer(
 	}
 }
 
-/* IN transfer to arbitrary endpoint. Assumes PERADDR is set. Handles multiple packets */
-/* if necessary. Transfers 'nbytes' bytes. Keep sending INs and writes data to memory area */
-/* pointed by 'data' */
-/* rcode 0 if no errors. rcode 01-0f is relayed from dispatchPkt(). Rcode f0 means RCVDAVIRQ error, */
-/* fe USB xfer timeout */
+/* IN transfer to arbitrary endpoint. Assumes PERADDR is set. */
+/* Handles multiple packets if necessary. Transfers 'nbytes' bytes. */
+/* Keep sending INs and writes data to memory area pointed by 'data' */
+/* rcode 0 if no errors. rcode 01-0f is relayed from dispatchPkt(). */
+/* Rcode f0 means RCVDAVIRQ error, 0xef USB xfer timeout */
 
 uint8_t usb_in_transfer(
 	usb_device_t *dev, ep_t *ep, uint16_t *nbytesptr, uint8_t* data ) {
@@ -214,13 +207,6 @@ static uint8_t usb_OutTransfer(
 	do {
 		uint16_t bytes_tosend = MIN( maxpktsize, bytes_left );
 
-		// waiting until fifo is ready
-		while( !(max3421e_read_u08(MAX3421E_HIRQ) & MAX3421E_SNDBAVIRQ) ) {
-			if( timer_check(timeout, USB_XFER_TIMEOUT) )
- 				return USB_ERROR_TRANSFER_SND_TIMEOUT;
- 			delay_usec( 2 );
- 		}
-
 		// filling OUT fifo
 		if( bytes_tosend > 0 )
 			max3421e_write( MAX3421E_SNDFIFO, bytes_tosend, data );
@@ -247,9 +233,9 @@ static uint8_t usb_OutTransfer(
 	return 0;
 }
 
-/* OUT transfer to arbitrary endpoint. Handles multiple packets if necessary. Transfers 'nbytes' bytes. */
-/* Handles NAK bug per Maxim Application Note 4000 for single buffer transfer   */
-/* rcode 0 if no errors. rcode 01-0f is relayed from HRSL                       */
+/* OUT transfer to arbitrary endpoint. */
+/* Handles multiple packets if necessary. Transfers 'nbytes' bytes. */
+/* rcode 0 if no errors. rcode 01-0f is relayed from HRSL */
 
 uint8_t usb_out_transfer(
 	usb_device_t *dev, ep_t *ep, uint16_t nbytes, const uint8_t* data ) {
@@ -388,7 +374,7 @@ uint8_t usb_poll() {
 		usb_debugf("=> READY");
 		uint8_t mode = max3421e_read_u08( MAX3421E_MODE );
 		// start SOF generation
-		max3421e_write_u08( MAX3421E_MODE, mode | MAX3421E_SOFKAEN );
+		max3421e_write_u08( MAX3421E_MODE, mode | MAX3421E_SOFKAENAB );
 		usb_task_state = USB_ATTACHED_SUBSTATE_WAIT_SOF;
 		// 20ms wait after reset per USB spec
 		delay = timer_get_msec();
@@ -419,17 +405,15 @@ uint8_t usb_poll() {
 		if( !it )
 			break;
 		rcode = it->class->poll( it );
-		if( rcode ) {
-			if( rcode != hrNAK ) {
-				if( rcode == hrJERR && (hrsl & (MAX3421E_JSTATUS | MAX3421E_KSTATUS)) ) {
-					// device is disconnected
-					it->class->release( it );
-					it->bAddress = 0;
-				} else {
-					errorf("%s(%d): error 0x%02x",
-						__FUNCTION__, it->bAddress, rcode);
-				}
-			}
+		if( rcode == 0 || rcode == hrNAK )
+			break;
+		if( rcode == hrJERR && (hrsl & (MAX3421E_JSTATUS | MAX3421E_KSTATUS)) ) {
+			// device is disconnected
+			it->class->release( it );
+			it->bAddress = 0;
+		} else {
+			errorf("%s(%d): error 0x%02x",
+				__FUNCTION__, it->bAddress, rcode);
 		}
 		break;
 	}

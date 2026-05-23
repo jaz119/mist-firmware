@@ -144,7 +144,7 @@
 #define MAX3421E_HOST          0x01
 #define MAX3421E_LOWSPEED      0x02
 #define MAX3421E_HUBPRE        0x04
-#define MAX3421E_SOFKAEN       0x08
+#define MAX3421E_SOFKAENAB     0x08
 #define MAX3421E_SEPIRQ        0x10
 #define MAX3421E_DELAYISO      0x20
 #define MAX3421E_DMPULLDN      0x40
@@ -203,7 +203,7 @@
 #define hrBABBLE    0x0F
 
 /* Base mode to keep SOF generation and host settings alive */
-#define MAX3421E_MODE_HOST      (MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SOFKAEN)
+#define MAX3421E_MODE_HOST      (MAX3421E_DPPULLDN | MAX3421E_DMPULLDN | MAX3421E_HOST | MAX3421E_SOFKAENAB)
 
 // interface used by usb.c
 void max3421e_init();

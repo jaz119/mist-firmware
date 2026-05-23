@@ -527,7 +527,7 @@ static uint8_t mcp_poll(usb_device_t *dev)
         info->time.is_valid = rtc->get_time(dev, &mcp_i2c_bus, info->time.value);
     }
 
-    return (info->time.is_valid) ? 0 : info->usb_error;
+    return (info->usb_error) ? info->usb_error : 0;
 }
 
 const usb_rtc_class_config_t usb_rtc_mcp2221_class = {
