@@ -220,7 +220,7 @@ FORCE_ARM static void x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uin
         joystick_index(iface->jindex));
 }
 
-// Nintendo Pro Controller: wakeup
+// Switch Pro Controller: wakeup
 static bool procon_init(usb_device_t *dev)
 {
     usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
@@ -305,7 +305,7 @@ static bool procon_init(usb_device_t *dev)
     return true;
 }
 
-// Nintendo Pro Controller: MENU key polling
+// Switch Pro Controller: MENU key polling
 FORCE_ARM static void procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *home = &iface->conf.joystick_mouse.button[9];
@@ -519,8 +519,8 @@ static const hid_dev_info_t hid_devs[] = {
     { 0x045E, 0x02D1, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x045E, 0x02DD, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x045E, 0x0B12, "Xbox S|X Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x057E, 0x2009, "Nintendo Switch Pro", procon_init, procon_poll },
-    { 0x057E, 0x200E, "Nintendo Switch Joy-Con", procon_init, procon_poll },
+    { 0x057E, 0x2009, "Switch Pro Controller", procon_init, procon_poll },
+    { 0x057E, 0x200E, "Switch Pro Controller", procon_init, procon_poll },
     { 0x0E6F, 0x0133, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x0E6F, 0x0139, "PDP Afterglow Prismatic", xone_init, xone_poll, xone_check_iface },
     { 0x0E6F, 0x013A, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
