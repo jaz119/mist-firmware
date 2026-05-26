@@ -122,7 +122,7 @@ static bool mcp_i2c_bulk_write(
     usb_device_t *, uint8_t, uint8_t, uint8_t *, uint8_t);
 
 static uint8_t mcp_get_status(
-    usb_device_t *, uint8_t * restrict, bool);
+    usb_device_t *, uint8_t *, bool);
 
 static const i2c_bus_t mcp_i2c_bus = {
     .bulk_read = mcp_i2c_bulk_read,
@@ -140,7 +140,7 @@ static const rtc_chip_t *rtc_chips[] = {
     (void) mcp_get_status(dev, rpt, true)
 
 static bool mcp_i2c_wait_for(
-    usb_device_t *dev, uint8_t *restrict rpt, mcp_i2c_state_t state, int timeout_ms)
+    usb_device_t *dev, uint8_t *rpt, mcp_i2c_state_t state, int timeout_ms)
 {
     uint32_t start_time = timer_get_msec();
     const volatile mcp_set_resp_t *resp = (const volatile mcp_set_resp_t *) rpt;
@@ -170,7 +170,7 @@ static bool mcp_i2c_wait_for(
 }
 
 static uint8_t mcp_exec(
-    usb_device_t *dev, uint8_t *restrict rpt, uint16_t *size)
+    usb_device_t *dev, uint8_t *rpt, uint16_t *size)
 {
     // send command and check response
     uint8_t cmd = rpt[0];
@@ -215,7 +215,7 @@ static uint8_t mcp_exec(
 }
 
 static bool mcp_set_i2c_clock(
-    usb_device_t *dev, uint8_t *restrict rpt, uint16_t clock)
+    usb_device_t *dev, uint8_t *rpt, uint16_t clock)
 {
     uint16_t size;
 
@@ -245,7 +245,7 @@ static bool mcp_set_i2c_clock(
 }
 
 static uint8_t mcp_get_status(
-    usb_device_t *dev, uint8_t *restrict rpt, bool with_cancel)
+    usb_device_t *dev, uint8_t *rpt, bool with_cancel)
 {
     uint16_t size;
 

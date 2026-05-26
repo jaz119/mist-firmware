@@ -71,7 +71,7 @@ uint8_t usb_in_transfer(usb_device_t *dev, ep_t *ep, uint16_t *size, uint8_t *bu
 {
     const usb_hid_info_t *info = &(dev->hid_info);
 
-    for (int i = 0; i < info->bNumIfaces; i++)
+    for (int i = 0; i < info->numIfaces; i++)
     {
         const usb_hid_iface_info_t *iface = &info->iface[i];
 
@@ -155,9 +155,18 @@ uint8_t usb_ctrl_req(
             return 5;
         }
     }
-    else if (bRequest == USB_REQUEST_SET_CONFIGURATION)
+    else if (bRequest == USB_REQUEST_SET_CONFIGURATION
+            || bRequest == HID_REQUEST_SET_REPORT)
     {
-        if (bmReqType == USB_REQ_SET) {
+        if (bmReqType == HID_REQ_HIDOUT)
+        {
+            printf("%s: report ID = 0x%02x, type = 0x%02x\n",
+                __FUNCTION__, wValLo, wValHi);
+            hexdump(buf, size, 0);
+            return 0;
+        }
+        else if (bmReqType == USB_REQ_SET)
+        {
             return 0;
         }
     }
@@ -174,7 +183,7 @@ uint8_t usb_ctrl_req(
         }
     }
 
-    return 2; /* hrBADREQ */
+    return 5; /* hrSTALL */
 }
 
 uint8_t user_io_swap_joystick(uint8_t joystick)

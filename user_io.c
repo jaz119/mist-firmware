@@ -803,7 +803,7 @@ bool user_io_file_mount(const unsigned char *name, int index) {
 			// build index for fast random access
 			IDXIndex(idxfile, slot);
 		} else {
-			errorf("%s: file: %s, error %d", __FUNCTION__, name, res);
+			errorf("user_io: mount %s file, error %d", name, res);
 			return false;
 		}
 	} else {

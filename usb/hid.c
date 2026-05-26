@@ -261,7 +261,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			ep->addr       = (p->ep_desc.bEndpointAddress & 0x0F);
 			ep->type       = (p->ep_desc.bmAttributes & EP_TYPE_MSK);
 			ep->maxPktSize = p->ep_desc.wMaxPacketSize[0] | (p->ep_desc.wMaxPacketSize[1] << 8);
-			ep->interval   = MAX(6, p->ep_desc.bInterval); // for battery saving
+			ep->interval   = MAX(4, p->ep_desc.bInterval); // for battery saving
 
 			iprintf(" -> %s endpoint %d, %s, interval: %d ms\n", (is_in) ? "IN" : "OUT",
 				ep->addr, hid_device_name[cur_iface->conf.type], ep->interval);

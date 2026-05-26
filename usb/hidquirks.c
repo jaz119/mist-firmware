@@ -37,7 +37,7 @@ static bool xone_check_iface(const usb_interface_descriptor_t *iface)
 // Xbox One controller: init
 static bool xone_init(usb_device_t *dev)
 {
-    usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
+    usb_hid_iface_info_t *iface = &dev->hid_info.iface[0];
 
 #define GIP_CMD_POWER    0x05
     #define GIP_PWR_ON   0x00
@@ -68,7 +68,6 @@ static bool xone_init(usb_device_t *dev)
     };
 
     ALIGNED(4) uint8_t report[64], seq = 0;
-    memset(report, 0, sizeof(report));
 
     for (int n = 0; n < ARRAY_SIZE(xone_wakeup); n++)
     {
@@ -77,6 +76,7 @@ static bool xone_init(usb_device_t *dev)
         if (pkt->vid && pkt->vid != dev->vid) continue;
         if (pkt->pid && pkt->pid != dev->pid) continue;
 
+        memset(report, 0, sizeof(report));
         memcpy(report, pkt->data, pkt->len);
         report[2] = seq++; // GIP_SEQ
 
@@ -86,7 +86,7 @@ static bool xone_init(usb_device_t *dev)
         uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(report), report);
         if (rcode) {
             hid_debugf("%s: error 0x%02x", __FUNCTION__, rcode);
-            return false;
+            continue;
         }
 
         usb_in_transfer(dev, &iface->ep_in, &rpt_size, report);
@@ -134,7 +134,8 @@ static bool xone_init(usb_device_t *dev)
 }
 
 // Xbox One controller: MENU key polling
-FORCE_ARM static void xone_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
+FORCE_ARM static void xone_poll(
+    usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *guide = &iface->conf.joystick_mouse.button[11];
 
@@ -154,17 +155,16 @@ static bool x360_check_iface(const usb_interface_descriptor_t *iface)
 // Xbox360 controller: init
 static bool x360_init(usb_device_t *dev)
 {
-    usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
+    usb_hid_iface_info_t *iface = &dev->hid_info.iface[0];
 
     // LED command: top-left blink, then on
-    ALIGNED(4) static const uint8_t led_on[] = {
+    static const uint8_t led_on[] = {
         0x01, 0x03, 0x02
     };
 
     uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, sizeof(led_on), led_on);
     if (rcode) {
         hid_debugf("%s: error 0x%02x", __FUNCTION__, rcode);
-        return false;
     }
 
     // actual HID report
@@ -211,7 +211,8 @@ static bool x360_init(usb_device_t *dev)
 }
 
 // Xbox360 controller: MENU key polling
-FORCE_ARM static void x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
+FORCE_ARM static void x360_poll(
+    usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *guide = &iface->conf.joystick_mouse.button[11];
 
@@ -223,7 +224,7 @@ FORCE_ARM static void x360_poll(usb_device_t *, usb_hid_iface_info_t *iface, uin
 // Switch Pro Controller: wakeup
 static bool procon_init(usb_device_t *dev)
 {
-    usb_hid_iface_info_t* iface = &dev->hid_info.iface[0];
+    usb_hid_iface_info_t *iface = &dev->hid_info.iface[0];
 
 #define JC_OUTPUT_RUMBLE_AND_SUBCMD     0x01
     #define JC_SUBCMD_SET_REPORT_MODE   0x03
@@ -243,10 +244,10 @@ static bool procon_init(usb_device_t *dev)
 
     uint16_t rpt_size = 64;
     ALIGNED(4) uint8_t report[64];
-    memset(report, 0, 64);
 
     for (int n = 0; n < ARRAY_SIZE(cmds); n++)
     {
+        memset(report, 0, sizeof(report));
         report[0] = cmds[n][0];
         report[1] = cmds[n][1];
 
@@ -256,7 +257,7 @@ static bool procon_init(usb_device_t *dev)
         uint8_t rcode = usb_out_transfer(dev, &iface->ep_out, 64, report);
         if (rcode) {
             hid_debugf("%s: error 0x%02x", __FUNCTION__, rcode);
-            return false;
+            continue;
         }
 
         usb_in_transfer(dev, &iface->ep_in, &rpt_size, report);
@@ -306,7 +307,8 @@ static bool procon_init(usb_device_t *dev)
 }
 
 // Switch Pro Controller: MENU key polling
-FORCE_ARM static void procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
+FORCE_ARM static void procon_poll(
+    usb_device_t *, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     const hid_button_t *home = &iface->conf.joystick_mouse.button[9];
 
@@ -318,7 +320,7 @@ FORCE_ARM static void procon_poll(usb_device_t *, usb_hid_iface_info_t *iface, u
 // Logitech K400r: set F1-F12 as primary functions
 static bool logi_K400r_init(usb_device_t *dev)
 {
-    const static char cmds[][7] = {
+    const static uint8_t cmds[][7] = {
         "\x10\x01\x03\x15\x00\x00\x00", // enable HID++
         "\x10\x01\x0F\x15\x01\x00\x00", // swap F-keys
         "\x10\x01\x10\x15\x00\x00\x00", // Fn-lock
@@ -350,7 +352,8 @@ static bool init_5200daptor(usb_device_t *dev)
 }
 
 // special 5200daptor button processing
-static void poll_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf)
+static void poll_5200daptor(
+    usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     // list of buttons that are reported as keys
     static const struct {
@@ -406,7 +409,8 @@ static void poll_5200daptor(usb_device_t *dev, usb_hid_iface_info_t *iface, uint
 }
 
 // Keyrah keyboard scan codes translator
-static void poll_keyrah(usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf)
+static void poll_keyrah(
+    usb_device_t *dev, usb_hid_iface_info_t *iface, uint8_t *buf)
 {
     static const uint8_t fn_lut[0x56] = {
         [0x1E]=0x59, [0x1F]=0x5A, [0x20]=0x5B, [0x21]=0x5C, [0x22]=0x5D,
@@ -551,7 +555,7 @@ static const hid_dev_info_t hid_devs[] = {
     { 0x2DC8, 0x6001, "8BitDo SN30 Pro" },
     { 0x040B, 0x6533, "Competition Pro" },
     { 0x0738, 0x2217, "Competition Pro" },
-    { 0x046D, 0xC52B, "Unifying Receiver", logi_K400r_init },
+    { 0x046D, 0xC52B, "Logitech Unifying", logi_K400r_init },
     { 0x04D8, 0xF6EC, "NEOGEO-daptor", init_5200daptor, poll_5200daptor },
     { 0x04D8, 0xF421, "NEOGEO-daptor", NULL, NULL, NULL, INIT_REMAP(neogeo_daptor) },
     { 0x04D8, 0xF672, "Vision-daptor" },
