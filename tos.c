@@ -560,7 +560,7 @@ static void tos_config_load(int slot) {
 
 static bool tos_config_save(int slot) {
   // save configuration
-  ini_cfg_t config_ini = {
+  const ini_cfg_t config_ini = {
     .filename = get_config_fname(slot),
     .sections = config_sections,
     .nsections = ARRAY_SIZE(config_sections),

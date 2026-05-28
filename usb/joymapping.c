@@ -20,18 +20,17 @@ This file defines how to handle mapping in the MiST controllers in various ways:
 
 	1) USB input to internal "virtual joystick" (standardizes inputs)
 	2) Virtual joystick to keyboard
-
 */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-#include "debug.h"
+#include "user_io.h"
 #include "joymapping.h"
 #include "hidquirks.h"
-#include "user_io.h"
 #include "mist_cfg.h"
+#include "debug.h"
 
 // Up to 3 device remap profiles
 #define MAX_VIRTUAL_JOYSTICK_REMAP	3

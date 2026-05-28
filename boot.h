@@ -2,16 +2,14 @@
 // bootscreen functions
 // 2014, rok.krajnc@gmail.com
 
-#ifndef __BOOT_H__
-#define __BOOT_H__
-
-#include "attrs.h"
+#ifndef BOOT_H
+#define BOOT_H
 
 //// defines ////
 #define SCREEN_WIDTH    640
 #define SCREEN_HEIGHT   256
 #define SCREEN_SIZE     SCREEN_WIDTH * SCREEN_HEIGHT
-#define SCREEN_MEM_SIZE 2*SCREEN_SIZE/8
+#define SCREEN_MEM_SIZE (2 * SCREEN_SIZE / 8)
 #define SCREEN_ADDRESS  0x80000
 #define SCREEN_BPL1     0x80000
 #define SCREEN_BPL2     0x85000
@@ -19,8 +17,8 @@
 
 #define LOGO_WIDTH      208
 #define LOGO_HEIGHT     32
-#define LOGO_OFFSET     (64*SCREEN_WIDTH/8+24)
-#define LOGO_LSKIP      (SCREEN_WIDTH-LOGO_WIDTH)/8
+#define LOGO_OFFSET     (64 * SCREEN_WIDTH / 8 + 24)
+#define LOGO_LSKIP      ((SCREEN_WIDTH - LOGO_WIDTH) / 8)
 #define LOGO_SIZE       0x680
 #define LOGO_FILE       "MINIMIG.ART"
 
@@ -36,7 +34,7 @@
 
 //// functions ////
 void BootInit();
-void BootPrintEx(char * str);
+void BootPrintEx(const char *);
 void BootHome();
 
-#endif // __BOOT_H__
+#endif // BOOT_H

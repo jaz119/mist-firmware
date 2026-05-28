@@ -51,7 +51,7 @@ typedef struct {
 } ini_cfg_t;
 
 //// functions ////
-bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag);
-bool ini_save(const ini_cfg_t* cfg, int tag);
+bool ini_parse(const ini_cfg_t *, const char *alter_section, int tag);
+bool ini_save(const ini_cfg_t *, int tag);
 
 #endif // __INI_PARSER_H__

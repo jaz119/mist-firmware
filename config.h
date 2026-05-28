@@ -1,4 +1,6 @@
-#include "fat_compat.h"
+#ifndef CONFIG_H
+#define CONFIG_H
+
 #include "hdd.h"
 
 typedef struct
@@ -37,11 +39,14 @@ typedef struct
 } configTYPE;
 
 extern configTYPE config;
-extern char DebugMode;
-char UploadKickstart(char *name);
-char UploadActionReplay();
-void SetConfigurationFilename(int config);	// Set configuration filename by slot number
-unsigned char LoadConfiguration(char *filename, int printconfig);	// Can supply NULL to use filename previously set by slot number
-unsigned char SaveConfiguration(char *filename);	// Can supply NULL to use filename previously set by slot number
-unsigned char ConfigurationExists(char *filename);
+
+bool UploadKickstart(const char *);
+bool LoadConfiguration(const char *, bool);
+
+bool ConfigurationExists(const char *);
+void SetConfigurationFilename(int slot);
+bool SaveConfiguration(const char *);
+
 void minimig_eject_all();
+
+#endif // CONFIG_H

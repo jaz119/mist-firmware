@@ -88,8 +88,6 @@ static void BootUploadLogo()
         SPI(sector_buffer[i++]);
         SPI(sector_buffer[i++]);
         delay_usec(1);
-        //for (tmp=0; tmp<0x80000; tmp++);
-        //printf("i=%03d  x=%03d  y=%03d  dat[0]=0x%08x  dat[1]=0x%08x\n", i, x, y, sector_buffer[i], sector_buffer[i+1]);
         adr += 2;
       }
       mem_upload_fini();
@@ -121,7 +119,6 @@ static void BootUploadLogo()
   }
 }
 
-
 //// BootUploadBall() ////
 static void BootUploadBall()
 {
@@ -151,7 +148,6 @@ static void BootUploadBall()
     f_close(&file);
   }
 }
-
 
 //// BootUploadCopper() ////
 static void BootUploadCopper()
@@ -191,7 +187,6 @@ static void BootUploadCopper()
     mem_upload_fini();
   }
 }
-
 
 //// BootCustomInit() ////
 static void BootCustomInit()
@@ -316,19 +311,16 @@ void BootInit()
 }
 
 //// BootPrint() ////
-void BootPrintEx(char * str)
+void BootPrintEx(const char *str)
 {
-  uint32_t i,j;
-  uint32_t len;
-
   debugf("%s", str);
 
-  len = strlen(str);
+  uint32_t len = strlen(str);
   len = (len>80) ? 80 : len;
 
-  for(j=0; j<8; j++) {
+  for (uint8_t j=0; j<8; j++) {
     mem_upload_init(bootscreen_adr);
-    for(i=0; i<len; i+=2) {
+    for (uint8_t i=0; i<len; i+=2) {
         SPI(char_row(str[i],j));
       if (i==(len-1))
         SPI(char_row(0,j));
