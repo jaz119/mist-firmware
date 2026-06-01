@@ -53,6 +53,9 @@ static bool xone_init(usb_device_t *dev)
     static const uint8_t xone_power_on[] = {
         GIP_CMD_POWER, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(1), GIP_PWR_ON
     };
+    static const uint8_t xone_s_init[] = {
+        GIP_CMD_POWER, GIP_OPT_INTERNAL, GIP_SEQ0, 0x0f, 0x06
+    };
     static const uint8_t xone_led_on[] = {
         GIP_CMD_LED, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(3), 0x00, GIP_LED_ON, 0x14
     };
@@ -63,6 +66,7 @@ static bool xone_init(usb_device_t *dev)
     // wakeup commands sequense
     static const init_packet_t xone_wakeup[] = {
         INIT_PKT(0x0000, 0x0000, xone_power_on),
+        INIT_PKT(0x045E, 0x02EA, xone_s_init),
         INIT_PKT(0x0000, 0x0000, xone_led_on),
         INIT_PKT(0x0000, 0x0000, xone_auth_done),
     };
@@ -473,25 +477,10 @@ static const joy_btn_remap_t qanba_q4raf[] = {
     {4, JOY_A}, {5, JOY_B}, {6, JOY_B}, {7, JOY_A}, {8, JOY_X},
     {9, JOY_SELECT}, {11, JOY_SELECT}, {13, JOY_START}
 };
-// SNES Generic Pad
-static const joy_btn_remap_t snes_clone[] = {
-    {4, JOY_B}, {5, JOY_A}, {6, JOY_B}, {7, JOY_UP}, {8, JOY_L | JOY_L2},
-    {9, JOY_R | JOY_R2}, {12, JOY_SELECT}, {13, JOY_START}
-};
 // iBuffalo SFC BSGP801
 static const joy_btn_remap_t ibuffalo_snes[] = {
     {4, JOY_A}, {5, JOY_B}, {6, JOY_B}, {7, JOY_UP}, {8, JOY_L | JOY_L2},
     {9, JOY_R | JOY_R2}, {10, JOY_SELECT}, {11, JOY_START}
-};
-// Retrolink N64/GC
-static const joy_btn_remap_t retrolink_n64[] = {
-    {6, JOY_A}, {7, JOY_B}, {8, JOY_L | JOY_SELECT}, {9, JOY_R | JOY_SELECT},
-    {10, JOY_A}, {11, JOY_L | JOY_SELECT}, {12, JOY_B}, {13, JOY_START}
-};
-// ROYDS Stick.EX
-static const joy_btn_remap_t royds_stick[]  = {
-    {4, JOY_B}, {5, JOY_X}, {6, JOY_A}, {7, JOY_Y}, {8, JOY_L}, {9, JOY_R},
-    {10, JOY_L2}, {11, JOY_R2}, {12, JOY_SELECT}, {13, JOY_START}
 };
 // NEOGEO-daptor
 static const joy_btn_remap_t neogeo_daptor[] = {
@@ -519,40 +508,31 @@ static const joy_btn_remap_t m30_8bitdo[] = {
 
 static const hid_dev_info_t hid_devs[] = {
     { 0x045E, 0x028E, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x045E, 0x028F, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x045E, 0x02D1, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x045E, 0x02DD, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
+    { 0x045E, 0x02EA, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x045E, 0x0B12, "Xbox S|X Controller", xone_init, xone_poll, xone_check_iface },
     { 0x057E, 0x2009, "Switch Pro Controller", procon_init, procon_poll },
     { 0x057E, 0x200E, "Switch Pro Controller", procon_init, procon_poll },
-    { 0x0E6F, 0x0133, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
     { 0x0E6F, 0x0139, "PDP Afterglow Prismatic", xone_init, xone_poll, xone_check_iface },
     { 0x0E6F, 0x013A, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x0161, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x0162, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
     { 0x0E6F, 0x0163, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x0213, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x0E6F, 0x0246, "PDP Rock Candy", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x021F, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x0E6F, 0x02A0, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x02A1, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x02AB, "Xbox One Controller", xone_init, xone_poll, xone_check_iface },
-    { 0x0E6F, 0x0401, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
+    { 0x1532, 0x0A29, "Razer Wolverine V2", xone_init, xone_poll, xone_check_iface },
     { 0x1532, 0x0A57, "Razer Wolverine V3 Pro", x360_init, x360_poll, x360_check_iface },
     { 0x1532, 0x0A59, "Razer Wolverine V3 Pro", x360_init, x360_poll, x360_check_iface },
-    { 0x162E, 0xBEEF, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x17EF, 0x6182, "Lenovo Legion Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x1BAD, 0xF016, "Xbox 360 Controller", x360_init, x360_poll, x360_check_iface },
-    { 0x1BAD, 0xFD00, "Razer Onza TE", x360_init, x360_poll, x360_check_iface },
-    { 0x1BAD, 0xFD01, "Razer Onza", x360_init, x360_poll, x360_check_iface },
+    { 0x3537, 0x1004, "GameSir T4 Kaleid", x360_init, x360_poll, x360_check_iface },
+    { 0x3537, 0x1010, "GameSir G7 SE", xone_init, xone_poll, xone_check_iface },
+    { 0x37D7, 0x2401, "Flydigi Vader 5 Pro", x360_init, x360_poll, x360_check_iface },
     { 0x054C, 0x05C4, "Sony DualShock 4" },
     { 0x054C, 0x09CC, "Sony DualShock 4" },
     { 0x054C, 0x0CE6, "Sony DualSense" },
+    { 0x054C, 0x0DF2, "Sony DualSense Edge" },
     { 0x1002, 0x9000, "8BitDo FC30", NULL, NULL, NULL, INIT_REMAP(fc30_8bitdo) },
     { 0x1235, 0xAB11, "8BitDo SFC30", NULL, NULL, NULL, INIT_REMAP(sfc30_8bitdo) },
     { 0x1235, 0xAB21, "8BitDo SFC30", NULL, NULL, NULL, INIT_REMAP(sfc30_8bitdo) },
     { 0x0CA3, 0x0024, "8BitDo M30 2.4g", NULL, NULL, NULL, INIT_REMAP(m30_8bitdo) },
-    { 0x2DC8, 0x6001, "8BitDo SN30 Pro" },
+    { 0x2DC8, 0x3106, "8BitDo Ultimate", x360_init, x360_poll, x360_check_iface },
+    { 0x2DC8, 0x310A, "8BitDo Ultimate 2C", x360_init, x360_poll, x360_check_iface },
+    { 0x2DC8, 0x310B, "8BitDo Ultimate 2", x360_init, x360_poll, x360_check_iface },
     { 0x040B, 0x6533, "Competition Pro" },
     { 0x0738, 0x2217, "Competition Pro" },
     { 0x046D, 0xC52B, "Logitech Unifying", logi_K400r_init },
@@ -562,13 +542,8 @@ static const hid_dev_info_t hid_devs[] = {
     { 0x04D8, 0xF947, "2600-daptor II" },
     { 0x0411, 0x00C6, "iBuffalo SFC BSGP801", NULL, NULL, NULL, INIT_REMAP(ibuffalo_snes) },
     { 0x0583, 0x2060, "iBuffalo SFC BSGP801", NULL, NULL, NULL, INIT_REMAP(ibuffalo_snes) },
-    { 0x081F, 0xE401, "SNES Generic Pad", NULL, NULL, NULL, INIT_REMAP(snes_clone) },
     { 0x0F30, 0x1012, "Qanba Q4RAF", NULL, NULL, NULL, INIT_REMAP(qanba_q4raf) },
-    { 0x1F4F, 0x0003, "ROYDS Stick.EX", NULL, NULL, NULL, INIT_REMAP(royds_stick) },
-    { 0x0079, 0x0006, "Retrolink N64/GC", NULL, NULL, NULL, INIT_REMAP(retrolink_n64) },
     { 0x0079, 0x0011, "Retrolink NES" },
-    { 0x1345, 0x1030, "Retro Freak gamepad" },
-    { 0x1C59, 0x0026, "Retro Games gamepad" },
     { 0x18D8, 0x0002, "Keyrah", NULL, poll_keyrah },
 };
 
