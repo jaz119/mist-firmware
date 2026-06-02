@@ -1,3 +1,6 @@
+#ifndef FIRMWARE_H
+#define FIRMWARE_H
+
 typedef struct
 {
     unsigned long flags;
@@ -20,3 +23,5 @@ unsigned char CheckFirmware(char *name);
 
 FORCE_ARM RAMFUNC void WriteFirmware(char *name);
 char *GetFirmwareVersion(char *name);
+
+#endif // FIRMWARE_H

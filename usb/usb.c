@@ -5,7 +5,7 @@
 #include "usb.h"
 #include "debug.h"
 
-ALIGNED(4) static usb_device_t usb_devices[USB_NUMDEVICES];
+static usb_device_t usb_devices[USB_NUMDEVICES];
 
 usb_device_t *usb_get_devices() {
 	return usb_devices;

@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils.h"
 #include "mist_cfg.h"
 #include "user_io.h"
-#include "xmodem.h"
 #include "debug.h"
 
 volatile unsigned long timer_ticks = 0;
@@ -188,24 +187,15 @@ static void Usart0IrqHandler() {
 
 // check usart rx buffer for data
 void USART_Poll(void) {
-    if(is_dip_switch1_on())
-        xmodem_poll();
-
     while(rx_wptr != rx_rptr) {
         // this can a little be optimized by sending whole buffer parts
         // at once and not just single bytes. But that's probably not
         // worth the effort.
         char chr = rx_buf[rx_rptr++];
+        debugf("USART RX %d (%c)", chr, chr);
 
-        if(is_dip_switch1_on()) {
-            // if in debug mode use xmodem for file reception
-            xmodem_rx_byte(chr);
-        } else {
-            debugf("USART RX %d (%c)", chr, chr);
-
-            // data available -> send via user_io to core
-            user_io_serial_tx(&chr, 1);
-        }
+        // data available -> send via user_io to core
+        user_io_serial_tx(&chr, 1);
     }
 }
 

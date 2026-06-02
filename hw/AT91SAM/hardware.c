@@ -23,7 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "attrs.h"
 #include "hardware.h"
 #include "user_io.h"
-#include "xmodem.h"
 #include "debug.h"
 
 void __init_hardware(void)
@@ -167,38 +166,27 @@ static void Usart0IrqHandler(void) {
 
 // check usart rx buffer for data
 void USART_Poll(void) {
-    bool debug_mode = is_dip_switch1_on();
-
-    if (debug_mode) {
-        xmodem_poll();
-    }
-
     unsigned char wptr = rx_wptr,
                   rptr = rx_rptr;
 
-    if (rptr != wptr) {
-        if (debug_mode) {
-            // if in debug mode use xmodem for file reception
-            while (rptr != wptr) {
-                xmodem_rx_byte(rx_buf[rptr++]);
-            }
-        } else {
-            // data available -> send via user_io to core
-            if (wptr > rptr) {
-                // continuous data block
-                user_io_serial_tx((char*)&rx_buf[rptr], wptr - rptr);
-            } else {
-                // first data block at end
-                user_io_serial_tx((char*)&rx_buf[rptr], 256 - rptr);
-                // second data part at begin
-                if (wptr > 0) {
-                    user_io_serial_tx((char*)rx_buf, wptr);
-                }
-            }
-            rptr = wptr;
-        }
-        rx_rptr = rptr;
+    if(rptr == wptr) {
+        return;
     }
+
+    // data available -> send via user_io to core
+    if(wptr > rptr) {
+        // continuous data block
+        user_io_serial_tx((char*)&rx_buf[rptr], wptr - rptr);
+    } else {
+        // first data block at end
+        user_io_serial_tx((char*)&rx_buf[rptr], 256 - rptr);
+        // second data part at begin
+        if(wptr > 0) {
+            user_io_serial_tx((char*)rx_buf, wptr);
+        }
+    }
+
+    rx_rptr = wptr;
 }
 
 void USART_Write(unsigned char c) {

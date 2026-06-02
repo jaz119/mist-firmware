@@ -1,5 +1,5 @@
-#ifndef __CUE_PARSER_H__
-#define __CUE_PARSER_H__
+#ifndef CUE_PARSER_H
+#define CUE_PARSER_H
 
 #ifndef CUE_PARSER_TEST
 #include "idxfile.h"
@@ -51,9 +51,9 @@ char cue_parse(const char *filename);
 #else
 char cue_parse(const char *filename, IDXFile *image);
 #endif
+
 void LBA2MSF(int lba, msf_t* msf);
 int MSF2LBA(unsigned char m, unsigned char s, unsigned char f);
 int cue_gettrackbylba(int lba);
 
-#endif // __CUE_PARSER_H__
-
+#endif // CUE_PARSER_H
