@@ -1,7 +1,8 @@
 #ifndef TOS_H
 #define TOS_H
 
-#include "utils.h"
+#include <user_io_core.h>
+#include <utils.h>
 
 // FPGA spi commands
 #define MIST_WRITE_MEMORY   0x02
@@ -81,19 +82,16 @@
 #define TOS_CONTROL_VIKING        BIT(28)   // Viking graphics card
 #define TOS_CONTROL_BLEND         BIT(29)   // Composite blending
 
-void tos_init();
-void tos_eject_all();
-void tos_reset(bool cold);
-void tos_upload(const char *);
-void tos_poll();
-
-char tos_get_cdc_control_redirect(void);
+char tos_get_cdc_control_redirect();
 void tos_set_cdc_control_redirect(char mode);
 
-unsigned long tos_system_ctrl(void);
+unsigned long tos_system_ctrl();
 void tos_update_sysctrl(unsigned long);
 
 void assign_full_path(char *, int, const char *);
 void tos_setup_menu();
+
+// core iface
+extern const user_io_core_t mistery_core;
 
 #endif // TOS_H

@@ -17,6 +17,7 @@
 
 #include <string.h>
 #include "user_io.h"
+#include <support/8bit/core.h>
 #include "osd.h"
 #include "ini_parser.h"
 #include "usb/joymapping.h"

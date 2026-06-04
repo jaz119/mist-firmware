@@ -4,12 +4,12 @@
 #include <limits.h>
 
 #include "hardware.h"
-#include "usb/timer.h"
-#include "user_io.h"
+#include <usb/timer.h>
+#include <user_io.h>
+#include <user_io_hid.h>
 #include "tos.h"
 #include "menu.h"
 #include "osd.h"
-#include "hdd.h"
 #include "misc_cfg.h"
 #include "cdc_control.h"
 #include "ini_parser.h"
@@ -40,7 +40,6 @@ static uint32_t runtime_ctrl;
 
 static const ini_section_t config_sections[] = {
   {1, "MISTERY"},
-  {1, "ATARI_ST"},
 };
 
 static const ini_var_t config_vars[] = {
@@ -78,7 +77,7 @@ void assign_full_path(char *buf, int buf_size, const char *fname) {
   }
 }
 
-char tos_get_cdc_control_redirect(void) {
+char tos_get_cdc_control_redirect() {
   return config.cdc_control_redirect;
 }
 
@@ -157,7 +156,7 @@ static void dma_ack(unsigned char status) {
   DisableFpga();
 }
 
-static void dma_nak(void) {
+static void dma_nak() {
   EnableFpga();
   SPI(MIST_NAK_DMA);
   DisableFpga();
@@ -405,7 +404,7 @@ void tos_upload(const char *name) {
   fpga_set_control(runtime_ctrl);
 }
 
-unsigned long tos_system_ctrl(void) {
+unsigned long tos_system_ctrl() {
   return runtime_ctrl;
 }
 
@@ -521,6 +520,20 @@ static const char *get_config_fname(int slot) {
   return fname;
 }
 
+static void tos_eject_all() {
+  // ejecting floppies
+  for (int i=0; i<2; i++) {
+    tos_insert_disk(i, NULL);
+  }
+
+  // unmounting ACSI (removable) mediums
+  for (int i=0; i<ARRAY_SIZE(AcsiBus.devs); i++) {
+    SCSI_DEV *dev = &AcsiBus.devs[i];
+    acsi_disk_init(dev, 0, true);
+    tos_debugf("ACSI: Init: storage[%d] size: %lu", i, dev->hdSize);
+  }
+}
+
 static void tos_config_load(int slot) {
   // load/init configuration
   static int last_slot = 0;
@@ -582,21 +595,7 @@ static bool tos_config_exists(int slot) {
   return true;
 }
 
-void tos_eject_all() {
-  // ejecting floppies
-  for (int i=0; i<2; i++) {
-    tos_insert_disk(i, NULL);
-  }
-
-  // unmounting ACSI (removable) mediums
-  for (int i=0; i<ARRAY_SIZE(AcsiBus.devs); i++) {
-    SCSI_DEV *dev = &AcsiBus.devs[i];
-    acsi_disk_init(dev, 0, true);
-    tos_debugf("ACSI: Init: storage[%d] size: %lu", i, dev->hdSize);
-  }
-}
-
-void tos_reset(bool cold_boot) {
+static void tos_reset(bool cold_boot) {
   fpga_set_control(config.system_ctrl | TOS_CONTROL_CPU_RESET);  // set reset
 
   timer_delay_msec(10);
@@ -609,19 +608,36 @@ void tos_reset(bool cold_boot) {
   fpga_set_control(config.system_ctrl & ~TOS_CONTROL_CPU_RESET);  // release reset
 }
 
-void tos_poll() {
+static void tos_poll() {
   acsi_poll();
 
   // check the user button
   if (UserButton()) {
     tos_reset(true);
   }
+
+  handle_mouse_events_ps2();
 }
 
-void tos_init() {
+static void tos_init() {
   acsi_init(true);
   tos_config_load(-1);
+  tos_upload(NULL);
 }
+
+// core iface
+const user_io_core_t mistery_core = {
+  .init = tos_init,
+  .poll = tos_poll,
+  .reset = tos_reset,
+  .keycode = keycode_ps2,
+  .modify_keycode = modify_keycode_ps2,
+  .send_keycode = send_keycode_ps2,
+  .send_mouse = send_mouse_ps2,
+  .send_digital_joy = send_digital_joystick,
+  .eject_all = tos_eject_all,
+  .name = "MISTery",
+};
 
 ///////////////////////////
 ////// Atari ST menu //////

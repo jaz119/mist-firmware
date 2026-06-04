@@ -47,6 +47,4 @@ bool ConfigurationExists(const char *);
 void SetConfigurationFilename(int slot);
 bool SaveConfiguration(const char *);
 
-void minimig_eject_all();
-
 #endif // CONFIG_H

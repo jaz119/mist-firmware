@@ -42,6 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "errors.h"
 #include "hardware.h"
 #include "mmc.h"
+#include <8bit/core.h>
 #include "fat_compat.h"
 #include "osd.h"
 #include "fpga.h"
@@ -52,15 +53,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "user_io.h"
 #include "data_io.h"
 #include "idx_files.h"
-#include "archie.h"
 #include "snes.h"
 #include "zx_col.h"
 #include "arc_file.h"
 #include "serial_sink.h"
 #include "ini_parser.h"
 #include "font.h"
-#include "tos.h"
-#include "hdd.h"
 #include "usb.h"
 #include "debug.h"
 #include "mist_cfg.h"
@@ -72,16 +70,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "qspi.h"
 #endif
 #include "eth.h"
+#include <timer.h>
 
 #ifndef _WANT_IO_LONG_LONG
 #error "newlib lacks support of long long type in IO functions. Please use a toolchain that was compiled with option --enable-newlib-io-long-long."
 #endif
 
-const char version[] = {"$VER:ATA" VDATE};
+const char version[] = { "$VER:ATA" VDATE };
 
 unsigned char Error;
 
-ALIGNED(4) char s[OSD_BUF_SIZE];
+char s[OSD_BUF_SIZE];
 ALIGNED(4) DWORD clmt[99]; // fast seek cache
 
 unsigned long storage_size = 0; // MiB
@@ -106,24 +105,6 @@ void FatalError(unsigned int error)
     }
 }
 
-static void minimig_handle_drives(void)
-{
-    unsigned char  c1, c2;
-
-    EnableFpga();
-    c1 = SPI(0); // cmd request and drive number
-    c2 = SPI(0); // track number
-    SPI(0);
-    SPI(0);
-    SPI(0);
-    SPI(0);
-    DisableFpga();
-
-    HandleFDD(c1, c2);
-    HandleHDD(c1, c2, 1);
-    UpdateFDDStatus();
-}
-
 static void eject_all_media()
 {
     // Floppies
@@ -140,7 +121,7 @@ static void eject_all_media()
         sd_image[i].file.obj.fs = 0;
     }
 
-    // Hard disks
+    // Disks images
     for (int i=0; i<ARRAY_SIZE(config.hardfile); i++)
     {
         config.hardfile[i].present = 0;
@@ -154,6 +135,7 @@ static void eject_all_media()
 }
 
 #ifdef USB_STORAGE
+
 int GetUSBStorageDevices()
 {
     uint32_t to = GetTimer(2000);
@@ -164,9 +146,10 @@ int GetUSBStorageDevices()
 
     return storage_devices;
 }
-#endif
 
-int main(void)
+#endif // USB_STORAGE
+
+int main()
 {
     bool mmc_ok = 0;
     uint32_t last_try = 0;
@@ -192,7 +175,7 @@ int main(void)
 
     iprintf("\nMinimig by Dennis van Weeren\n");
     iprintf("ARM Controller by Jakub Bednarski\n\n");
-    infof("Version %s\n", version+5);
+    infof("Version %s\n", version + 5);
 
     spi_init();
 #ifdef HAVE_QSPI
@@ -251,9 +234,6 @@ int main(void)
 
     user_io_init();
 
-    // tos config also contains cdc redirect settings used by minimig
-    tos_init();
-
     int64_t mod = -1LL;
 
     if ((USB_LOAD_VAR != USB_LOAD_VALUE) && !is_dip_switch1_on())
@@ -295,16 +275,19 @@ int main(void)
     while (true)
     {
         uint8_t key = 0;
-        bool eject = false;
 
         if (mmc_ok)
         {
             if (storage_size && !mmc_inserted())
             {
+                if (core && core->eject_all)
+                {
+                    core->eject_all();
+                }
+
                 mmc_ok = false;
                 eject_all_media();
                 storage_size = 0;
-                eject = true;
 
                 // force menu update
                 key = KEY_HOME;
@@ -347,30 +330,13 @@ int main(void)
 
         user_io_poll();
 
-        switch (user_io_core_type())
+        if (user_io_core_type() == CORE_TYPE_8BIT)
         {
-            case CORE_TYPE_MISTERY:
-                if (eject) tos_eject_all();
-                break;
-
-            case CORE_TYPE_MINIMIG_AGA:
-                if (eject) minimig_eject_all();
-                minimig_handle_drives();
-                break;
-
-            case CORE_TYPE_ARCHIE:
-                if (eject) archie_eject_all();
-                break;
-
-            // 8 bit cores can also have a ui if a valid config string can be read from it
-            case CORE_TYPE_8BIT:
-                if (!user_io_is_8bit_with_config_string())
-                    continue;
-                break;
-
-            default:
+            // 8bit cores can also have a UI
+            // if a valid config string can be read from it
+            if (!user_io_is_8bit_with_config_string())
                 continue;
-        };
+        }
 
         HandleUI(key ? key : OsdGetCtrl());
     }

@@ -2,15 +2,15 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "user_io.h"
+#include <hardware.h>
 #include "usb.h"
 #include "max3421e.h"
-#include "timer.h"
+#include <user_io_hid.h>
 #include "hidparser.h"
 #include "hidquirks.h"
 #include "joymapping.h"
 #include "joystick.h"
-#include "hardware.h"
+#include <timer.h>
 #include "utils.h"
 #include "mist_cfg.h"
 #include "osd.h"
@@ -611,7 +611,7 @@ FORCE_ARM static void usb_process_iface(
 			if (a[i] > 127) a[i] = 127;
 			else if (a[i] < -128) a[i] = -128;
 		}
-		user_io_mouse(0, btn, a[0], a[1], a[2]);
+		user_io_mouse(0, btn, a[0], a[1], a[2]); // FIXME: mouse0 only
 		return;
 	}
 

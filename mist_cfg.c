@@ -3,14 +3,15 @@
 
 //// includes ////
 #include <string.h>
-
 #include "user_io.h"
+#include <user_io_hid.h>
+#include <8bit/core.h>
 #include "data_io.h"
-#include "usb/usb.h"
-#include "usb/hid.h"
-#include "usb/joymapping.h"
+#include <usb/usb.h>
+#include <usb/hid.h>
+#include <usb/joymapping.h>
 #include "ini_parser.h"
-#include "mist_cfg.h"
+#include <mist_cfg.h>
 
 // call data_io_rom_upload but reload sector_buffer afterwards since the io
 // operations in data_io_rom_upload may have overwritten the buffer
@@ -82,7 +83,6 @@ atarist_cfg_t atarist_cfg = {
 // mist ini sections
 static const ini_section_t mist_ini_sections[] = {
   {1, "MIST"},
-  {2, "AMIGA"},
   {2, "MINIMIG"},
   {2, "MINIMIG_CONFIG"},
   {3, "ATARI_ST"},

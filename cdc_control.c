@@ -91,12 +91,12 @@ void cdc_control_poll(void) {
 
 	  case 'r':
 	    cdc_puts("Reset ...");
-	    tos_reset(0);
+	    if (core && core->reset) core->reset(0);
 	    break;
 
 	  case 'c':
 	    cdc_puts("Coldreset ...");
-	    tos_reset(1);
+	    if (core && core->reset) core->reset(1);
 	    break;
 
 	  case 'd':

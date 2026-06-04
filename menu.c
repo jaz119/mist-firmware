@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 
 #include "user_io.h"
+#include <user_io_hid.h>
 #include "hardware.h"
 #include "mmc.h"
 #include "errors.h"
@@ -37,6 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "state.h"
 #include "fpga.h"
 #include "firmware.h"
+#include <support/8bit/core.h>
 #include "config.h"
 #include "menu.h"
 #include "data_io.h"
@@ -339,7 +341,7 @@ static char FirmwareUpdateDialog(uint8_t idx) {
 static char OnReset(uint8_t idx) {
 	char m = 0;
 
-	if (user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
+	if (user_io_core_type() == CORE_TYPE_MINIMIG_V2)
 		m = 1;
 
 	if (idx == 0) { //yes
@@ -347,7 +349,7 @@ static char OnReset(uint8_t idx) {
 			CloseMenu();
 			OsdReset(RESET_NORMAL);
 		} else {
-			user_io_8bit_set_status(arc_get_default(),~0);
+			user_io_8bit_set_status(arc_get_default(), ~0);
 			if (settings_save(false)) {
 				iprintf("Settings for %s reset\n", user_io_get_core_name());
 				Setup8bitMenu();
@@ -517,9 +519,9 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 	else return 0;
 	if (item->page != page_idx) return 1; // shortcut
 
-	char is_m  = (user_io_core_type()==CORE_TYPE_MINIMIG_AGA);
-	char is_a  = (user_io_core_type()==CORE_TYPE_ARCHIE);
-	char is_st = (user_io_core_type()==CORE_TYPE_MISTERY);
+	char is_m  = (user_io_core_type() == CORE_TYPE_MINIMIG_V2);
+	char is_a  = (user_io_core_type() == CORE_TYPE_ARCHIE);
+	char is_st = (user_io_core_type() == CORE_TYPE_MISTERY);
 
 	switch (action) {
 		case MENU_ACT_GET:
@@ -900,14 +902,14 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->newsub = 6;
 					break;
 				case 1:
-					if(!!usb_get_device(USB_RTC)) item->newpage = 2;
+					if (!!usb_get_device(USB_RTC)) item->newpage = 2;
 					break;
 				case 2:
 					item->newpage = 3;
 					break;
 				case 3: {
 					char m = 0;
-					if (user_io_core_type()==CORE_TYPE_MINIMIG_AGA)
+					if (user_io_core_type() == CORE_TYPE_MINIMIG_V2)
 						m = 1;
 					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?", MENU_DIALOG_YESNO, OnReset);
 					break;
@@ -962,7 +964,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 			if (page_idx == 0 && action == MENU_ACT_LEFT) {
 				// go back to core requesting this menu
 				switch(user_io_core_type()) {
-					case CORE_TYPE_MINIMIG_AGA:
+					case CORE_TYPE_MINIMIG_V2:
 						SetupMinimigMenu2();
 						menusub = 0;
 						break;
@@ -1262,7 +1264,7 @@ void HandleUI(uint8_t key)
 		case MENU_NONE2 :
 			if (menu)
 			{
-				if(user_io_core_type() == CORE_TYPE_MINIMIG_AGA)
+				if(user_io_core_type() == CORE_TYPE_MINIMIG_V2)
 					SetupMinimigMenu();
 				else if(user_io_core_type() == CORE_TYPE_MISTERY)
 					tos_setup_menu();

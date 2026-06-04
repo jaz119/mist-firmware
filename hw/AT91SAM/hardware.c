@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "attrs.h"
 #include "hardware.h"
 #include "user_io.h"
+#include <user_io_hid.h>
 #include "debug.h"
 
 void __init_hardware(void)

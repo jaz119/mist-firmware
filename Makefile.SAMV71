@@ -12,16 +12,18 @@ TODAY = $(shell date +"%y%m%d")
 PRJ = firmware
 SRC = hw/ATSAMV71/cstartup.c hw/ATSAMV71/hardware.c hw/ATSAMV71/spi.c hw/ATSAMV71/qspi.c hw/ATSAMV71/mmc.c hw/ATSAMV71/usbdev.c  hw/ATSAMV71/eth.c hw/ATSAMV71/irq/nvic.c
 SRC += hw/ATSAMV71/network/intmath.c hw/ATSAMV71/network/gmac.c hw/ATSAMV71/network/gmacd.c hw/ATSAMV71/network/phy.c hw/ATSAMV71/network/ethd.c
-SRC += fdd.c firmware.c fpga.c hdd.c  main.c  menu.c menu-minimig.c menu-8bit.c menu_info.c osd.c state.c syscalls.c user_io.c settings.c data_io.c boot.c idxfile.c config.c tos.c acsi_hdc.c ini_parser.c cue_parser.c mist_cfg.c archie.c pcecd.c neocd.c psx.c snes.c zx_col.c arc_file.c idx_files.c font.c utils.c serial_sink.c
-SRC += sxmlc/sxmlc.c
+SRC += firmware.c fpga.c syscalls.c main.c menu.c menu_info.c osd.c hdd.c state.c user_io.c user_io_hid.c settings.c data_io.c idxfile.c tos.c acsi_hdc.c ini_parser.c cue_parser.c mist_cfg.c archie.c zx_col.c arc_file.c idx_files.c font.c utils.c serial_sink.c
 SRC += it6613/HDMI_TX.c it6613/it6613_drv.c it6613/it6613_sys.c it6613/EDID.c it6613/hdmitx_mist.c
-SRC += usb/usbdebug.c usb/hub.c usb/timer.c usb/hid.c usb/hidparser.c usb/hidquirks.c usb/joymapping.c usb/joystick.c usb/storage.c usb/asix.c usb/pl2303.c
-SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c
+SRC += usb/hid.c usb/hidparser.c usb/hidquirks.c usb/joymapping.c usb/joystick.c usb/storage.c usb/asix.c usb/pl2303.c
+SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/hub.c usb/usbdebug.c usb/timer.c
 # SRC += usb/rtc.c usb/rtc/i2c-tiny.c usb/rtc/i2c-mcp2221.c usb/rtc/pcf85263.c usb/rtc/ds3231.c
 # SRC += usb/usb-samv71.c
-SRC += fat_compat.c diskio.c
 SRC += FatFs/ff.c FatFs/ffunicode.c
+SRC += fat_compat.c diskio.c
+SRC += support/minimig/core.c boot.c config.c fdd.c menu-minimig.c
+SRC += support/8bit/core.c pcecd.c neocd.c psx.c snes.c menu-8bit.c
 SRC += cdc_control.c storage_control.c
+SRC += sxmlc/sxmlc.c
 
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
@@ -35,7 +37,7 @@ DFLAGS  = -D_GNU_SOURCE -DCONFIG_HAVE_NVIC -DCONFIG_HAVE_ETH -DCONFIG_HAVE_GMAC 
 DFLAGS += -DCONFIG_FLASH_1024KB -DFW_ID=\"SIDIUPG\" -DSZ_TBL=2048 -DDEFAULT_CORE_NAME=\"SIDI128.RBF\" -DSD_NO_DIRECT_MODE -DJOY_DB9_MD -DHAVE_QSPI -DHAVE_HDMI -DHAVE_PSX -DHAVE_XML
 DFLAGS += -DMIST -DVDATE=\"$(TODAY)\" -DUSB_STORAGE -DUSB_ASIX_NET -DUSB_PL2303_CDC -DFF_FS_TINY=0 -DFF_MAX_LFN=160 -DFF_LFN_BUF=160 -DSECTOR_BUFFER_SIZE=8192
 #DFLAGS += -DPROTOTYPE
-CFLAGS  = $(DFLAGS) -mcpu=cortex-m7 -mthumb -I. -Iarch -Icmsis -Iusb -Ihw/ATSAMV71
+CFLAGS  = $(DFLAGS) -mcpu=cortex-m7 -mthumb -I. -Iarch -Icmsis -Iusb -Isupport -Ihw/ATSAMV71
 CFLAGS += $(CFLAGS-$@) -ffunction-sections -fsigned-char -fno-common -c --std=gnu99 -O2
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -mcpu=cortex-m7 -mthumb -Wl,-Map,$(PRJ).map -T$(LINKMAP) $(LIBDIR)

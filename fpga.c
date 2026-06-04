@@ -18,17 +18,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// 2009-10-10   - any length (any multiple of 8 bytes) fpga core file support
-// 2009-12-10   - changed command header id
-// 2010-04-14   - changed command header id
-
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 
 #include "errors.h"
 #include "user_io.h"
+#include <minimig/core.h>
 #include "hardware.h"
+#include <FatFs/ff.h>
 #include "fdd.h"
 #include "config.h"
 #include "boot.h"
@@ -38,20 +36,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "arc_file.h"
 #include "mist_cfg.h"
 #include "settings.h"
-#include "usb/joymapping.h"
+#include <usb/joymapping.h>
+#include <timer.h>
 
 #ifndef DEFAULT_CORE_NAME
 #define DEFAULT_CORE_NAME "CORE.RBF"
 #endif
 
-uint8_t rstval = 0;
-
 extern DWORD clmt[99];
-
-char minimig_ver_beta;
-char minimig_ver_major;
-char minimig_ver_minor;
-char minimig_ver_minion;
 
 #ifdef XILINX_CCLK
 
@@ -113,7 +105,7 @@ static inline void ShiftFpga(unsigned char data)
 
 // Xilinx FPGA configuration
 // was before unsigned char ConfigureFpga(void)
-unsigned char ConfigureFpga(const char *name)
+unsigned char ConfigureFpga(const char *fname)
 {
     unsigned long  t;
     unsigned long  n;
@@ -154,18 +146,19 @@ unsigned char ConfigureFpga(const char *name)
         FatalError(3);
     }
 
-    if(!name)
-    //  name = "CORE.BIN";
-        name = "X7A102T.BIN";
+    if (!fname) {
+        fname = "X7A102T.BIN";
+    }
 
     // open bitstream file
-    if (f_open(&file, name, FA_READ) != FR_OK)
+    if (f_open(&file, fname, FA_READ) != FR_OK)
     {
         errorf("No FPGA configuration file found!");
         FatalError(4);
     }
 
-    iprintf("FPGA bitstream %s opened, size = %lu\n", name, (uint32_t) f_size(&file));
+    iprintf("FPGA bitstream %s opened, size = %lu\n",
+        fname, (uint32_t)f_size(&file));
 
     // using fast seek
     clmt[0] = ARRAY_SIZE(clmt);
@@ -240,25 +233,25 @@ static inline void ShiftFpga(unsigned int data)
 }
 
 // Altera FPGA configuration
-unsigned char ConfigureFpga(const char *name)
+unsigned char ConfigureFpga(const char *fname)
 {
     unsigned long i;
     unsigned char *ptr;
     FIL file;
     UINT br;
 
-    if (!name) {
-        name = DEFAULT_CORE_NAME;
+    if (!fname) {
+        fname = DEFAULT_CORE_NAME;
     }
 
     // open bitstream file
-    if (f_open(&file, name, FA_READ) != FR_OK) {
+    if (f_open(&file, fname, FA_READ) != FR_OK) {
         errorf("No FPGA configuration file found!");
         return ERROR_BITSTREAM_OPEN;
     }
 
     iprintf("FPGA bitstream %s opened, size = %lu\n",
-        name, (uint32_t) f_size(&file));
+        fname, (uint32_t)f_size(&file));
 
     // set outputs
     ALTERA_DCLK_SET;
@@ -367,91 +360,7 @@ unsigned char ConfigureFpga(const char *name)
 
 #endif // ALTERA_DCLK
 
-char kick1xfoundstr[] = "Kickstart v1.x found\n";
-const char applymemdetectionpatchstr[] = "Applying Kickstart 1.x memory detection patch\n";
-
-const char *kickfoundstr = NULL, *applypatchstr = NULL;
-
-void PatchKick1xMemoryDetection()
-{
-    if (!strncmp(sector_buffer + 0x18, "exec 33.192 (8 Oct 1986)", 24)) {
-        kick1xfoundstr[13] = '2';
-        kickfoundstr = kick1xfoundstr;
-        goto applypatch;
-    }
-    if (!strncmp(sector_buffer + 0x18, "exec 34.2 (28 Oct 1987)", 23)) {
-        kick1xfoundstr[13] = '3';
-        kickfoundstr = kick1xfoundstr;
-        goto applypatch;
-    }
-    return;
-
-applypatch:
-    if ((sector_buffer[0x154] == 0x66) && (sector_buffer[0x155] == 0x78)) {
-        applypatchstr = applymemdetectionpatchstr;
-        sector_buffer[0x154] = 0x60;
-    }
-}
-
-// SendFileV2 (for minimig_v2)
-void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size)
-{
-    UINT br;
-    unsigned int keyidx = 0;
-
-    debugf("File size: %dkB", size>>1);
-
-    if (keysize) {
-        // read header
-        f_read(file, sector_buffer, 0xb, &br);
-    }
-
-    for (int i=0; i<size; i++) {
-        f_read(file, sector_buffer, 512, &br);
-        if (keysize) {
-            // decrypt ROM
-            for (int j=0; j<512; j++) {
-                sector_buffer[j] ^= key[keyidx++];
-                if(keyidx >= keysize) keyidx -= keysize;
-            }
-        }
-
-        // patch kickstart 1.x to force memory detection every time the AMIGA is reset
-        if (minimig_cfg.kick1x_memory_detection_patch && (i == 0 || i == 512)) {
-            kickfoundstr = NULL;
-            applypatchstr = NULL;
-            PatchKick1xMemoryDetection();
-        }
-
-        EnableOsd();
-        uint32_t addr = address + i*512;
-        SPI(OSD_CMD_WR);
-        delay_usec(1);
-        SPI(addr&0xff); addr = addr>>8;
-        SPI(addr&0xff); addr = addr>>8;
-        delay_usec(1);
-        SPI(addr&0xff); addr = addr>>8;
-        SPI(addr&0xff); addr = addr>>8;
-        for (int j=0; j<512; j=j+4) {
-            delay_usec(1);
-            SPI(sector_buffer[j+0]);
-            SPI(sector_buffer[j+1]);
-            delay_usec(1);
-            SPI(sector_buffer[j+2]);
-            SPI(sector_buffer[j+3]);
-        }
-        DisableOsd();
-    }
-
-    if (kickfoundstr) {
-        debugf("%s", kickfoundstr);
-    }
-    if (applypatchstr) {
-        debugf("%s", applypatchstr);
-    }
-}
-
-unsigned char GetFPGAStatus(void)
+unsigned char GetFPGAStatus()
 {
     unsigned char status;
 
@@ -467,9 +376,9 @@ unsigned char GetFPGAStatus(void)
     return status;
 }
 
-unsigned char fpga_init(const char *name) {
+unsigned char fpga_init(const char *fname)
+{
     int loaded_from_usb = USB_LOAD_VAR;
-    unsigned char ct;
 
     // load the global MISTCFG.INI here
     // FIXME: loading between the FPGA init and detect_core_type
@@ -478,92 +387,33 @@ unsigned char fpga_init(const char *name) {
     settings_load(true);
 
     debugf("loaded_from_usb = %d", USB_LOAD_VAR == USB_LOAD_VALUE);
-    uint32_t time = GetRTTC();
     USB_LOAD_VAR = 0;
 
-    if((loaded_from_usb != USB_LOAD_VALUE) && !is_dip_switch2_on()) {
-        unsigned char err = ConfigureFpga(name);
-        if (err != ERROR_NONE) return err;
+    // upload bitstream
+    if ((loaded_from_usb != USB_LOAD_VALUE) && !is_dip_switch2_on())
+    {
+        uint32_t time = GetRTTC();
+        uint8_t rcode = ConfigureFpga(fname);
 
-        time = GetRTTC() - time;
-        iprintf("FPGA configured in %lu ms\n", time);
+        if (rcode != ERROR_NONE)
+            return rcode;
+
+        iprintf("FPGA configured in %lu ms\n",
+            GetRTTC() - time);
     }
 
-    // wait max 100 msec for a valid core type
-    time = GetTimer(100);
+    // wait for fpga ready
+    uint32_t time = GetTimer(100);
     do {
         EnableIO();
-        ct = SPI(0xff);
+        core_type = SPI(0xff);
         DisableIO();
-    } while( ((ct == 0) || (ct == 0xff)) && !CheckTimer(time));
+    } while (((core_type == 0) || (core_type == 0xff)) && !CheckTimer(time));
 
-    warningf("Core Id: 0x%02x", ct);
-
+    // init core
     user_io_detect_core_type();
     user_io_init_core();
     mist_ini_parse();
-    user_io_send_buttons(true);
-    InitDB9();
-
-    if (user_io_core_type() == CORE_TYPE_MINIMIG_AGA) {
-        puts("Running Minimig setup");
-        user_io_8bit_set_status(minimig_cfg.clock_freq << 1, 0xffffffff);
-        WaitTimer(100); // delay for PLL
-        EnableOsd();
-        SPI(OSD_CMD_VERSION);
-        minimig_ver_beta   = SPI(0xff);
-        minimig_ver_major  = SPI(0xff);
-        minimig_ver_minor  = SPI(0xff);
-        minimig_ver_minion = SPI(0xff);
-        DisableOsd();
-        delay_usec(1);
-        EnableOsd();
-        SPI(OSD_CMD_RST);
-        rstval = (SPI_RST_USR | SPI_RST_CPU | SPI_CPU_HLT); // reset #1
-        SPI(rstval);
-        DisableOsd();
-        delay_usec(50);
-        EnableOsd();
-        SPI(OSD_CMD_RST);
-        rstval = (SPI_RST_CPU | SPI_CPU_HLT); // reset #2
-        SPI(rstval);
-        DisableOsd();
-        WaitTimer(100); // video sync delay
-        BootInit();
-        WaitTimer(250);
-        char rtl_ver[45];
-        siprintf(rtl_ver, "*** MINIMIG-AGA%s v%d.%d.%d for MiST ***",
-            minimig_ver_beta ? " BETA" : "",
-            minimig_ver_major, minimig_ver_minor, minimig_ver_minion);
-        BootPrintEx(rtl_ver);
-        BootPrintEx(" ");
-        BootPrintEx("MINIMIG-AGA for MiST by Rok Krajnc (rok.krajnc@gmail.com)");
-        BootPrintEx("Original Minimig by Dennis van Weeren");
-        BootPrintEx("Updates by Jakub Bednarski, Tobias Gubener, Sascha Boing, A.M. Robinson & others");
-        BootPrintEx("MiST by Till Harbaum (till@harbaum.org)");
-        BootPrintEx(" ");
-        BootPrintEx(" ");
-
-        // eject all disk
-        for (int n = 0; n < ARRAY_SIZE(df); n++) {
-            df[n].status = 0;
-        }
-
-        config.kickstart[0] = 0;
-        SetConfigurationFilename(arc_get_cfg_file_n());
-
-        // use slot-based config filename
-        LoadConfiguration(NULL, true);
-    }
-
-    if (user_io_core_type() == CORE_TYPE_MISTERY) {
-        puts("Running MiSTery setup");
-        tos_upload(NULL);
-    }
-
-    if (user_io_core_type() == CORE_TYPE_ARCHIE) {
-        puts("Running Archimedes setup");
-    }
 
     return ERROR_NONE;
 }

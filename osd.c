@@ -40,6 +40,7 @@ This is the Minimig OSD (on-screen-display) handler.
 #include "logo.h"
 #include "state.h"
 #include "user_io.h"
+#include <8bit/core.h>
 #include "font.h"
 
 // conversion table of Amiga keyboard scan codes to ASCII codes
@@ -490,7 +491,7 @@ unsigned char OsdGetCtrl(void)
     unsigned char c1=0,c;
 
     // minimig OSD is controlled by key codes from core
-    if(user_io_core_type() == CORE_TYPE_MINIMIG_AGA) {
+    if(user_io_core_type() == CORE_TYPE_MINIMIG_V2) {
       // send command and get current ctrl status
       EnableOsd();
       c1 = SPI(OSD_CMD_READ);

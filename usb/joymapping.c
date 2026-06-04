@@ -27,7 +27,8 @@ This file defines how to handle mapping in the MiST controllers in various ways:
 #include <stdlib.h>
 
 #include "user_io.h"
-#include "joymapping.h"
+#include <user_io_hid.h>
+#include <joymapping.h>
 #include "hidquirks.h"
 #include "mist_cfg.h"
 #include "debug.h"

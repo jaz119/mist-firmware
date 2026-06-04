@@ -2,7 +2,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
-#include "user_io.h"
+#include <user_io.h>
+#include <minimig/core.h>
 #include "menu.h"
 #include "osd.h"
 #include "fpga.h"
@@ -12,7 +13,8 @@
 #include "config.h"
 #include "misc_cfg.h"
 #include "cue_parser.h"
-#include "debug.h"
+#include <debug.h>
+#include <timer.h>
 
 static hardfileTYPE t_hardfile[HARDFILES]; // temporary copy of former hardfile configuration
 static unsigned int t_enable_ide[2]; // temporary copy of former IDE configuration

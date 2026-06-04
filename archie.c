@@ -2,6 +2,8 @@
 #include <string.h>
 #include "hardware.h"
 
+#include <user_io_hid.h>
+#include <keycodes.h>
 #include "menu.h"
 #include "osd.h"
 #include "archie.h"
@@ -69,11 +71,11 @@ static unsigned long hold_off_timer;
 
 void assign_full_path(char *, int, const char *);
 
-static inline const char *archie_get_rom_name(void) {
+static inline const char *archie_get_rom_name() {
   return get_fname(config.rom_img);
 }
 
-static inline const char *archie_get_cmos_name(void) {
+static inline const char *archie_get_cmos_name() {
   return get_fname(config.cmos_img);
 }
 
@@ -84,7 +86,7 @@ static const char *archie_get_floppy_name(char i) {
     return get_fname(floppy_name[i]);
 }
 
-static void archie_save_config(void) {
+static void archie_save_config() {
   FIL file;
   UINT bw;
 
@@ -174,7 +176,7 @@ static void archie_kbd_send(unsigned char state, unsigned char byte) {
     archie_kbd_enqueue(state, byte);
 }
 
-static void archie_kbd_reset(void) {
+static void archie_kbd_reset() {
   archie_debugf("KBD reset");
   tx_queue_rptr = tx_queue_wptr = 0;
   kbd_state = STATE_HRST;
@@ -182,7 +184,7 @@ static void archie_kbd_reset(void) {
   flags = 0;
 }
 
-void archie_init(void) {
+static void archie_init() {
   FIL file;
   UINT br;
   char i;
@@ -248,7 +250,7 @@ void archie_init(void) {
   ack_timeout = GetTimer(20);  // give archie 20ms to reply
 }
 
-void archie_kbd(unsigned short code) {
+static void archie_kbd(unsigned short code) {
   archie_debugf("KBD key code %x", code);
 
   // don't send anything yet if we are still in reset state
@@ -270,7 +272,7 @@ void archie_kbd(unsigned short code) {
   archie_kbd_send(STATE_WAIT4ACK2, prefix | (code&0x0f));
 }
 
-void archie_mouse(unsigned char b, char x, char y) {
+static void archie_mouse(uint8_t, uint8_t b, char x, char y, char) {
   archie_debugf("KBD MOUSE X:%d Y:%d B:%d", x, y, b);
 
   // max values -64 .. 63
@@ -317,7 +319,7 @@ void archie_mouse(unsigned char b, char x, char y) {
   }
 }
 
-static void archie_check_queue(void) {
+static void archie_check_queue() {
   if(tx_queue_rptr == tx_queue_wptr)
     return;
 
@@ -325,7 +327,7 @@ static void archie_check_queue(void) {
   tx_queue_rptr = QUEUE_NEXT(tx_queue_rptr);
 }
 
-void archie_handle_kbd(void) {
+void archie_handle_kbd() {
 
 #ifdef HOLD_OFF_TIME
   if((kbd_state == STATE_HOLD_OFF) && CheckTimer(hold_off_timer)) {
@@ -453,7 +455,7 @@ void archie_handle_kbd(void) {
     DisableIO();
 }
 
-void archie_handle_hdd(void) {
+void archie_handle_hdd() {
   unsigned char  c1;
 
   EnableFpga();
@@ -468,10 +470,54 @@ void archie_handle_hdd(void) {
   HandleHDD(c1, 0, 0);
 }
 
-void archie_poll(void) {
+static void archie_poll() {
   archie_handle_kbd();
   archie_handle_hdd();
 }
+
+static void archie_reset(bool) {
+  kbd_reset = 1;
+}
+
+static uint16_t archie_keycode(uint8_t key) {
+  return usb2archie[key];
+}
+
+static uint16_t archie_modify_keycode(uint8_t key) {
+  static const uint16_t archie_modifier[] = {
+    0x36, 0x4c, 0x5e, MISS, 0x61, 0x58, 0x60, MISS
+  };
+
+  return archie_modifier[key];
+}
+
+static void archie_eject_all()
+{
+  for (int i=0; i<MAX_FLOPPY; i++) {
+    floppy_name[i][0] = 0;
+  }
+
+  for (int i=0; i<ARRAY_SIZE(sd_image); i++) {
+    IDXClose(&sd_image[i]);
+  }
+
+  config.hardfile[0].present = 0;
+  config.hardfile[1].present = 0;
+}
+
+// core iface
+const user_io_core_t archie_core = {
+  .init = archie_init,
+  .poll = archie_poll,
+  .reset = archie_reset,
+  .keycode = archie_keycode,
+  .modify_keycode = archie_modify_keycode,
+  .send_keycode = archie_kbd,
+  .send_mouse = archie_mouse,
+  .send_digital_joy = send_digital_joystick,
+  .eject_all = archie_eject_all,
+  .name = "Archie",
+};
 
 //////////////////////////
 ////// Archie menu ///////
@@ -583,18 +629,4 @@ void archie_setup_menu()
 {
   archie_debugf("Setting up Archie menu");
   SetupMenu(archie_getmenupage, archie_getmenuitem, NULL);
-}
-
-void archie_eject_all()
-{
-  for (int i=0; i<MAX_FLOPPY; i++) {
-    floppy_name[i][0] = 0;
-  }
-
-  for (int i=0; i<ARRAY_SIZE(sd_image); i++) {
-    IDXClose(&sd_image[i]);
-  }
-
-  config.hardfile[0].present = 0;
-  config.hardfile[1].present = 0;
 }

@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <8bit/core.h>
 #include "menu.h"
 #include "menu-8bit.h"
 #include "user_io.h"

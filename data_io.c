@@ -3,12 +3,13 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "user_io.h"
-#include "data_io.h"
-#include "debug.h"
+#include <user_io.h>
+#include <8bit/core.h>
+#include <data_io.h>
+#include <debug.h>
 
 #ifdef HAVE_QSPI
-#include "qspi.h"
+#include <qspi.h>
 #endif
 
 // core supports direct ROM upload via SS4

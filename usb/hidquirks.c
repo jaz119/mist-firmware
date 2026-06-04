@@ -1,8 +1,8 @@
-#include "user_io.h"
 #include <string.h>
-#include "hidquirks.h"
+#include <usb/timer.h>
+#include <hidquirks.h>
 #include "joystick.h"
-#include "usb/timer.h"
+#include <user_io_hid.h>
 #include "state.h"
 #include "debug.h"
 

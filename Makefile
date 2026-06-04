@@ -11,12 +11,14 @@ TODAY = $(shell date +"%y%m%d")
 PRJ = firmware
 
 SRC = hw/AT91SAM/Cstartup_SAM7.c hw/AT91SAM/hardware.c hw/AT91SAM/spi.c hw/AT91SAM/mmc.c hw/AT91SAM/at91sam_usb.c hw/AT91SAM/usbdev.c
-SRC += firmware.c main.c menu.c menu-8bit.c menu_info.c osd.c state.c syscalls.c user_io.c settings.c data_io.c idxfile.c ini_parser.c cue_parser.c mist_cfg.c archie.c pcecd.c neocd.c snes.c zx_col.c arc_file.c idx_files.c font.c utils.c serial_sink.c fat_compat.c diskio.c cdc_control.c storage_control.c
-SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/usbdebug.c usb/timer.c usb/hub.c usb/hid.c usb/hidparser.c usb/hidquirks.c usb/joymapping.c usb/joystick.c
+SRC += main.c firmware.c fpga.c syscalls.c menu.c menu_info.c osd.c user_io.c user_io_hid.c settings.c hdd.c data_io.c idxfile.c ini_parser.c cue_parser.c mist_cfg.c archie.c zx_col.c arc_file.c idx_files.c font.c utils.c serial_sink.c diskio.c storage_control.c
+SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/usbdebug.c usb/timer.c usb/hub.c
+SRC += usb/hid.c usb/hidparser.c usb/hidquirks.c usb/joymapping.c usb/joystick.c state.c
 SRC += usb/rtc.c usb/rtc/i2c-tiny.c usb/rtc/i2c-mcp2221.c usb/rtc/pcf85263.c usb/rtc/ds3231.c
-SRC += fpga.c boot.c config.c menu-minimig.c hdd.c fdd.c
-SRC += FatFs/ff.c FatFs/ffunicode.c
-SRC += tos.c acsi_hdc.c
+SRC += FatFs/ff.c FatFs/ffunicode.c fat_compat.c
+SRC += support/minimig/core.c boot.c config.c fdd.c menu-minimig.c
+SRC += support/8bit/core.c pcecd.c neocd.c snes.c menu-8bit.c
+SRC += tos.c acsi_hdc.c cdc_control.c
 # SRC += usb/storage.c # -DUSB_STORAGE
 # SRC += usb/pl2303.c # -DUSB_PL2303_CDC
 # SRC += usb/asix.c # -DUSB_ASIX_NET
@@ -24,14 +26,14 @@ SRC += tos.c acsi_hdc.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 
-LINKMAP  = hw/AT91SAM/AT91SAM7S256-ROM.ld
-LIBDIR   =
+LINKMAP = hw/AT91SAM/AT91SAM7S256-ROM.ld
+LIBDIR  =
 
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
 DFLAGS  = -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV4TE -DVDATE=\"$(TODAY)\"
 DFLAGS += -DMIST -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80 -DSECTOR_BUFFER_SIZE=4096
-CFLAGS  = $(DFLAGS) -I. -Iusb -Iarch/ -Ihw/AT91SAM -mcpu=arm7tdmi -mthumb-interwork -mthumb
+CFLAGS  = $(DFLAGS) -I. -Iusb -Iarch -Isupport -Ihw/AT91SAM -mcpu=arm7tdmi -mthumb-interwork -mthumb
 CFLAGS += -Os --std=gnu99 -Wdouble-promotion -Wformat=2 -fsigned-char -fno-common
 AFLAGS  = -ahls -mapcs-32
 LFLAGS  = -mthumb-interwork -mthumb -nostartfiles -Wl,-Map,$(PRJ).map,--cref -T$(LINKMAP) $(LIBDIR)
@@ -41,7 +43,7 @@ CPFLAGS = --output-target=ihex
 MKUPG = mkupg
 
 # Libraries.
-LIBS    =
+LIBS  =
 
 .PRECIOUS: %.d
 

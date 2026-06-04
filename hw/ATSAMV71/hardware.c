@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils.h"
 #include "mist_cfg.h"
 #include "user_io.h"
+#include <user_io_hid.h>
 #include "debug.h"
 
 volatile unsigned long timer_ticks = 0;

@@ -8,21 +8,22 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#include "spi.h"
-#include "attrs.h"
-#include "hdd.h"
+#include <spi.h>
+#include <attrs.h>
+#include <user_io_core.h>
+#include <hdd.h>
 
 #define UIO_STATUS          0x00
 #define UIO_BUT_SW          0x01
 
-// codes as used by Minimig (Amiga)
+// codes as used by Minimig
 #define UIO_JOYSTICK0       0x02  // also used by 8 bit
 #define UIO_JOYSTICK1       0x03  // -"-
 #define UIO_MOUSE           0x04  // -"-
 #define UIO_KEYBOARD        0x05  // -"-
 #define UIO_KBD_OSD         0x06  // keycodes used by OSD only
 
-// codes as used by MiSTery (Atari)
+// codes as used by MiSTery
 // directions (in/out) are from an io controller view
 #define UIO_PARALLEL_IN     0x06
 #define UIO_MIDI_OUT        0x07
@@ -60,7 +61,7 @@
 #define UIO_GET_STR_EXT     0x24  // get config string from dedicated position
 #define UIO_SET_MOD2        0x25  // send core variant from metadata (ARC) file (64 bit)
 
-// I2c bridge
+// I2C bridge
 #define UIO_I2C_SEND        0x30  // start i2c transaction on the FPGA side
 #define UIO_I2C_GET         0x31  // get i2c status and result from the FPGA
 
@@ -76,124 +77,77 @@
 #define UIO_MOUSE0_EXT      0x70
 #define UIO_MOUSE1_EXT      0x71
 
-#define UIO_GET_FEATS       0x80 // get core features (only once after fpga init)
+#define UIO_GET_FEATS       0x80  // get core features (only once after fpga init)
 
-#define FEAT_MENU       0x0001 // menu core
-#define FEAT_PCECD      0x0002 // call pcecd_poll()
-#define FEAT_QSPI       0x0004 // QSPI connection to FPGA@24MHz
-#define FEAT_NEOCD      0x0008 // call neocd_poll()
-#define FEAT_IDE0       0x0030 // enable primary master IDE (0 - off, 1 - ATA - 2 ATAPI CDROM)
-#define FEAT_IDE0_ATA   0x0010
-#define FEAT_IDE0_CDROM 0x0020
-#define FEAT_IDE1       0x00c0 // enable primary slave IDE
-#define FEAT_IDE1_ATA   0x0040
-#define FEAT_IDE1_CDROM 0x0080
-#define FEAT_IDE2       0x0300 // enable secondary master IDE
-#define FEAT_IDE2_ATA   0x0100
-#define FEAT_IDE2_CDROM 0x0200
-#define FEAT_IDE3       0x0c00 // enable secondary slave IDE
-#define FEAT_IDE3_ATA   0x0400
-#define FEAT_IDE3_CDROM 0x0800
-#define FEAT_IDE_MASK   0x0FF0
-#define FEAT_PS2REP     0x1000 // typematic repeat by default
-#define FEAT_BIGOSD     0x2000 // 16 line tall OSD
-#define FEAT_HDMI       0x4000 // HDMI output
-#define FEAT_PSX        0x8000 // PSX-specific CD image handling
+#define FEAT_MENU           0x0001 // menu core
+#define FEAT_PCECD          0x0002 // call pcecd_poll()
+#define FEAT_QSPI           0x0004 // QSPI connection to FPGA@24MHz
+#define FEAT_NEOCD          0x0008 // call neocd_poll()
+#define FEAT_IDE0           0x0030 // enable primary master IDE (0 - off, 1 - ATA - 2 ATAPI CDROM)
+#define FEAT_IDE0_ATA       0x0010
+#define FEAT_IDE0_CDROM     0x0020
+#define FEAT_IDE1           0x00c0 // enable primary slave IDE
+#define FEAT_IDE1_ATA       0x0040
+#define FEAT_IDE1_CDROM     0x0080
+#define FEAT_IDE2           0x0300 // enable secondary master IDE
+#define FEAT_IDE2_ATA       0x0100
+#define FEAT_IDE2_CDROM     0x0200
+#define FEAT_IDE3           0x0c00 // enable secondary slave IDE
+#define FEAT_IDE3_ATA       0x0400
+#define FEAT_IDE3_CDROM     0x0800
+#define FEAT_IDE_MASK       0x0FF0
+#define FEAT_PS2REP         0x1000 // typematic repeat by default
+#define FEAT_BIGOSD         0x2000 // 16 line tall OSD
+#define FEAT_HDMI           0x4000 // HDMI output
+#define FEAT_PSX            0x8000 // PSX-specific CD image handling
 
-#define JOY_RIGHT       BIT(0)
-#define JOY_LEFT        BIT(1)
-#define JOY_DOWN        BIT(2)
-#define JOY_UP          BIT(3)
-
-#define JOY_BTN_SHIFT   4
-
-// virtual gamepad buttons
-#define JOY_A           BIT(4)
-#define JOY_B           BIT(5)
-#define JOY_SELECT      BIT(6)
-#define JOY_START       BIT(7)
-#define JOY_X           BIT(8)
-#define JOY_Y           BIT(9)
-#define JOY_L           BIT(10)
-#define JOY_R           BIT(11)
-#define JOY_L2          BIT(12)
-#define JOY_R2          BIT(13)
-#define JOY_L3          BIT(14)
-#define JOY_R3          BIT(15)
-
-// right stick
-#define JOY_RIGHT2      BIT(16)
-#define JOY_LEFT2       BIT(17)
-#define JOY_DOWN2       BIT(18)
-#define JOY_UP2         BIT(19)
-
-#define JOY_BTN1        JOY_A
-#define JOY_BTN2        JOY_B
-#define JOY_BTN3        JOY_SELECT
-#define JOY_BTN4        JOY_START
-
-#define BUTTON_MENU     0x01
-#define BUTTON_USER     0x02
-#define SWITCH_DEBUG    0x04
-#define SWITCH_CORE     0x08
-
-// keyboard LEDs control
-#define KBD_LED_CAPS_CONTROL     BIT(0)
-#define KBD_LED_CAPS_STATUS      BIT(1)
-#define KBD_LED_CAPS_MASK        ( KBD_LED_CAPS_CONTROL | KBD_LED_CAPS_STATUS )
-#define KBD_LED_NUM_CONTROL      BIT(2)
-#define KBD_LED_NUM_STATUS       BIT(3)
-#define KBD_LED_NUM_MASK         ( KBD_LED_NUM_CONTROL | KBD_LED_NUM_STATUS )
-#define KBD_LED_SCRL_CONTROL     BIT(4)
-#define KBD_LED_SCRL_STATUS      BIT(5)
-#define KBD_LED_SCRL_MASK        ( KBD_LED_SCRL_CONTROL | KBD_LED_SCRL_STATUS )
-#define KBD_LED_FLAG_MASK        0xC0
-#define KBD_LED_FLAG_STATUS      0x40
-
-#define CONF_SCANDOUBLER_DISABLE BIT(4)
-#define CONF_YPBPR               BIT(5)
-#define CONF_CSYNC_DISABLE       BIT(6)
-#define CONF_SDRAM64             BIT(7)
+#define CONF_SCANDBL_DIS    BIT(4)
+#define CONF_YPBPR          BIT(5)
+#define CONF_CSYNC_DISABLE  BIT(6)
+#define CONF_SDRAM64        BIT(7)
 
 // core type value should be unlikely to be returned by broken cores
-#define CORE_TYPE_UNKNOWN        0x55
-#define CORE_TYPE_DUMB           0xa0   // core without any io controller interaction
-#define CORE_TYPE_MINIMIG        0xa1   // legacy Minimig Amiga core
-#define CORE_TYPE_PACE           0xa2   // core from pacedev.net (joystick only)
-#define CORE_TYPE_MIST           0xa3   // legacy Atari ST core
-#define CORE_TYPE_8BIT           0xa4   // generic core type
-#define CORE_TYPE_MINIMIG_AGA    0xa5   // Minimig Amiga with AGA
-#define CORE_TYPE_ARCHIE         0xa6   // Acorn Archimedes core
-#define CORE_TYPE_MISTERY        0xa7   // MiSTery, modern Atari ST core
+#define CORE_TYPE_UNKNOWN   0x55
+#define CORE_TYPE_DUMB      0xa0   // core without any io controller interaction
+#define CORE_TYPE_MINIMIG   0xa1   // legacy Minimig Amiga core
+#define CORE_TYPE_PACE      0xa2   // core from pacedev.net (joystick only)
+#define CORE_TYPE_MIST      0xa3   // legacy Atari ST core
+#define CORE_TYPE_8BIT      0xa4   // generic core type
+#define CORE_TYPE_MINIMIG_V2 0xa5  // Minimig Amiga with AGA
+#define CORE_TYPE_ARCHIE    0xa6   // Acorn Archimedes core
+#define CORE_TYPE_MISTERY   0xa7   // MiSTery, modern Atari ST core
 
 // user io status bits (currently only used by 8bit)
-#define UIO_STATUS_RESET   0x01
+#define UIO_STATUS_RESET    0x01
 
-#define UIO_STOP_BIT_1   0
-#define UIO_STOP_BIT_1_5 1
-#define UIO_STOP_BIT_2   2
+#define UIO_STOP_BIT_1      0
+#define UIO_STOP_BIT_1_5    1
+#define UIO_STOP_BIT_2      2
 
-#define UIO_PARITY_NONE  0
-#define UIO_PARITY_ODD   1
-#define UIO_PARITY_EVEN  2
-#define UIO_PARITY_MARK  3
-#define UIO_PARITY_SPACE 4
+#define UIO_PARITY_NONE     0
+#define UIO_PARITY_ODD      1
+#define UIO_PARITY_EVEN     2
+#define UIO_PARITY_MARK     3
+#define UIO_PARITY_SPACE    4
 
-#define UIO_PRIORITY_KEYBOARD 0
-#define UIO_PRIORITY_GAMEPAD  1
+#define BUTTON_MENU         BIT(0)
+#define BUTTON_USER         BIT(1)
+#define SWITCH_DEBUG        BIT(2)
+#define SWITCH_CORE         BIT(3)
 
 extern uint32_t core_type;
-extern bool osd_is_visible;
+extern const user_io_core_t *core;
 
+extern bool osd_is_visible;
 extern hardfileTYPE hardfiles[HARDFILES];
 
 // serial status data type returned from the core
 typedef struct {
-    uint32_t bitrate;        // 300, 600 ... 115200
-    uint8_t datasize;        // 5,6,7,8 ...
+    uint32_t bitrate;       // 300, 600 ... 115200
+    uint8_t datasize;       // 5,6,7,8 ...
     uint8_t parity;
     uint8_t stopbits;
-    uint8_t fifo_stat;       // space in cores input fifo
+    uint8_t fifo_stat;      // space in cores input fifo
 } __attribute__ ((packed)) serial_status_t;
 
 void user_io_reset();
@@ -207,61 +161,44 @@ static inline uint32_t user_io_core_type() {
 }
 
 static inline bool minimig_v2() {
-    return(user_io_core_type() == CORE_TYPE_MINIMIG_AGA);
+    return (user_io_core_type() == CORE_TYPE_MINIMIG_V2);
 }
 
-char user_io_is_8bit_with_config_string();
 void user_io_poll();
 void user_io_osd_key_enable(bool);
 void user_io_serial_tx(char *, uint16_t);
-char *user_io_8bit_get_string(unsigned char);
-unsigned long long user_io_8bit_set_status(unsigned long long, unsigned long long);
-void user_io_sd_set_config(void);
+void user_io_sd_set_config();
 char user_io_serial_status(serial_status_t *, uint8_t);
 bool user_io_is_mounted(unsigned char index);
 bool user_io_file_mount(const unsigned char *, int);
 bool user_io_is_cue_mounted();
-char user_io_cue_mount(const unsigned char*, unsigned char);
-const char *user_io_get_core_name();
-void user_io_set_core_mod(int64_t);
+char user_io_cue_mount(const unsigned char *, unsigned char);
 void user_io_sd_ack(uint8_t drive_index);
 
 // io controllers interface for FPGA ethernet emulation using usb ethernet
 // devices attached to the io controller (ethernec emulation)
 void user_io_eth_send_mac(uint8_t *);
-uint32_t user_io_eth_get_status(void);
+uint32_t user_io_eth_get_status();
 void user_io_eth_send_rx_frame(uint8_t *, uint16_t);
 void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
 
-// hooks from the usb layer
-void user_io_mouse(unsigned char idx, unsigned char b, char x, char y, char z);
-void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority);
-
 #define CONFIG_ROOT 1   // create config filename in the root directory
 #define CONFIG_VHD  2   // create config filename according to VHD= in arc file
-
-uint8_t user_io_swap_joystick(uint8_t);
-char user_io_create_config_name(char *s, const char *ext, uint8_t flags);
-
-void user_io_digital_joystick(unsigned char, uint32_t);
-void user_io_analog_joystick(unsigned char, int, int, int, int);
 
 static inline bool user_io_osd_is_visible() {
     return osd_is_visible;
 }
 
+void user_io_send_rtc();
 void user_io_send_buttons(char);
+void user_io_change_into_core_dir();
 
 #ifdef HAVE_HDMI
+
 char user_io_i2c_write(unsigned char addr, unsigned char subaddr, unsigned char data);
 char user_io_i2c_read(unsigned char addr, unsigned char subaddr, unsigned char *data);
 bool user_io_hdmi_detected();
-#endif
 
-char user_io_key_remap(char *, char, int);
-void add_modifiers(uint8_t mod, uint16_t* keys_ps2);
-unsigned char user_io_ext_idx(const char*, const char*);
-
-void user_io_change_into_core_dir(void);
+#endif // HAVE_HDMI
 
 #endif // USER_IO_H

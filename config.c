@@ -5,7 +5,8 @@
 #include "hardware.h"
 #include "boot.h"
 #include "fat_compat.h"
-#include "ini_parser.h"
+#include <user_io.h>
+#include <minimig/core.h>
 #include "osd.h"
 #include "fpga.h"
 #include "fdd.h"
@@ -13,10 +14,11 @@
 #include "firmware.h"
 #include "menu.h"
 #include "config.h"
-#include "user_io.h"
+#include "ini_parser.h"
 #include "usb/usb.h"
 #include "misc_cfg.h"
 #include "menu-minimig.h"
+#include <timer.h>
 
 configTYPE config;
 static configTYPE tmpconf;
@@ -83,6 +85,92 @@ static void ClearVectorTable(void)
   }
   DisableOsd();
   delay_usec(1);
+}
+
+char kick1xfoundstr[] = "Kickstart v1.x found\n";
+const char applymemdetectionpatchstr[] = "Applying Kickstart 1.x memory detection patch\n";
+
+const char *kickfoundstr = NULL, *applypatchstr = NULL;
+
+static void PatchKick1xMemoryDetection()
+{
+  if (!strncmp(sector_buffer + 0x18, "exec 33.192 (8 Oct 1986)", 24)) {
+    kick1xfoundstr[13] = '2';
+    kickfoundstr = kick1xfoundstr;
+    goto applypatch;
+  }
+  if (!strncmp(sector_buffer + 0x18, "exec 34.2 (28 Oct 1987)", 23)) {
+    kick1xfoundstr[13] = '3';
+    kickfoundstr = kick1xfoundstr;
+    goto applypatch;
+  }
+  return;
+
+applypatch:
+  if ((sector_buffer[0x154] == 0x66) && (sector_buffer[0x155] == 0x78)) {
+    applypatchstr = applymemdetectionpatchstr;
+    sector_buffer[0x154] = 0x60;
+  }
+}
+
+static void SendFileV2(FIL* file, unsigned char* key, int keysize, int address, int size)
+{
+  UINT br;
+  unsigned int keyidx = 0;
+
+  debugf("File size: %dkB", size>>1);
+
+  if (keysize) {
+    // read header
+    f_read(file, sector_buffer, 0xb, &br);
+  }
+
+  for (int i=0; i<size; i++) {
+    f_read(file, sector_buffer, 512, &br);
+    if (keysize) {
+      // decrypt ROM
+      for (int j=0; j<512; j++) {
+        sector_buffer[j] ^= key[keyidx++];
+        if(keyidx >= keysize) keyidx -= keysize;
+      }
+    }
+
+    // patch kickstart 1.x to force memory detection every time the AMIGA is reset
+    if (minimig_cfg.kick1x_memory_detection_patch && (i == 0 || i == 512)) {
+      kickfoundstr = NULL;
+      applypatchstr = NULL;
+      PatchKick1xMemoryDetection();
+    }
+
+    EnableOsd();
+    uint32_t addr = address + i*512;
+    SPI(OSD_CMD_WR);
+    delay_usec(1);
+    SPI(addr&0xff); addr = addr>>8;
+    SPI(addr&0xff); addr = addr>>8;
+    delay_usec(1);
+    SPI(addr&0xff); addr = addr>>8;
+    SPI(addr&0xff); addr = addr>>8;
+
+    for (int j=0; j<512; j=j+4) {
+      delay_usec(1);
+      SPI(sector_buffer[j+0]);
+      SPI(sector_buffer[j+1]);
+      delay_usec(1);
+      SPI(sector_buffer[j+2]);
+      SPI(sector_buffer[j+3]);
+    }
+
+    DisableOsd();
+  }
+
+  if (kickfoundstr) {
+    debugf("%s", kickfoundstr);
+  }
+
+  if (applypatchstr) {
+    debugf("%s", applypatchstr);
+  }
 }
 
 //// UploadKickstart() ////
@@ -283,7 +371,7 @@ bool LoadConfiguration(const char *filename, bool verbose)
   uint32_t key;
   bool result = false;
 
-  if(!filename) {
+  if (!filename) {
     // use slot-based filename if none provided
     filename = configfilename;
   }
@@ -300,7 +388,7 @@ bool LoadConfiguration(const char *filename, bool verbose)
 
   ini_parse(&config_ini, 0, 0);
 
-  if(tmpconf.floppy.drives<=4 && tmpconf.kickstart[0]) {
+  if (tmpconf.floppy.drives<=4 && tmpconf.kickstart[0]) {
     // successfully loaded the config
     memcpy((void*)&config, (void*)&tmpconf, sizeof(config));
     result = true;
@@ -454,12 +542,15 @@ static void ApplyConfiguration(bool reloadkickstart)
     }
 
     debugf("Resetting ...");
+
     EnableOsd();
     SPI(OSD_CMD_RST);
     rstval |= (SPI_RST_USR | SPI_RST_CPU); // reset #4
     SPI(rstval);
     DisableOsd();
+
     delay_usec(50);
+
     EnableOsd();
     SPI(OSD_CMD_RST);
     rstval = 0; // 68K CPU ready to go
@@ -486,12 +577,4 @@ bool SaveConfiguration(const char *filename)
 
   memcpy((void*)&tmpconf, (void*)&config, sizeof(config));
   return ini_save(&config_ini, 0);
-}
-
-void minimig_eject_all() {
-  for (int i=0; i<drives; i++) {
-    df[i].status = 0;
-  }
-  config.hardfile[0].present = 0;
-  config.hardfile[1].present = 0;
 }
