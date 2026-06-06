@@ -30,4 +30,4 @@ extern unsigned char drives;
 void UpdateFDDStatus(void);
 void HandleFDD(unsigned int c1, unsigned int c2);
 
-#endif
+#endif // FDD_H

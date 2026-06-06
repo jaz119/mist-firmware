@@ -169,8 +169,8 @@ static data_io_processor_t* data_io_get_processor(const char *processor_id) {
 
 char data_io_add_processor(data_io_processor_t *processor) {
   if (processor) {
-    for (int i = 0; i < MAX_DATA_IO_PROCESSORS; i++) {
-      if (!PROCESSORS[i]) {
+    for (int i = 0; i < ARRAY_SIZE(PROCESSORS); i++) {
+      if (PROCESSORS[i] == processor || !PROCESSORS[i]) {
         PROCESSORS[i] = processor;
         return 0;
       }

@@ -6,18 +6,18 @@
 #include "boot.h"
 #include "fat_compat.h"
 #include <user_io.h>
+#include <menu.h>
 #include <minimig/core.h>
+#include <minimig/menu.h>
+#include <minimig/config.h>
+#include <minimig/fdd.h>
 #include "osd.h"
 #include "fpga.h"
-#include "fdd.h"
 #include "hdd.h"
 #include "firmware.h"
-#include "menu.h"
-#include "config.h"
 #include "ini_parser.h"
 #include "usb/usb.h"
 #include "misc_cfg.h"
-#include "menu-minimig.h"
 #include <timer.h>
 
 configTYPE config;

@@ -13,4 +13,4 @@ const char *config_memory_fast_txt();
 
 void SetupMinimigMenu();
 
-#endif
+#endif // MENU_MINIMIG_H

@@ -22,21 +22,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdbool.h>
 
-#include "errors.h"
-#include "user_io.h"
-#include <minimig/core.h>
-#include "hardware.h"
-#include <FatFs/ff.h>
-#include "fdd.h"
-#include "config.h"
-#include "boot.h"
-#include "osd.h"
-#include "fpga.h"
-#include "tos.h"
-#include "arc_file.h"
-#include "mist_cfg.h"
-#include "settings.h"
+#include <user_io.h>
 #include <usb/joymapping.h>
+#include <fpga.h>
+#include <minimig/core.h>
+#include <minimig/boot.h>
+#include <minimig/config.h>
+#include <minimig/fdd.h>
+#include <mist_cfg.h>
+#include <settings.h>
 #include <timer.h>
 
 #ifndef DEFAULT_CORE_NAME

@@ -1,14 +1,14 @@
 #include <user_io.h>
 #include <user_io_hid.h>
 #include <minimig/core.h>
+#include <minimig/config.h>
+#include <minimig/boot.h>
+#include <minimig/fdd.h>
 #include <8bit/core.h>
 #include <usb/timer.h>
 #include <keycodes.h>
 #include <spi.h>
 #include <fpga.h>
-#include <boot.h>
-#include <config.h>
-#include <fdd.h>
 #include <arc_file.h>
 #include <mist_cfg.h>
 

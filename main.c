@@ -19,58 +19,35 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// 2008-10-04   - porting to ARM
-// 2008-10-06   - support for 4 floppy drives
-// 2008-10-30   - hdd write support
-// 2009-05-01   - subdirectory support
-// 2009-06-26   - SDHC and FAT32 support
-// 2009-08-10   - hardfile selection
-// 2009-09-11   - minor changes to hardware initialization routine
-// 2009-10-10   - any length fpga core file support
-// 2009-11-14   - adapted floppy gap size
-//              - changes to OSD labels
-// 2009-12-24   - updated version number
-// 2010-01-09   - changes to floppy handling
-// 2010-07-28   - improved menu button handling
-//              - improved FPGA configuration routines
-//              - added support for OSD vsync
-// 2010-08-15   - support for joystick emulation
-// 2010-08-18   - clean-up
-
 #include <stdio.h>
 #include <string.h>
-#include "errors.h"
-#include "hardware.h"
-#include "mmc.h"
+
+#include <mmc.h>
 #include <8bit/core.h>
-#include "fat_compat.h"
-#include "osd.h"
-#include "fpga.h"
-#include "fdd.h"
-#include "hdd.h"
-#include "config.h"
-#include "menu.h"
-#include "user_io.h"
-#include "data_io.h"
-#include "idx_files.h"
-#include "snes.h"
-#include "zx_col.h"
+#include <osd.h>
+#include <fpga.h>
+#include <minimig/fdd.h>
+#include <minimig/config.h>
+#include <menu.h>
+#include <user_io.h>
+#include <data_io.h>
 #include "arc_file.h"
 #include "serial_sink.h"
 #include "ini_parser.h"
 #include "font.h"
 #include "usb.h"
-#include "debug.h"
 #include "mist_cfg.h"
 #include "usbdev.h"
 #include "cdc_control.h"
 #include "storage_control.h"
-#include "FatFs/diskio.h"
+#include <FatFs/diskio.h>
+#include "eth.h"
+#include <timer.h>
+#include <errors.h>
+
 #ifdef HAVE_QSPI
 #include "qspi.h"
 #endif
-#include "eth.h"
-#include <timer.h>
 
 #ifndef _WANT_IO_LONG_LONG
 #error "newlib lacks support of long long type in IO functions. Please use a toolchain that was compiled with option --enable-newlib-io-long-long."
@@ -165,9 +142,6 @@ int main()
     DISKLED_ON;
 
     data_io_init();
-    idx_files_init();
-    snes_init();
-    zx_init();
     serial_sink_init();
     Timer_Init();
 
@@ -187,7 +161,6 @@ int main()
     iprintf("spi_clock: %u MHz\n", GetSPICLK());
 
     usb_init();
-
     InitADC();
 
 #ifdef USB_STORAGE
@@ -227,11 +200,8 @@ int main()
     ChangeDirectoryName("/");
 
     arc_reset();
-
     font_load();
-
     eth_init();
-
     user_io_init();
 
     int64_t mod = -1LL;
@@ -323,9 +293,7 @@ int main()
         usb_poll();
 
         cdc_control_poll();
-
         storage_control_poll();
-
         eth_poll();
 
         user_io_poll();

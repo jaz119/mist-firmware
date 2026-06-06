@@ -21,17 +21,16 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <menu.h>
 #include <8bit/core.h>
-#include "menu.h"
-#include "menu-8bit.h"
-#include "user_io.h"
-#include "data_io.h"
-#include "fat_compat.h"
-#include "cue_parser.h"
-#include "menu_info.h"
-#include "hdd.h"
-#include "osd.h"
-#include "debug.h"
+#include <8bit/menu.h>
+#include <8bit/menu_info.h>
+#include <user_io.h>
+#include <data_io.h>
+#include <fat_compat.h>
+#include <cue_parser.h>
+#include <osd.h>
+#include <debug.h>
 
 extern char s[OSD_BUF_SIZE];
 

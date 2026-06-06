@@ -1,5 +1,6 @@
 #include <string.h>
 #include <8bit/core.h>
+#include <8bit/idx_files.h>
 #include <user_io.h>
 #include <user_io_hid.h>
 #include <spi.h>
@@ -9,6 +10,8 @@
 #include <data_io.h>
 #include <pcecd.h>
 #include <neocd.h>
+#include <snes.h>
+#include <zx_col.h>
 #include <debug.h>
 
 extern char s[OSD_BUF_SIZE];
@@ -322,6 +325,11 @@ static void generic_8bit_init()
 
     // get requested features
     user_io_read_core_features();
+
+    // init for specific cores
+    idx_files_init();
+    snes_init();
+    zx_init();
 
     // send a reset
     user_io_8bit_set_status(UIO_STATUS_RESET, ~0);

@@ -21,8 +21,8 @@
 #include "osd.h"
 #include "menu_info.h"
 #include "fat_compat.h"
-#include "menu.h"
-#include "debug.h"
+#include <menu.h>
+#include <debug.h>
 
 #define CHAR_IS_EOL(c)      (((c) == '\n'))
 

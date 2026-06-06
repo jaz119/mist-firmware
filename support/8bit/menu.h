@@ -28,7 +28,6 @@ typedef struct {
 void page_plugin_init();
 char page_plugin_add(menu_page_plugin_t *plugin);
 
-
 void Setup8bitMenu();
 
-#endif
+#endif // MENU_8BIT_H
