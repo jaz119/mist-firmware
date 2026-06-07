@@ -71,7 +71,7 @@ uint8_t user_io_swap_joystick(uint8_t);
 
 // generic core support
 void send_keycode_ps2(uint16_t code);
-void send_mouse_ps2(uint8_t idx, uint8_t b, char x, char y, char z);
+void send_mouse_ps2(uint8_t idx, uint8_t b, int8_t x, int8_t y, int8_t z);
 void send_analog_joystick(uint8_t joy, int LX, int LY, int RX, int RY);
 void send_digital_joystick(uint8_t joy, uint32_t map);
 

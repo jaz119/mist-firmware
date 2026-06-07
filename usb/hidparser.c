@@ -71,7 +71,7 @@ static bool report_is_usable(uint16_t bit_count, uint8_t report_complete, hid_re
 	return false;
 }
 
-bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf, int target_type) {
+bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf) {
 	int8_t app_collection = 0;
 	int8_t phys_log_collection = 0;
 	uint8_t skip_collection = 0;
@@ -352,9 +352,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					// check if report is usable and stop parsing if it is
 					if (bit_count > 0) {
 						if (report_is_usable(bit_count, report_complete, conf)) {
-							if (conf->type == target_type) {
-								return true;
-							}
+							return true;
 						}
 					}
 
@@ -490,6 +488,5 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 		}
 	}
 
-	return report_is_usable(bit_count, report_complete, conf)
-		&& (conf->type == target_type);
+	return report_is_usable(bit_count, report_complete, conf);
 }

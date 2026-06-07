@@ -71,7 +71,7 @@ uint8_t usb_in_transfer(usb_device_t *dev, ep_t *ep, uint16_t *size, uint8_t *bu
 {
     const usb_hid_info_t *info = &(dev->hid_info);
 
-    for (int i = 0; i < info->numIfaces; i++)
+    for (int i = 0; i < info->num_ifaces; i++)
     {
         const usb_hid_iface_info_t *iface = &info->iface[i];
 

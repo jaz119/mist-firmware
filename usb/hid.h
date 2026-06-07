@@ -37,7 +37,7 @@
 #define HID_REQ_HIDOUT        (USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE)
 #define HID_REQ_HIDIN         (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE)
 
-#define MAX_IFACES            2  // max supported interfaces per device. 2 to support kbd/mouse combos
+#define MAX_IFACES            3  // max supported interfaces per device
 #define REPORT_BUF_SZ         64
 
 #define HID_DEVICE_UNKNOWN    0

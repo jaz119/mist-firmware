@@ -30,7 +30,7 @@ unsigned char get_mice(void) {
 }
 
 static const char *hid_device_name[4] = {
-	"NONE", "MOUSE", "KEYBOARD", "JOYSTICK"
+	"None", "Mouse", "Keyboard", "Joystick"
 };
 
 // up to 8 buttons can be remapped
@@ -127,7 +127,9 @@ uint8_t hid_set_report(usb_device_t *dev, uint8_t iface,
 		report_id, report_type, iface, nbytes, dataptr);
 }
 
-static bool hid_get_report_descr(usb_device_t *dev, usb_hid_iface_info_t *iface, uint16_t size) {
+static bool hid_get_report_descr(
+	usb_device_t *dev, usb_hid_iface_info_t *iface, uint16_t size) {
+
 	if (size > USB_MAX_CONFIG_DESC_SIZE)
 		return false;
 
@@ -144,8 +146,7 @@ static bool hid_get_report_descr(usb_device_t *dev, usb_hid_iface_info_t *iface,
 #endif
 
 	// we got a report descriptor, try to parse it
-	if (!parse_report_descriptor(buf, size, &(iface->conf),
-		iface->device_type ? iface->device_type : HID_DEVICE_JOYSTICK))
+	if (!parse_report_descriptor(buf, size, &(iface->conf)))
 		return false;
 
 	return true;
@@ -311,7 +312,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 		return USB_ERROR_CONFIGURATION_SIZE_MISMATCH;
 	}
 
-	hid_debugf("found %d interface(s)", info->numIfaces);
+	hid_debugf("found %d interface(s)", info->num_ifaces);
 	return 0;
 }
 
@@ -365,12 +366,14 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	for (uint32_t i=0; i<info->numIfaces; i++) {
 		usb_hid_iface_info_t *iface = &info->iface[i];
 
-		if (iface->conf.type == HID_DEVICE_MOUSE) {
+		if (iface->conf.type == REPORT_TYPE_MOUSE) {
+			iface->device_type = HID_DEVICE_MOUSE;
 			iface->jindex = mice++;
 		}
-		else if (iface->conf.type == HID_DEVICE_KEYBOARD) {
+		else if (iface->conf.type == REPORT_TYPE_KEYBOARD) {
+			iface->device_type = HID_DEVICE_KEYBOARD;
 			hid_set_report(dev, iface->iface_idx, 2, 0, 1, &kbd_led_state);
-			keyboards++;
+			iface->jindex = keyboards++;
 		}
 		else if (iface->conf.type == REPORT_TYPE_JOYSTICK) {
 			iface->device_type = HID_DEVICE_JOYSTICK;
@@ -385,7 +388,10 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 			hid_axis_precalc(
 				&iface->conf.joystick_mouse.axis[k],
 				iface->device_type);
-			if (iface->device_type != HID_DEVICE_JOYSTICK)
+			if (iface->device_type != HID_DEVICE_JOYSTICK
+				&& iface->device_type != HID_DEVICE_MOUSE)
+				continue;
+			if (iface->conf.joystick_mouse.axis[k].size == 0)
 				continue;
 			iprintf("Axis%d: %d@%d %d->%d\n", k,
 				iface->conf.joystick_mouse.axis[k].size,
@@ -394,9 +400,10 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 				iface->conf.joystick_mouse.axis[k].logical.max);
 		}
 
-		if (iface->device_type == HID_DEVICE_JOYSTICK) {
+		if (iface->device_type == HID_DEVICE_JOYSTICK
+			|| iface->device_type == HID_DEVICE_MOUSE) {
 			for (int k=0; k<iface->conf.joystick_mouse.button_count; k++) {
-				iprintf("Button%d: @%d/%02x\n", k,
+				iprintf("Button%d: @%d/0x%02x\n", k,
 					iface->conf.joystick_mouse.button[k].byte_offset,
 					iface->conf.joystick_mouse.button[k].bitmask);
 			}
@@ -427,10 +434,12 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 			return rcode;
 		}
 
-		// enable Boot mode if its not disabled
+		// try to enable Boot mode if its not disabled
 		if (iface->has_boot_mode && !iface->ignore_boot_mode) {
-			infof("%s: enabling BOOT mode", hid_device_name[iface->device_type]);
-			hid_set_protocol(dev, iface->iface_idx, HID_BOOT_PROTOCOL);
+			if (hid_set_protocol(dev, iface->iface_idx, HID_BOOT_PROTOCOL) == 0) {
+				infof("%s%d: using BOOT mode",
+					hid_device_name[iface->device_type], iface->jindex);
+			}
 		} else {
 			hid_set_protocol(dev, iface->iface_idx, HID_RPT_PROTOCOL);
 		}
@@ -487,6 +496,29 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 	}
 
 	return 0;
+}
+
+// find a live mouse before this one
+FORCE_ARM static bool has_alive_before(const usb_device_t *dev)
+{
+	const usb_device_t *devs = usb_get_devices();
+
+	while (dev > &devs[0] && dev < &devs[USB_NUMDEVICES])
+	{
+		dev--; // get previous
+		if (!dev->bAddress || !dev->class || dev->class->type != USB_HID)
+			continue;
+
+		const usb_hid_iface_info_t *it = &dev->hid_info.iface[0],
+			*it_end = &dev->hid_info.iface[MAX_IFACES];
+
+		for (; it != it_end; it++) {
+			if (it->device_type == HID_DEVICE_MOUSE && it->is_alive)
+				return true;
+		}
+	}
+
+	return false;
 }
 
 // collect bits from byte stream and assemble them into a signed word
@@ -601,6 +633,7 @@ FORCE_ARM static void usb_process_iface(
 	if (iface->device_type == HID_DEVICE_MOUSE) {
 		// limit mouse movement to +/- 127
 		const uint8_t mouse_speed = mist_cfg.mouse_speed;
+
 		for (uint32_t i=0; i<3; i++) {
 			if (i < 2) {
 				int32_t val = (int32_t)a[i] * mouse_speed + iface->rem[i];
@@ -610,7 +643,12 @@ FORCE_ARM static void usb_process_iface(
 			if (a[i] > 127) a[i] = 127;
 			else if (a[i] < -128) a[i] = -128;
 		}
-		user_io_mouse(0, btn, a[0], a[1], a[2]); // FIXME: mouse0 only
+
+		user_io_mouse(
+			has_alive_before(dev) ? 1 : 0,
+			btn, a[0], a[1], a[2]);
+
+		iface->is_alive = true;
 		return;
 	}
 

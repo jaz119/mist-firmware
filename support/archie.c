@@ -272,7 +272,7 @@ static void archie_kbd(unsigned short code) {
   archie_kbd_send(STATE_WAIT4ACK2, prefix | (code&0x0f));
 }
 
-static void archie_mouse(uint8_t, uint8_t b, char x, char y, char) {
+static void archie_mouse(uint8_t, uint8_t b, int8_t x, int8_t y, int8_t) {
   archie_debugf("KBD MOUSE X:%d Y:%d B:%d", x, y, b);
 
   // max values -64 .. 63

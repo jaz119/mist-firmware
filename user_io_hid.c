@@ -572,7 +572,7 @@ void handle_mouse_events_ps2()
 
         // ------ X axis -----------
         // store sign bit in first byte
-        ps2_mouse[0] |= (mouse_pos[idx][X] < 0)?0x10:0x00;
+        ps2_mouse[0] |= (mouse_pos[idx][X] < 0) ? 0x10 : 0x00;
         if (mouse_pos[idx][X] < -255) {
             // min possible value + overflow flag
             ps2_mouse[0] |= 0x40;
@@ -586,7 +586,7 @@ void handle_mouse_events_ps2()
 
         // ------ Y axis -----------
         // store sign bit in first byte
-        ps2_mouse[0] |= (mouse_pos[idx][Y] < 0)?0x20:0x00;
+        ps2_mouse[0] |= (mouse_pos[idx][Y] < 0) ? 0x20 : 0x00;
         if (mouse_pos[idx][Y] < -255) {
             // min possible value + overflow flag
             ps2_mouse[0] |= 0x80;
@@ -712,13 +712,13 @@ void handle_mouse_commands_ps2()
     }
 }
 
-void send_mouse_ps2(uint8_t idx, uint8_t b, char x, char y, char z)
+void send_mouse_ps2(uint8_t idx, uint8_t b, int8_t x, int8_t y, int8_t z)
 {
     // 8bit core expects ps2 like data
     mouse_pos[idx][X] += x;
-    mouse_pos[idx][Y] -= y;  // ps2 y axis is reversed over usb
+    mouse_pos[idx][Y] -= y; // ps2 y axis is reversed over usb
     mouse_pos[idx][Z] += z;
-    mouse_flags[idx] |= 0x08 | (b & 7);
+    mouse_flags[idx] |= (0x08 | (b & 7));
 }
 
 uint8_t user_io_swap_joystick(uint8_t joy)

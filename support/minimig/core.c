@@ -107,12 +107,12 @@ static uint16_t minimig_modify_keycode(uint8_t key)
     return amiga_modifier[key];
 }
 
-static void io_mouse_minimig(uint8_t idx, uint8_t b, char x, char y, char z)
+static void io_mouse_minimig(uint8_t idx, uint8_t b, int8_t x, int8_t y, int8_t z)
 {
     mouse_pos[idx][X] += x;
     mouse_pos[idx][Y] += y;
     mouse_pos[idx][Z] += z;
-    mouse_flags[idx] |= 0x80 | (b & 7);
+    mouse_flags[idx] |= (0x80 | (b & 7));
 }
 
 static void mouse_poll()
