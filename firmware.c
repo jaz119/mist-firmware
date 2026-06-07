@@ -250,7 +250,5 @@ FORCE_ARM RAMFUNC void WriteFirmware(char *name)
 
     DISKLED_OFF;
     MCUReset(); // restart
-
-    for(;;);
 }
 #pragma section_no_code_init

@@ -19,12 +19,13 @@
 #include "arc_file.h"
 #include "cue_parser.h"
 #include <FatFs/diskio.h>
-#ifdef HAVE_HDMI
-#include "it6613/HDMI_TX.h"
-#endif
 #include "serial_sink.h"
 #include <utils.h>
 #include <debug.h>
+
+#ifdef HAVE_HDMI
+#include "it6613/HDMI_TX.h"
+#endif
 
 extern char s[OSD_BUF_SIZE];
 
@@ -41,9 +42,15 @@ static const struct {
 
 const user_io_core_t *core = NULL;
 uint32_t core_type = CORE_TYPE_UNKNOWN;
+extern char core_name[16 + 1];
 
-#define RTC_FREQ 1000
-static unsigned long rtc_timer;
+extern int64_t core_mod;
+extern uint32_t core_features;
+extern uint16_t conf_idx[CONF_TBL_MAX];
+extern int conf_items;
+
+#define RTC_FREQ 500
+static uint32_t rtc_timer;
 
 // set by OSD code to suppress forwarding of those keys
 // to the core which may be in use by an active OSD
@@ -60,12 +67,14 @@ static uint32_t buffer_lba = 0xffffffff;
 #ifdef HAVE_HDMI
 
 static uint8_t i2c_flags;
-static unsigned long hdmi_timer;
+static uint32_t hdmi_timer;
 static bool hdmi_detected = 0;
 static uint8_t hdmi_hiclk = 0;
 #define HDMI_FREQ 1000
 
 #endif // HAVE_HDMI
+
+static void user_io_send_buttons(bool);
 
 void user_io_reset()
 {
@@ -93,13 +102,15 @@ void user_io_init()
 	user_io_reset();
 	user_io_hid_init();
 
-	if (VIDEO_KEEP_VAR != VIDEO_KEEP_VALUE)
+	if (VIDEO_KEEP_VAR != VIDEO_KEEP_VALUE) {
 		VIDEO_ALTERED_VAR = 0;
+	}
 
 	VIDEO_KEEP_VAR = 0;
 
-	if (MenuButton())
+	if (MenuButton()) {
 		DEBUG_MODE_VAR = DEBUG_MODE ? 0 : DEBUG_MODE_VALUE;
+	}
 
 	iprintf("Debug mode: %s\n",
 		DEBUG_MODE ? "on" : "off");
@@ -151,7 +162,7 @@ void user_io_init_core()
 		core->init();
 	}
 
-	user_io_send_buttons(1);
+	user_io_send_buttons(true);
 
 #ifdef HAVE_HDMI
 	hdmi_detected = false;
@@ -168,11 +179,11 @@ void user_io_init_core()
 #endif
 }
 
-void user_io_send_rtc()
+static void user_io_send_rtc()
 {
 	uint8_t date[7];
 
-	if (!GetRTC((uint8_t*)&date))
+	if (!GetRTC((uint8_t *)&date))
 		return;
 
 	spi_uio_cmd_cont(UIO_SET_RTC);
@@ -195,9 +206,10 @@ void user_io_serial_tx(char *chr, uint16_t cnt)
 	DisableIO();
 }
 
-char user_io_serial_status(serial_status_t *status_in, uint8_t status_out)
+bool user_io_serial_status(
+	serial_status_t *status_in, uint8_t status_out)
 {
-	uint8_t *p = (uint8_t*)status_in;
+	uint8_t *p = (uint8_t *)status_in;
 	spi_uio_cmd_cont(UIO_SERIAL_STAT);
 
 	// first byte returned by core must be "magic"
@@ -205,7 +217,7 @@ char user_io_serial_status(serial_status_t *status_in, uint8_t status_out)
 	if (SPI(status_out) != 0xa5)
 	{
 		DisableIO();
-		return 0;
+		return false;
 	}
 
 	// read the whole structure
@@ -213,7 +225,7 @@ char user_io_serial_status(serial_status_t *status_in, uint8_t status_out)
 		*p++ = spi_in();
 
 	DisableIO();
-	return 1;
+	return true;
 }
 
 // transmit midi data into core
@@ -276,7 +288,8 @@ void user_io_sd_ack(uint8_t drive_index)
 }
 
 // read 8+32 bit sd card status word from FPGA
-uint8_t user_io_sd_get_status(uint32_t *lba, uint8_t *drive_index, uint8_t *blksz)
+static uint8_t user_io_sd_get_status(
+	uint32_t *lba, uint8_t *drive_index, uint8_t *blksz)
 {
 	uint32_t s;
 	uint8_t c;
@@ -320,7 +333,7 @@ uint32_t user_io_eth_get_status()
 void user_io_eth_receive_tx_frame(uint8_t *d, uint16_t len)
 {
 	spi_uio_cmd_cont(UIO_ETH_FRM_IN);
-	while (len--) *d++=spi_in();
+	while (len--) *d++ = spi_in();
 	DisableIO();
 }
 
@@ -339,7 +352,7 @@ bool user_io_is_cue_mounted()
 	return toc.valid;
 }
 
-char user_io_cue_mount(const unsigned char *name, unsigned char index)
+char user_io_cue_mount(const unsigned char *name, int index)
 {
 	char res = CUE_RES_OK;
 	toc.valid = 0;
@@ -368,17 +381,16 @@ char user_io_cue_mount(const unsigned char *name, unsigned char index)
 	return res;
 }
 
-static inline uint8_t sd_index(unsigned char index)
+static inline uint8_t sd_index(int index)
 {
-	if (core_type == CORE_TYPE_ARCHIE)
-	{
-		return (index + 2) & 3; // FIXME: move it to core
+	if (core_type == CORE_TYPE_ARCHIE) {
+		return (index + 2) & 3;
 	} else {
 		return index & 3;
 	}
 }
 
-bool user_io_is_mounted(unsigned char index)
+bool user_io_is_mounted(int index)
 {
 	return sd_image[sd_index(index)].valid;
 }
@@ -426,7 +438,6 @@ bool user_io_file_mount(const unsigned char *name, int index)
 	// send mounted image size first then notify about mounting
 	EnableIO();
 	SPI(UIO_SET_SDINFO);
-
 	// use LE version, so following BYTE(s) may be used for size extension in the future
 	spi32le(idxfile->valid ? f_size(&idxfile->file) : 0);
 	spi32le(idxfile->valid ? f_size(&idxfile->file) >> 32 : 0);
@@ -439,7 +450,7 @@ bool user_io_file_mount(const unsigned char *name, int index)
 	return idxfile->valid;
 }
 
-void user_io_send_buttons(char force)
+static void user_io_send_buttons(bool force)
 {
 	static uint8_t key_map = 0;
 
@@ -535,8 +546,7 @@ void user_io_poll()
 			}
 
 			// reset io controller to cope with new core
-			MCUReset(); // restart
-			for(;;);
+			MCUReset();
 		}
 	}
 
@@ -591,6 +601,7 @@ void user_io_poll()
 				c = spi_in();
 				cdc_control_tx(c);
 			}
+
 			DisableIO();
 
 			// always flush when doing midi to reduce latencies
@@ -600,7 +611,7 @@ void user_io_poll()
 	}
 
 	user_io_hid_poll();
-	user_io_send_buttons(0);
+	user_io_send_buttons(false);
 
 	// serial IO - TODO: merge with MiST2
 	if (core_type == CORE_TYPE_8BIT)
@@ -677,7 +688,7 @@ void user_io_poll()
 			// check if an SDHC card is inserted
 			if (MMC_IsSDHC())
 			{
-				static bool using_sdhc = 1;
+				static bool using_sdhc = true;
 
 				// SD request and
 				if (c & 0x03)
@@ -721,7 +732,7 @@ void user_io_poll()
 
 					// Fetch sector data from FPGA ...
 					spi_uio_cmd_cont(UIO_SECTOR_WR);
-					spi_read(sector_buffer, 512<<blksz);
+					spi_read(sector_buffer, 512 << blksz);
 					DisableIO();
 
 					// ... and write it to disk
@@ -745,7 +756,7 @@ void user_io_poll()
 			if ((c & 0x03) == 0x01)
 			{
 				if (is_dip_switch1_on())
-					debugf("SD RD (%d) %lu/%d", drive_index, lba, 512<<blksz);
+					debugf("SD RD (%d) %lu/%d", drive_index, lba, 512 << blksz);
 
 				// invalidate cache if it stores data from another drive
 				if (drive_index != buffer_drive_index)
@@ -781,7 +792,7 @@ void user_io_poll()
 
 				if (buffer_lba == lba)
 				{
-					// hexdump(cache_buffer, 512<<blksz, 0);
+					// hexdump(cache_buffer, 512 << blksz, 0);
 					user_io_sd_ack(drive_index);
 
 					// data is now stored in buffer. send it to fpga
@@ -855,12 +866,12 @@ void user_io_poll()
 		{
 			if (CheckTimer(timer))
 			{
-				// toggle video mode bit
+				// toggle scandoubler mode
 				mist_cfg.scandoubler_disable ^= 1;
 				timer = 2;
 
-				user_io_send_buttons(1);
-				OsdDisableMenuButton(1);
+				user_io_send_buttons(true);
+				OsdDisableMenuButton(true);
 
 				VIDEO_ALTERED_VAR |= 1;
 				VIDEO_SD_DISABLE_VAR = mist_cfg.scandoubler_disable;
@@ -871,13 +882,13 @@ void user_io_poll()
 		{
 			if (!ypbpr_toggle)
 			{
-				// toggle video mode bit
+				// toggle video mode
 				mist_cfg.ypbpr ^= 1;
 				timer = 2;
 				ypbpr_toggle = 1;
 
-				user_io_send_buttons(1);
-				OsdDisableMenuButton(1);
+				user_io_send_buttons(true);
+				OsdDisableMenuButton(true);
 
 				VIDEO_ALTERED_VAR |= 2;
 				VIDEO_YPBPR_VAR = mist_cfg.ypbpr;
@@ -891,7 +902,7 @@ void user_io_poll()
 	else
 	{
 		timer = 1;
-		OsdDisableMenuButton(0);
+		OsdDisableMenuButton(false);
 		ypbpr_toggle = 0;
 	}
 
@@ -926,8 +937,7 @@ void user_io_osd_key_enable(bool on)
 
 void user_io_change_into_core_dir()
 {
-	if (arc_get_dirname()[0])
-	{
+	if (arc_get_dirname()[0]) {
 		strcpy(s, "/");
 		strcat(s, arc_get_dirname());
 	} else {
@@ -940,7 +950,7 @@ void user_io_change_into_core_dir()
 
 #ifdef HAVE_HDMI
 
-static char user_io_i2c_stat(unsigned char *data)
+static char user_io_i2c_stat(uint8_t *data)
 {
 	unsigned char c, d;
 
@@ -963,23 +973,25 @@ static char user_io_i2c_stat(unsigned char *data)
 	}
 }
 
-char user_io_i2c_write(unsigned char addr, unsigned char subaddr, unsigned char data)
+char user_io_i2c_write(uint8_t addr, uint8_t subaddr, uint8_t data)
 {
 	spi_uio_cmd_cont(UIO_I2C_SEND);
 	spi8(addr << 1);
 	spi8(subaddr);
 	spi8(data);
 	DisableIO();
+
 	return user_io_i2c_stat(0);
 }
 
-char user_io_i2c_read(unsigned char addr, unsigned char subaddr, unsigned char *data)
+char user_io_i2c_read(uint8_t addr, uint8_t subaddr, uint8_t *data)
 {
 	spi_uio_cmd_cont(UIO_I2C_SEND);
 	spi8(addr << 1 | 1); // read request
 	spi8(subaddr);
 	spi8(0xff);
 	DisableIO();
+
 	return user_io_i2c_stat(data);
 }
 

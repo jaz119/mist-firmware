@@ -636,7 +636,7 @@ const user_io_core_t mistery_core = {
   .send_mouse = send_mouse_ps2,
   .send_digital_joy = send_digital_joystick,
   .eject_all = tos_eject_all,
-  .name = "MISTery",
+  .name = "MISTERY",
 };
 
 ///////////////////////////

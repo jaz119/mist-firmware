@@ -1,6 +1,5 @@
 /*
  * serial_sink.h
- * 
  */
 
 #ifndef SERIAL_SINK_H
@@ -23,4 +22,4 @@ void serial_sink_init();
 bool serial_sink_register(serial_sink_t *sink);
 serial_sink_t *serial_sink_get(uint8_t index);
 
-#endif /* SERIAL_SINK_H */
+#endif // SERIAL_SINK_H

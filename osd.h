@@ -136,9 +136,9 @@ void ConfigAutofire(unsigned char autofire);
 void ConfigFeatures(unsigned char audiofiltermode, unsigned char powerledoffstate);
 unsigned char OsdGetCtrl(void);
 
-extern unsigned char disable_menu;
+extern bool disable_menu;
 
-static inline void OsdDisableMenuButton(unsigned char disable)
+static inline void OsdDisableMenuButton(bool disable)
 {
     disable_menu = disable;
 }

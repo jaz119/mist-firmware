@@ -135,8 +135,8 @@
 #define SWITCH_DEBUG        BIT(2)
 #define SWITCH_CORE         BIT(3)
 
-extern uint32_t core_type;
-extern const user_io_core_t *core;
+extern uint32_t core_type; // current core type
+extern const user_io_core_t *core; // current core support module
 
 extern bool osd_is_visible;
 extern hardfileTYPE hardfiles[HARDFILES];
@@ -167,13 +167,13 @@ static inline bool minimig_v2() {
 void user_io_poll();
 void user_io_osd_key_enable(bool);
 void user_io_serial_tx(char *, uint16_t);
-void user_io_sd_set_config();
-char user_io_serial_status(serial_status_t *, uint8_t);
-bool user_io_is_mounted(unsigned char index);
+bool user_io_serial_status(serial_status_t *, uint8_t);
+bool user_io_is_mounted(int index);
 bool user_io_file_mount(const unsigned char *, int);
 bool user_io_is_cue_mounted();
-char user_io_cue_mount(const unsigned char *, unsigned char);
+char user_io_cue_mount(const unsigned char *, int);
 void user_io_sd_ack(uint8_t drive_index);
+void user_io_sd_set_config();
 
 // io controllers interface for FPGA ethernet emulation using usb ethernet
 // devices attached to the io controller (ethernec emulation)
@@ -189,14 +189,12 @@ static inline bool user_io_osd_is_visible() {
     return osd_is_visible;
 }
 
-void user_io_send_rtc();
-void user_io_send_buttons(char);
 void user_io_change_into_core_dir();
 
 #ifdef HAVE_HDMI
 
-char user_io_i2c_write(unsigned char addr, unsigned char subaddr, unsigned char data);
-char user_io_i2c_read(unsigned char addr, unsigned char subaddr, unsigned char *data);
+char user_io_i2c_write(uint8_t addr, uint8_t subaddr, uint8_t data);
+char user_io_i2c_read(uint8_t addr, uint8_t subaddr, uint8_t *data);
 bool user_io_hdmi_detected();
 
 #endif // HAVE_HDMI

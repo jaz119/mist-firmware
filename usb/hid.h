@@ -52,21 +52,27 @@
 #define JOYSTICK_AXIS_TRIGGER_MIN   64
 #define JOYSTICK_AXIS_TRIGGER_MAX   192
 
-
 typedef struct {
   ep_t ep_in;
   ep_t ep_out;
 
   uint32_t lastPollTime;      // last poll time
-  uint32_t jmap;              // last reported joystick state
-  uint16_t jindex;            // joystick index
-  uint16_t key_state;         // needed to detect key state changes in 5200daptor
+
+  union {
+    struct {
+      int16_t rem[MAX_AXES];  // mouse: position remainder
+      uint8_t is_alive;       // mouse: is alive
+    };
+    uint32_t jmap;            // joystick: last reported state
+    uint16_t key_state;       // 5200daptor: last reported key state
+  };
+
   uint8_t iface_idx;
+  uint8_t device_type;        // device type
+  uint8_t jindex;             // joystick index
 
-  uint8_t ignore_boot_mode: 1;  // don't use Boot mode even if device supports it
   uint8_t has_boot_mode: 1;   // device supports Boot mode
-  uint8_t device_type;        // HID device type
-
+  uint8_t ignore_boot_mode: 1; // don't use Boot mode even if device supports it
   hid_report_t conf;          // HID report struct
 
 } usb_hid_iface_info_t;
@@ -82,13 +88,13 @@ typedef struct {
 
 /* HID descriptor */
 typedef struct  {
-  uint8_t         bLength;
-  uint8_t         bDescriptorType;
-  uint16_t        bcdHID;                         // HID class specification release
-  uint8_t         bCountryCode;
-  uint8_t         bNumDescriptors;                // Number of additional class specific descriptors
-  uint8_t         bDescrType;                     // Type of class descriptor
-  uint8_t         wDescriptorLength[2];           // Total size of the Report descriptor
+  uint8_t  bLength;
+  uint8_t  bDescriptorType;
+  uint16_t bcdHID;            // HID class specification release
+  uint8_t  bCountryCode;
+  uint8_t  bNumDescriptors;   // Number of additional class specific descriptors
+  uint8_t  bDescrType;        // Type of class descriptor
+  uint8_t  wDescriptorLength[2]; // Total size of the Report descriptor
 } __attribute__((packed)) usb_hid_descriptor_t;
 
 // interface to usb core

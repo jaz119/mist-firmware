@@ -294,5 +294,5 @@ const user_io_core_t minimig_v2_core = {
     .send_analog_joy = send_analog_joystick,
     .send_digital_joy = send_digital_joystick,
     .eject_all = minimig_eject_all,
-    .name = "Minimig",
+    .name = "MINIMIG",
 };

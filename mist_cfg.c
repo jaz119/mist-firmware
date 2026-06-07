@@ -85,7 +85,7 @@ static const ini_section_t mist_ini_sections[] = {
   {1, "MIST"},
   {2, "MINIMIG"},
   {2, "MINIMIG_CONFIG"},
-  {3, "ATARI_ST"},
+  {3, "MISTERY"},
   {3, "ATARIST_CONFIG"}
 };
 
@@ -94,7 +94,7 @@ static const ini_var_t mist_ini_vars[] = {
   // [MIST] or [<core name>]
   {"YPBPR", (void*)(&(mist_cfg.ypbpr)), UINT8, 0, 1, 1},
   {"KEEP_VIDEO_MODE", (void*)(&(mist_cfg.keep_video_mode)), UINT8, 0, 1, 1},
-  {"KEYRAH_MODE", (void*)(&(mist_cfg.keyrah_mode)), UINT32, 0, 0xFFFFFFFF, 1},
+  {"KEYRAH_MODE", (void*)(&(mist_cfg.keyrah_mode)), UINT8, 0, 1, 1},
   {"RESET_COMBO", (void*)(&(mist_cfg.reset_combo)), UINT8, 0, 2, 1},
   {"SCANDOUBLER_DISABLE", (void*)(&(mist_cfg.scandoubler_disable)), UINT8, 0, 1, 1},
   {"CSYNC_DISABLE", (void*)(&(mist_cfg.csync_disable)), UINT8, 0, 1, 1},

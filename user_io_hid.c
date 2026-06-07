@@ -513,7 +513,17 @@ void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority)
                 if (!key_used_by_osd(code))
                 {
                     // key is not used by OSD
-                    core->send_keycode(code);
+                    if (code & CAPS_LOCK_TOGGLE)
+                    {
+                        // send alternating make and break codes for caps lock
+                        core->send_keycode((code & 0xff) | (caps_lock_toggle ? BREAK : 0));
+                        caps_lock_toggle ^= 1;
+                        hid_set_kbd_led(HID_LED_CAPS_LOCK, caps_lock_toggle);
+                    }
+                    else
+                    {
+                        core->send_keycode(code);
+                    }
                 }
             }
         }
@@ -782,7 +792,7 @@ void send_analog_joystick(uint8_t joy, int LX, int LY, int RX, int RY)
     DisableIO();
 }
 
-void user_io_mouse(uint8_t idx, uint8_t b, char x, char y, char z)
+void user_io_mouse(uint8_t idx, uint8_t b, int8_t x, int8_t y, int8_t z)
 {
     if (core && core->send_mouse)
     {
@@ -948,7 +958,6 @@ void user_io_check_reset(uint16_t modifiers, char useKeys)
                 VIDEO_KEEP_VAR = VIDEO_KEEP_VALUE;
             // HW reset
             MCUReset();
-            for(;;);
         }
 
         if (core && core->reset)

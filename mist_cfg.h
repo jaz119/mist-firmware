@@ -11,7 +11,7 @@
 
 //// type definitions ////
 typedef struct {
-  uint32_t keyrah_mode;
+  uint8_t keyrah_mode;
   uint8_t scandoubler_disable;
   uint8_t csync_disable;
   uint8_t mouse_speed;

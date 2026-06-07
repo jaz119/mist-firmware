@@ -96,33 +96,33 @@
 
 #define VBL             AT91C_PIO_PA7
 
-#define USB_LOAD_VAR         *(int*)(0x0020FF04)
+#define USB_LOAD_VAR         *(int*)(0x0020F004)
 #define USB_LOAD_VALUE       12345678
 
-#define DEBUG_MODE_VAR       *(int*)(0x0020FF08)
+#define DEBUG_MODE_VAR       *(int*)(0x0020F008)
 #define DEBUG_MODE_VALUE     87654321
 #define DEBUG_MODE           (DEBUG_MODE_VAR == DEBUG_MODE_VALUE)
 
 #define VIDEO_KEEP_VALUE     0x87654321
-#define VIDEO_KEEP_VAR       (*(int*)0x0020FF10)
-#define VIDEO_ALTERED_VAR    (*(uint8_t*)0x0020FF14)
-#define VIDEO_SD_DISABLE_VAR (*(uint8_t*)0x0020FF15)
-#define VIDEO_YPBPR_VAR      (*(uint8_t*)0x0020FF16)
+#define VIDEO_KEEP_VAR       (*(int*)0x0020F010)
+#define VIDEO_ALTERED_VAR    (*(uint8_t*)0x0020F014)
+#define VIDEO_SD_DISABLE_VAR (*(uint8_t*)0x0020F015)
+#define VIDEO_YPBPR_VAR      (*(uint8_t*)0x0020F016)
 
 #define USB_BOOT_VALUE       0x8007F007
-#define USB_BOOT_VAR         (*(int*)0x0020FF18)
+#define USB_BOOT_VAR         (*(int*)0x0020F018)
 
 // MAX3421E INT pin polling
 static inline uint8_t usb_irq_active() {
-  return !(AT91C_BASE_PIOA->PIO_PDSR & USB_INT);
+    return !(AT91C_BASE_PIOA->PIO_PDSR & USB_INT);
 }
 
 static inline char mmc_inserted() {
-  return !(*AT91C_PIOA_PDSR & SD_CD);
+    return !(*AT91C_PIOA_PDSR & SD_CD);
 }
 
 static inline char mmc_write_protected() {
-  return !!(*AT91C_PIOA_PDSR & SD_WP);
+    return !!(*AT91C_PIOA_PDSR & SD_WP);
 }
 
 void USART_Init(unsigned long baudrate);
@@ -136,13 +136,14 @@ RAMFUNC unsigned long CheckTimer(unsigned long time);
 void WaitTimer(unsigned long time);
 
 static inline void MCUReset() {
-  *AT91C_RSTC_RCR = 0xA5 << 24 | AT91C_RSTC_PERRST | AT91C_RSTC_PROCRST | AT91C_RSTC_EXTRST;
+    *AT91C_RSTC_RCR = 0xA5 << 24 | AT91C_RSTC_PERRST | AT91C_RSTC_PROCRST | AT91C_RSTC_EXTRST;
+    for (;;);
 }
 
 void InitRTTC();
 
 static inline unsigned long GetRTTC() {
-  return (AT91C_BASE_RTTC->RTTC_RTVR);
+    return (AT91C_BASE_RTTC->RTTC_RTVR);
 }
 
 int GetSPICLK();
@@ -154,19 +155,19 @@ void PollADC();
 
 // user, menu, DIP2, DIP1
 static inline unsigned char UserButton() {
-  return !!(adc_state & 8);
+    return !!(adc_state & 8);
 }
 
 static inline unsigned char MenuButton() {
-  return !!(adc_state & 4);
+    return !!(adc_state & 4);
 }
 
 static inline bool is_dip_switch2_on() {
-  return !!(adc_state & 1);
+    return !!(adc_state & 1);
 }
 
 static inline bool is_dip_switch1_on() {
-  return !!(adc_state & 2) || DEBUG_MODE;
+    return !!(adc_state & 2) || DEBUG_MODE;
 }
 
 static inline bool CheckButton() {
@@ -181,11 +182,11 @@ static inline void InitDB9() {};
 char GetDB9(char index, uint16_t *joy_map);
 
 static inline char GetRTC(unsigned char *d) {
-  return usb_rtc_get_time(d);
+    return usb_rtc_get_time(d);
 }
 
 static inline char SetRTC(unsigned char *d) {
-  return usb_rtc_set_time(d);
+    return usb_rtc_set_time(d);
 }
 
 RAMFUNC void UnlockFlash();

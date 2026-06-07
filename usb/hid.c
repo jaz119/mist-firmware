@@ -3,19 +3,19 @@
 #include <stdlib.h>
 
 #include <hardware.h>
-#include "usb.h"
-#include "max3421e.h"
+#include <usb.h>
+#include <max3421e.h>
 #include <user_io_hid.h>
 #include "hidparser.h"
-#include "hidquirks.h"
-#include "joymapping.h"
-#include "joystick.h"
+#include <hidquirks.h>
+#include <joymapping.h>
+#include <joystick.h>
+#include <state.h>
 #include <timer.h>
-#include "utils.h"
-#include "mist_cfg.h"
-#include "osd.h"
-#include "state.h"
-#include "debug.h"
+#include <osd.h>
+#include <mist_cfg.h>
+#include <utils.h>
+#include <debug.h>
 
 static unsigned char kbd_led_state = 0;  // default: all leds off
 static unsigned char keyboards = 0;      // number of detected usb keyboards
@@ -377,9 +377,9 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 			iface->jindex = joystick_add();
 		}
 
-		infof("%s: report 0x%02x, size %d",
-			hid_device_name[iface->conf.type], iface->conf.report_id,
-			iface->conf.report_size);
+		infof("%s%d: report 0x%02x, size %d",
+			hid_device_name[iface->conf.type], iface->jindex,
+			iface->conf.report_id, iface->conf.report_size);
 
 		for (int k=0; k<MAX_AXES; k++) {
 			hid_axis_precalc(
@@ -396,7 +396,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 
 		if (iface->device_type == HID_DEVICE_JOYSTICK) {
 			for (int k=0; k<iface->conf.joystick_mouse.button_count; k++) {
-				iprintf("Button%d: @%d/%d\n", k,
+				iprintf("Button%d: @%d/%02x\n", k,
 					iface->conf.joystick_mouse.button[k].byte_offset,
 					iface->conf.joystick_mouse.button[k].bitmask);
 			}
@@ -427,7 +427,7 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 			return rcode;
 		}
 
-		// enable Boot mode if its not diabled
+		// enable Boot mode if its not disabled
 		if (iface->has_boot_mode && !iface->ignore_boot_mode) {
 			infof("%s: enabling BOOT mode", hid_device_name[iface->device_type]);
 			hid_set_protocol(dev, iface->iface_idx, HID_BOOT_PROTOCOL);
@@ -538,7 +538,6 @@ FORCE_ARM static void usb_process_iface(
 	}
 
 	int16_t a[MAX_AXES];
-	static int16_t rem[MAX_AXES];
 
 	// several axes ...
 	for (uint32_t i=0; i<MAX_AXES; i++) {
@@ -604,9 +603,9 @@ FORCE_ARM static void usb_process_iface(
 		const uint8_t mouse_speed = mist_cfg.mouse_speed;
 		for (uint32_t i=0; i<3; i++) {
 			if (i < 2) {
-				int32_t val = (int32_t)a[i] * mouse_speed + rem[i];
+				int32_t val = (int32_t)a[i] * mouse_speed + iface->rem[i];
 				a[i] = val / 100;
-				rem[i] = val - (a[i] * 100);
+				iface->rem[i] = val - (a[i] * 100);
 			}
 			if (a[i] > 127) a[i] = 127;
 			else if (a[i] < -128) a[i] = -128;

@@ -516,7 +516,7 @@ const user_io_core_t archie_core = {
   .send_mouse = archie_mouse,
   .send_digital_joy = send_digital_joystick,
   .eject_all = archie_eject_all,
-  .name = "Archie",
+  .name = "ARCHIE",
 };
 
 //////////////////////////

@@ -19,12 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <ctype.h>
 #include <stdio.h>
-#include "AT91SAM7S256.h"
-#include "attrs.h"
-#include "hardware.h"
+#include <attrs.h>
+#include <barriers.h>
+#include <AT91SAM7S256.h>
+#include <hardware.h>
 #include "user_io.h"
 #include <user_io_hid.h>
-#include "debug.h"
+#include <debug.h>
 
 void __init_hardware(void)
 {
@@ -201,7 +202,7 @@ void USART_Write(unsigned char c) {
     tx_buf[wptr] = c;
 
     // moving of buffer position
-    __asm__ volatile ("" : : : "memory");
+    dmb();
     tx_wptr = next_wptr;
 
     // enable interrupt

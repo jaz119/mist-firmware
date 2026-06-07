@@ -480,7 +480,7 @@ void ConfigFeatures(unsigned char audiofiltermode, unsigned char powerledoffstat
     spi_osd_cmd8(OSD_CMD_FEATURES, ((powerledoffstate & 0x01) << 2) | (audiofiltermode & 0x03));
 }
 
-unsigned char disable_menu = 0;
+bool disable_menu = false;
 
 // get key status
 unsigned char OsdGetCtrl(void)

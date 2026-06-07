@@ -1,6 +1,5 @@
 /*
   storage_control.c
-
 */
 
 #include <inttypes.h>

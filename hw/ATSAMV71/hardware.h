@@ -173,6 +173,7 @@ void USART_Poll();
 
 static inline void MCUReset() {
     RSTC->RSTC_CR = RSTC_CR_PROCRST | RSTC_CR_EXTRST | RSTC_CR_KEY_PASSWD;
+    for (;;);
 }
 
 void InitRTTC();

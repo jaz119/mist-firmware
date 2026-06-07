@@ -8,12 +8,6 @@
 #include "hidparser.h"
 #include "debug.h"
 
-#if 1
-#define hidp_extreme_debugf(...) hidp_debugf(__VA_ARGS__)
-#else
-#define hidp_extreme_debugf(...)
-#endif
-
 typedef struct {
   uint8_t bSize: 2;
   uint8_t bType: 2;
@@ -162,7 +156,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				switch(tag) {
 				case 8:
 					// handle found buttons
-					hidp_extreme_debugf("INPUT(%lu)", value);
+					hidp_debugf("INPUT(%lu)", value);
 					if(btns) {
 						if((conf->type == REPORT_TYPE_JOYSTICK) ||
 						   (conf->type == REPORT_TYPE_MOUSE)) {
@@ -234,30 +228,30 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 9:
-					hidp_extreme_debugf("OUTPUT(%lu)", value);
+					hidp_debugf("OUTPUT(%lu)", value);
 					usage_count = 0;
 					btns = 0;
 					break;
 
 				case 11:
-					hidp_extreme_debugf("FEATURE(%lu)", value);
+					hidp_debugf("FEATURE(%lu)", value);
 					usage_count = 0;
 					btns = 0;
 					break;
 
 				case 10:
-					hidp_extreme_debugf("COLLECTION(%lu)", value);
+					hidp_debugf("COLLECTION(%lu)", value);
 					collection_depth++;
 					usage_count = 0;
 
 					if(value == 1) {   // app collection
-						hidp_extreme_debugf("  -> application");
+						hidp_debugf("  -> application");
 						app_collection++;
 					} else if(value == 0) {  // physical collection
-						hidp_extreme_debugf("  -> physical");
+						hidp_debugf("  -> physical");
 						phys_log_collection++;
 					} else if(value == 2) {  // logical collection
-						hidp_extreme_debugf("  -> logical");
+						hidp_debugf("  -> logical");
 						phys_log_collection++;
 					} else {
 						phys_log_collection++;
@@ -267,10 +261,10 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 12:
-					hidp_extreme_debugf("END_COLLECTION(%lu)", value);
+					hidp_debugf("END_COLLECTION(%lu)", value);
 					collection_depth--;
 					if(phys_log_collection) {
-						hidp_extreme_debugf("  -> phys/log end");
+						hidp_debugf("  -> phys/log end");
 						phys_log_collection--;
 					} else if(app_collection > 0) {
 						app_collection--;
@@ -289,25 +283,25 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				// global item
 				switch(tag) {
 				case 0:
-					hidp_extreme_debugf("USAGE_PAGE(0x%lx)", value);
+					hidp_debugf("USAGE_PAGE(0x%lx)", value);
 					generic_desktop = -1;
 
 					if(usage_id == USAGE_PAGE_KEYBOARD) {
-						hidp_extreme_debugf(" -> Keyboard");
+						hidp_debugf(" -> Keyboard");
 					} else if(usage_id == USAGE_PAGE_GAMING) {
-						hidp_extreme_debugf(" -> Game device");
+						hidp_debugf(" -> Game device");
 					} else if(usage_id == USAGE_PAGE_LEDS) {
-						hidp_extreme_debugf(" -> LEDs");
+						hidp_debugf(" -> LEDs");
 					} else if(usage_id == USAGE_PAGE_CONSUMER) {
-						hidp_extreme_debugf(" -> Consumer");
+						hidp_debugf(" -> Consumer");
 					} else if(usage_id == USAGE_PAGE_BUTTON) {
-						hidp_extreme_debugf(" -> Buttons");
+						hidp_debugf(" -> Buttons");
 						btns = 1;
 					} else if(usage_id == USAGE_PAGE_GENERIC_DESKTOP) {
-						hidp_extreme_debugf(" -> Generic Desktop");
+						hidp_debugf(" -> Generic Desktop");
 						generic_desktop = 1;
 					} else {
-						hidp_extreme_debugf(" -> UNSUPPORTED USAGE_PAGE");
+						hidp_debugf(" -> UNSUPPORTED USAGE_PAGE");
 					}
 					break;
 
@@ -315,7 +309,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					logical_minimum = (size == 1) ? (int32_t)((int8_t)value)
 						: (size == 2) ? (int32_t)((int16_t)value)
 							: (int32_t)value;
-					hidp_extreme_debugf("LOGICAL_MINIMUM(%d)", logical_minimum);
+					hidp_debugf("LOGICAL_MINIMUM(%d)", logical_minimum);
 					break;
 
 				case 2:
@@ -326,31 +320,31 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					} else {
 						logical_maximum = value;
 					}
-					hidp_extreme_debugf("LOGICAL_MAXIMUM(%lu)", value);
+					hidp_debugf("LOGICAL_MAXIMUM(%lu)", value);
 					break;
 
 				case 3:
 					if (size == 1) physical_minimum = (int8_t)(value & 0xff);
 					else if (size == 2) physical_minimum = (int16_t)(value & 0xffff);
 					else physical_minimum = (int32_t)value;
-					hidp_extreme_debugf("PHYSICAL_MINIMUM(%d)", physical_minimum);
+					hidp_debugf("PHYSICAL_MINIMUM(%d)", physical_minimum);
 					break;
 
 				case 4:
-					hidp_extreme_debugf("PHYSICAL_MAXIMUM(%lu)", value);
+					hidp_debugf("PHYSICAL_MAXIMUM(%lu)", value);
 					physical_maximum = value;
 					break;
 
 				case 5:
-					hidp_extreme_debugf("UNIT_EXPONENT(%lu)", value);
+					hidp_debugf("UNIT_EXPONENT(%lu)", value);
 					break;
 
 				case 6:
-					hidp_extreme_debugf("UNIT(%lu)", value);
+					hidp_debugf("UNIT(%lu)", value);
 					break;
 
 				case 7:
-					hidp_extreme_debugf("REPORT_SIZE(%lu)", value);
+					hidp_debugf("REPORT_SIZE(%lu)", value);
 					report_size = value;
 					break;
 
@@ -365,7 +359,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					}
 
 					// Next report is beginning from this point
-					hidp_extreme_debugf("REPORT_ID(%lu)", value);
+					hidp_debugf("REPORT_ID(%lu)", value);
 
 					conf->report_size = 0;
 					conf->report_id = value;
@@ -382,7 +376,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				case 9:
-					hidp_extreme_debugf("REPORT_COUNT(%lu)", value);
+					hidp_debugf("REPORT_COUNT(%lu)", value);
 					report_count = value;
 					break;
 
@@ -399,7 +393,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				switch(tag) {
 				case 0:
 					// we only support mice, keyboards and joysticks
-					hidp_extreme_debugf("USAGE(0x%lx)", value);
+					hidp_debugf("USAGE(0x%lx)", value);
 
 					if(usage_id == USAGE_KEYBOARD && generic_desktop == 1) {
 						// usage(keyboard) is always allowed
@@ -410,7 +404,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 						conf->type = REPORT_TYPE_MOUSE;
 						hidp_debugf(" -> Mouse");
 					} else if(((usage_id == USAGE_GAMEPAD) || (usage_id == USAGE_JOYSTICK)) && generic_desktop == 1) {
-						hidp_extreme_debugf(" -> Gamepad/Joystick");
+						hidp_debugf(" -> Gamepad/Joystick");
 						hidp_debugf("Gamepad/Joystick usage found");
 						conf->type = REPORT_TYPE_JOYSTICK;
 					} else if(usage_id == USAGE_POINTER && app_collection) {
@@ -419,41 +413,41 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					} else if ((usage_id == USAGE_HAT || (value == 0 && generic_desktop == 1))
 						&& conf->type == REPORT_TYPE_JOYSTICK) {
 						// usage(hat) is allowed within the app collection
-						hidp_extreme_debugf(" -> HAT usage");
+						hidp_debugf(" -> HAT usage");
 						if (hat == -1) {
 							hat = usage_count;
 							hidp_debugf(" -> Assigned HAT switch to usage index %d", hat);
 						}
 					} else if((conf->type != REPORT_TYPE_NONE) && app_collection) {
-						hidp_extreme_debugf(" -> axis usage");
+						hidp_debugf(" -> axis usage");
 
 						// usage(x) and usage(y) are allowed within the app collection
 						int target_slot = -1;
 
 						if (conf->type == REPORT_TYPE_MOUSE) {
 							if (usage_id == USAGE_X) {
-								hidp_extreme_debugf("MOUSE: found X axis @ %d", usage_count);
+								hidp_debugf("MOUSE: found X axis @ %d", usage_count);
 								target_slot = 0;
 							} else if (usage_id == USAGE_Y) {
-								hidp_extreme_debugf("MOUSE: found Y axis @ %d", usage_count);
+								hidp_debugf("MOUSE: found Y axis @ %d", usage_count);
 								target_slot = 1;
 							} else if (usage_id == USAGE_WHEEL) {
-								hidp_extreme_debugf("MOUSE: found Wheel @ %d", usage_count);
+								hidp_debugf("MOUSE: found Wheel @ %d", usage_count);
 								target_slot = 2;
 							}
 						}
 						else if (conf->type == REPORT_TYPE_JOYSTICK) {
 							if (usage_id == USAGE_X) {
-								hidp_extreme_debugf("JOYSTICK: found X axis @ %d", usage_count);
+								hidp_debugf("JOYSTICK: found X axis @ %d", usage_count);
 								target_slot = 0;
 							} else if (usage_id == USAGE_Y) {
-								hidp_extreme_debugf("JOYSTICK: found Y axis @ %d", usage_count);
+								hidp_debugf("JOYSTICK: found Y axis @ %d", usage_count);
 								target_slot = 1;
 							} else if (usage_id == USAGE_Z) {
-								hidp_extreme_debugf("JOYSTICK: found Z axis @ %d", usage_count);
+								hidp_debugf("JOYSTICK: found Z axis @ %d", usage_count);
 								target_slot = 2;
 							} else if (usage_id == USAGE_RZ) {
-								hidp_extreme_debugf("JOYSTICK: found RZ axis @ %d", usage_count);
+								hidp_debugf("JOYSTICK: found RZ axis @ %d", usage_count);
 								target_slot = 3;
 							}
 						}
@@ -463,7 +457,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 							axis[target_slot] = usage_count;
 						}
 					} else {
-						hidp_extreme_debugf(" -> UNSUPPORTED USAGE");
+						hidp_debugf(" -> UNSUPPORTED USAGE");
 					}
 
 					usage_count++;
@@ -471,26 +465,26 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 				case 1:
 					usage_minimum = value;
-					hidp_extreme_debugf("USAGE_MINIMUM(%lu)", value);
+					hidp_debugf("USAGE_MINIMUM(%lu)", value);
 					break;
 
 				case 2:
 					usage_maximum = value;
-					hidp_extreme_debugf("USAGE_MAXIMUM(%lu)", value);
+					hidp_debugf("USAGE_MAXIMUM(%lu)", value);
 					if (usage_maximum > usage_minimum) {
 						usage_count += (usage_maximum - usage_minimum);
 					}
 					break;
 
 				default:
-					hidp_extreme_debugf("unexpected local item %d", tag);
+					hidp_debugf("unexpected local item %d", tag);
 					break;
 				}
 				break;
 
 			default:
 				// reserved
-				hidp_extreme_debugf("unexpected reserved item %d", tag);
+				hidp_debugf("unexpected reserved item %d", tag);
 				break;
 			}
 		}

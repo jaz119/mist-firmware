@@ -64,7 +64,7 @@ void user_io_check_reset(uint16_t modifiers, char useKeys);
 
 // for HID polling
 void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority);
-void user_io_mouse(uint8_t idx, uint8_t b, char x, char y, char z);
+void user_io_mouse(uint8_t idx, uint8_t b, int8_t x, int8_t y, int8_t z);
 void user_io_analog_joystick(uint8_t, int, int, int, int);
 void user_io_digital_joystick(uint8_t, uint32_t);
 uint8_t user_io_swap_joystick(uint8_t);

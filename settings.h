@@ -15,5 +15,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef SETTINGS_H
+#define SETTINGS_H
+
 unsigned char settings_load(char global);
 unsigned char settings_save(char global);
+
+#endif // SETTINGS_H

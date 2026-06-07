@@ -1,15 +1,9 @@
-#ifndef GENERIC_CORE_H
-#define GENERIC_CORE_H
+#ifndef GENERIC_8BIT_CORE_H
+#define GENERIC_8BIT_CORE_H
 
 #include <user_io_core.h>
 
 #define CONF_TBL_MAX 64
-
-extern int64_t core_mod;
-extern char core_name[16 + 1];
-extern uint32_t core_features;
-extern uint16_t conf_idx[CONF_TBL_MAX];
-extern int conf_items;
 
 void user_io_send_core_mod();
 void user_io_set_core_mod(int64_t);
@@ -24,4 +18,4 @@ const char *user_io_get_core_name();
 // core iface
 extern const user_io_core_t generic_core;
 
-#endif // GENERIC_CORE_H
+#endif // GENERIC_8BIT_CORE_H
