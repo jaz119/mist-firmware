@@ -29,8 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <minimig/boot.h>
 #include <minimig/config.h>
 #include <minimig/fdd.h>
+#include <8bit/settings.h>
 #include <mist_cfg.h>
-#include <settings.h>
 #include <timer.h>
 
 #ifndef DEFAULT_CORE_NAME

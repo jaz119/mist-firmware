@@ -510,24 +510,27 @@ static char KeyEvent_8bit(uint8_t key) {
 	return 0;
 }
 
-void Setup8bitMenu() {
-	char *p;
-	int i;
-
+void setup_8bit_menu() {
 	const char *c = user_io_get_core_name();
-	if(!c[0]) OsdCoreNameSet("8BIT");
-	else      OsdCoreNameSet(c);
 
-	i = 2;
+	if (!*c) {
+		OsdCoreNameSet("8BIT");
+	} else {
+		OsdCoreNameSet(c);
+	}
+
+	char *p;
+	int i = 2;
+
 	// search for 'V'ersion string
 	while ((p = user_io_8bit_get_string(i++))) {
-		if(p[0] == 'V') {
+		if (p[0] == 'V') {
 			// p[1] is not used but kept for future use
 			// char x = p[1];
 			// get version string
 			strcpy(s, user_io_get_core_name());
-			strcat(s," ");
-			substrcpy(s+strlen(s), p, 1);
+			strcat(s, " ");
+			substrcpy(s + strlen(s), p, 1);
 			OsdCoreNameSet(s);
 		}
 	}
@@ -536,7 +539,7 @@ void Setup8bitMenu() {
 	strcpy(helptext_custom, HELPTEXT_SPACER);
 	strcat(helptext_custom, OsdCoreName());
 	strcat(helptext_custom, helptexts[HELPTEXT_MAIN]);
-	helptext=helptext_custom;
+	helptext = helptext_custom;
 
 	debugf("Setting up 8BIT menu");
 	SetupMenu(GetMenuPage_8bit, GetMenuItem_8bit, KeyEvent_8bit);

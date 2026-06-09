@@ -853,7 +853,8 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 	return 1;
 }
 
-void SetupMinimigMenu() {
+void setup_minimig_menu() {
+	debugf("Setting up Minimig menu");
 	SetupMenu(GetMenuPage_Minimig, GetMenuItem_Minimig, NULL);
 	memcpy(t_hardfile, config.hardfile, sizeof(config.hardfile));
 	t_enable_ide[0] = config.enable_ide[0];

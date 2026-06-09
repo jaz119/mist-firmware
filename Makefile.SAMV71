@@ -12,7 +12,7 @@ TODAY = $(shell date +"%y%m%d")
 PRJ = firmware
 SRC = hw/ATSAMV71/cstartup.c hw/ATSAMV71/hardware.c hw/ATSAMV71/spi.c hw/ATSAMV71/qspi.c hw/ATSAMV71/mmc.c hw/ATSAMV71/usbdev.c  hw/ATSAMV71/eth.c hw/ATSAMV71/irq/nvic.c
 SRC += hw/ATSAMV71/network/intmath.c hw/ATSAMV71/network/gmac.c hw/ATSAMV71/network/gmacd.c hw/ATSAMV71/network/phy.c hw/ATSAMV71/network/ethd.c
-SRC += firmware.c fpga.c syscalls.c main.c menu.c osd.c hdd.c state.c user_io.c user_io_hid.c settings.c data_io.c idxfile.c acsi_hdc.c ini_parser.c cue_parser.c mist_cfg.c arc_file.c font.c utils.c serial_sink.c
+SRC += firmware.c fpga.c syscalls.c main.c menu.c osd.c hdd.c state.c user_io.c user_io_hid.c data_io.c idxfile.c acsi_hdc.c ini_parser.c cue_parser.c mist_cfg.c arc_file.c font.c utils.c serial_sink.c
 SRC += it6613/HDMI_TX.c it6613/it6613_drv.c it6613/it6613_sys.c it6613/EDID.c it6613/hdmitx_mist.c
 SRC += usb/hid.c usb/hidparser.c usb/hidquirks.c usb/joymapping.c usb/joystick.c usb/storage.c usb/asix.c usb/pl2303.c
 SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/hub.c usb/usbdebug.c usb/timer.c
@@ -21,7 +21,7 @@ SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/hub.c usb/usbdebug.c usb/
 SRC += FatFs/ff.c FatFs/ffunicode.c
 SRC += fat_compat.c diskio.c
 SRC += support/minimig/core.c support/minimig/boot.c support/minimig/config.c support/minimig/fdd.c support/minimig/menu.c
-SRC += support/8bit/core.c support/8bit/idx_files.c support/pcecd.c support/neocd.c support/psx.c support/snes.c support/8bit/menu.c support/8bit/menu_info.c
+SRC += support/8bit/core.c support/8bit/idx_files.c support/pcecd.c support/neocd.c support/psx.c support/snes.c support/8bit/menu.c support/8bit/menu_info.c support/8bit/settings.c
 SRC += support/tos.c support/archie.c support/zx_col.c cdc_control.c storage_control.c
 SRC += sxmlc/sxmlc.c
 

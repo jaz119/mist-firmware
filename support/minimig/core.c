@@ -1,6 +1,7 @@
 #include <user_io.h>
 #include <user_io_hid.h>
 #include <minimig/core.h>
+#include <minimig/menu.h>
 #include <minimig/config.h>
 #include <minimig/boot.h>
 #include <minimig/fdd.h>
@@ -293,6 +294,7 @@ const user_io_core_t minimig_v2_core = {
     .send_mouse = io_mouse_minimig,
     .send_analog_joy = send_analog_joystick,
     .send_digital_joy = send_digital_joystick,
+    .setup_menu = setup_minimig_menu,
     .eject_all = minimig_eject_all,
     .name = "MINIMIG",
 };

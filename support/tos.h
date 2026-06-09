@@ -89,7 +89,6 @@ unsigned long tos_system_ctrl();
 void tos_update_sysctrl(unsigned long);
 
 void assign_full_path(char *, int, const char *);
-void tos_setup_menu();
 
 // core iface
 extern const user_io_core_t mistery_core;

@@ -18,11 +18,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// 2009-11-14   - OSD labels changed
-// 2009-12-15   - added display of directory name extensions
-// 2010-01-09   - support for variable number of tracks
-// 2016-06-01   - improvements to 8-bit menu
-
 #include <stdlib.h>
 #include <inttypes.h>
 #include <ctype.h>
@@ -31,29 +26,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <user_io.h>
 #include <user_io_hid.h>
-#include "hardware.h"
 #include <menu.h>
-#include "mmc.h"
-#include "osd.h"
-#include "state.h"
+#include <mmc.h>
+#include <osd.h>
+#include <state.h>
 #include <fpga.h>
 #include <firmware.h>
 #include <8bit/core.h>
-#include <8bit/menu.h>
-#include <minimig/boot.h>
+#include <8bit/settings.h>
 #include <minimig/config.h>
-#include <minimig/menu.h>
-#include <tos.h>
-#include <archie.h>
-#include "arc_file.h"
 #include "usb/joymapping.h"
 #include "usb/hidquirks.h"
-#include "mist_cfg.h"
-#include "settings.h"
-#include "usb.h"
-#include "usbdev.h"
-#include <debug.h>
+#include <arc_file.h>
+#include <mist_cfg.h>
+#include <usbdev.h>
 #include <utils.h>
+#include <debug.h>
+
 #ifdef CONFIG_HAVE_ETH
 #include "eth.h"
 #endif
@@ -113,7 +102,7 @@ const char *helptexts[]={
 };
 
 // one screen width
-const char* HELPTEXT_SPACER= "                                ";
+const char *HELPTEXT_SPACER= "                                ";
 char helptext_custom[450]; // spacer(32) + corename(64) + minimig version(16) + helptexts[x](335)
 
 // file selection menu variables
@@ -127,7 +116,7 @@ unsigned char fs_MenuSelect = 0;
 #define STD_COMBO_EXIT " Hold ESC then SPACE to exit"
 
 #define HELPTEXT_DELAY 10000
-#define FRAME_DELAY 150
+#define FRAME_DELAY    150
 
 ///////////////////////////
 /////// System menu ///////
@@ -135,7 +124,7 @@ unsigned char fs_MenuSelect = 0;
 
 static uint32_t setup_phase = 0;
 static joymapping_t mapping;
-static const char *buttons [16] = {
+static const char *buttons[16] = {
 	"RIGHT",
 	"LEFT",
 	"DOWN",
@@ -159,7 +148,7 @@ static const char *buttons [16] = {
 static void siprintbinary(char* buffer, uint8_t byte)
 {
 	for (int j=0; j<8; j++) {
-		buffer[j]=(byte & 1)?'\x1a':'\x19';
+		buffer[j] = (byte & 1) ? '\x1a' : '\x19';
 		byte >>= 1;
 	}
 }
@@ -284,7 +273,7 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 		} else {
 			strcpy( buffer, "None" );
 		}
-	} else if (vid>0) {
+	} else if (vid > 0) {
 		const hid_dev_info_t* joy = get_hid_dev( vid, pid );
 		if (joy && joy->name) {
 			strncpy( buffer, joy->name, sizeof(buffer) );
@@ -296,15 +285,6 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 
 	strcpy(usb_id, buffer);
 	return;
-}
-
-static void SetupMinimigMenu2() {
-	SetupMinimigMenu();
-	page_level=1;
-	last_page[0] = 0;
-	last_menu_first[0] = 0;
-	last_menusub[0] = 0;
-	page_idx = 2;
 }
 
 static char FirmwareUpdateError() {
@@ -330,31 +310,27 @@ static char FirmwareUpdatingDialog(uint8_t idx) {
 }
 
 static char FirmwareUpdateDialog(uint8_t idx) {
-	if (idx == 0) { // yes
+	if (idx == 0) { // Yes
 		DialogBox("\n      Updating firmware\n\n         Please wait\n", 0, FirmwareUpdatingDialog);
 	}
 	return 0;
 }
 
 static char OnReset(uint8_t idx) {
-	char m = 0;
-
-	if (user_io_core_type() == CORE_TYPE_MINIMIG_V2)
-		m = 1;
-
-	if (idx == 0) { //yes
-		if(m) {
-			CloseMenu();
-			OsdReset(RESET_NORMAL);
-		} else {
-			user_io_8bit_set_status(arc_get_default(), ~0);
-			if (settings_save(false)) {
-				iprintf("Settings for %s reset\n", user_io_get_core_name());
-				Setup8bitMenu();
-				menusub = 0;
-			} else
-				ErrorMessage("\n   Error writing settings!\n", 0);
-		}
+	if (idx != 0)
+		return 0; // No
+	CloseMenu();
+	if (core && core->reset)
+		core->reset(1);
+	if (user_io_core_type() != CORE_TYPE_8BIT)
+		return 0;
+	if (settings_save(false)) {
+		debugf("Settings for %s written", user_io_get_core_name());
+		if (core && core->setup_menu)
+			core->setup_menu();
+		menusub = 0;
+	} else {
+		ErrorMessage("\n   Error writing settings!\n", 0);
 	}
 	return 0;
 }
@@ -373,7 +349,7 @@ static char CoreFileSelected(uint8_t idx, const char *SelectedName) {
 	const char *rbfname = SelectedName;
 	arc_reset();
 
-	if (extension && !strncasecmp(extension,"ARC",3)) {
+	if (extension && !strncasecmp(extension, "ARC", 3)) {
 		mod = arc_open(SelectedName);
 		if(mod < 0 || !strlen(arc_get_rbfname())) { // error
 			CloseMenu();
@@ -381,7 +357,7 @@ static char CoreFileSelected(uint8_t idx, const char *SelectedName) {
 		}
 		strcpy(s, arc_get_rbfname());
 		strcat(s, ".RBF");
-		rbfname = (char*) &s;
+		rbfname = (char *) &s;
 		arc = 1;
 	}
 
@@ -471,7 +447,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 		case 5:
 		case 6:
 		case 7:
-			helptext=helptexts[HELPTEXT_INPUT];
+			helptext = helptexts[HELPTEXT_INPUT];
 			siprintf(s, "Joy%d", idx-3);
 			page->title = s;
 			page->timer = 10;
@@ -742,7 +718,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->item = "       USB scancodes";
 					break;
 				case 38: {
-					uint8_t keys[6]={0,0,0,0,0,0};
+					uint8_t keys[6] = { 0,0,0,0,0,0 };
 					StateKeyboardPressed(keys);
 					siprintf(s, "     %2x   %2x   %2x   %2x", keys[0], keys[1], keys[2], keys[3]); // keys[4], keys[5]);
 					item->item = s;
@@ -759,7 +735,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 40: {
 					uint8_t mod = StateKeyboardModifiers();
-					uint16_t keys_ps2[6]={0,0,0,0,0,0};
+					uint16_t keys_ps2[6] = { 0,0,0,0,0,0 };
 					StateKeyboardPressedPS2(keys_ps2);
 					add_modifiers(mod, keys_ps2);
 					siprintf(s, "   %4x %4x %4x %4x ", keys_ps2[0], keys_ps2[1], keys_ps2[2], keys_ps2[3]);// keys_ps2[4], keys_ps2[5]);
@@ -911,14 +887,16 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					char m = 0;
 					if (user_io_core_type() == CORE_TYPE_MINIMIG_V2)
 						m = 1;
-					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?", MENU_DIALOG_YESNO, OnReset);
+					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?",
+						MENU_DIALOG_YESNO, OnReset);
 					break;
 				}
 				case 4:
 					// Save settings
 					if (settings_save(false)) {
-						iprintf("Settings for %s written\n", user_io_get_core_name());
-						Setup8bitMenu();
+						debugf("Settings for %s written", user_io_get_core_name());
+						if (core && core->setup_menu)
+							core->setup_menu();
 						menusub = 0;
 					} else
 						ErrorMessage("\n   Error writing settings!\n", 0);
@@ -963,24 +941,16 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 		case MENU_ACT_MINUS:
 			if (page_idx == 0 && action == MENU_ACT_LEFT) {
 				// go back to core requesting this menu
-				switch(user_io_core_type()) {
-					case CORE_TYPE_MINIMIG_V2:
-						SetupMinimigMenu2();
-						menusub = 0;
-						break;
-					case CORE_TYPE_MISTERY:
-						tos_setup_menu();
-						menusub = 0;
-						break;
-					case CORE_TYPE_ARCHIE:
-						archie_setup_menu();
-						menusub = 0;
-						break;
-					case CORE_TYPE_8BIT:
-						Setup8bitMenu();
-						menusub = 0;
-						break;
+				if (core && core->setup_menu)
+					core->setup_menu();
+				if (user_io_core_type() == CORE_TYPE_MINIMIG_V2) {
+					last_page[0] = 0;
+					last_menu_first[0] = 0;
+					last_menusub[0] = 0;
+					page_level = 1;
+					page_idx = 2;
 				}
+				menusub = 0;
 			}
 			if (page_idx == 2) {
 				if (GetRTC((uint8_t*)&date)) {
@@ -1098,10 +1068,10 @@ void HandleUI(uint8_t key)
 	static bool lalt = false;
 	static long helptext_timer;
 	static long page_timer;
-	static int helpstate=0;
+	static int helpstate = 0;
 	const int osdlines = OsdLines();
 	int firstline = osdlines <= 8 ? 0 : 2;
-	ALIGNED(4) uint8_t keys[6] = {0,0,0,0,0,0};
+	ALIGNED(4) uint8_t keys[6] = { 0,0,0,0,0,0 };
 
 	// decode and set events
 	menu = false;
@@ -1179,52 +1149,55 @@ void HandleUI(uint8_t key)
 			right = true;
 			break;
 		case KEY_KPPLUS :
-			plus=true;
+			plus = true;
 			break;
 		case KEY_KPMINUS :
-			minus=true;
+			minus = true;
 			break;
 	}
 
-	if(menu || select || up || down || left || right)
+	if (menu || select || up || down || left || right)
 	{
-		helpstate=0;
-		helptext_timer=GetTimer(HELPTEXT_DELAY);
+		helpstate = 0;
+		helptext_timer = GetTimer(HELPTEXT_DELAY);
 	}
 
-	if(helptext)
+	if (helptext)
 	{
-		if(helpstate<9)
+		if (helpstate < 9)
 		{
-			if(CheckTimer(helptext_timer))
+			if (CheckTimer(helptext_timer))
 			{
-				helptext_timer=GetTimer(FRAME_DELAY);
+				helptext_timer = GetTimer(FRAME_DELAY);
 				if (menu_page.stdexit)
-					OsdWriteOffset(osdlines-1,menu_page.stdexit == 1 ? STD_EXIT : menu_page.stdexit == 2 ? STD_SPACE_EXIT : STD_COMBO_EXIT,0,0,helpstate);
+					OsdWriteOffset(osdlines-1, (menu_page.stdexit == 1)
+						? STD_EXIT : menu_page.stdexit == 2
+							? STD_SPACE_EXIT : STD_COMBO_EXIT,
+						0, 0, helpstate);
 				++helpstate;
 			}
 		}
-		else if(helpstate==9)
+		else if (helpstate == 9)
 		{
 			ScrollReset();
 			++helpstate;
 		}
 		else
-			ScrollText(osdlines-1,helptext,0,0,0,0);
+			ScrollText(osdlines-1, helptext, 0, 0, 0, 0);
 	}
 
 	// Standardised menu up/down.
 	// The screen should set menumask, bit 0 to make the top line selectable, bit 1 for the 2nd line, etc.
 	// (Lines in this context don't have to correspond to rows on the OSD.)
 	// Also set parentstate to the appropriate menustate to redraw the highlighted line.
-	if(menumask)
+	if (menumask)
 	{
 		if (down) {
-			if (menumask>=(1<<(menusub+1)))	// Any active entries left?
+			if (menumask >= (1<<(menusub+1)))	// Any active entries left?
 			{
 				do
 					menusub++;
-				while((menumask & (1<<menusub)) == 0);
+				while ((menumask & (1<<menusub)) == 0);
 				menustate = parentstate;
 			}
 			else if (menustate == MENU_NG2)
@@ -1238,7 +1211,7 @@ void HandleUI(uint8_t key)
 			{
 				do
 					--menusub;
-				while((menumask & (1<<menusub)) == 0);
+				while ((menumask & (1<<menusub)) == 0);
 				menustate = parentstate;
 			}
 			else if (menustate == MENU_NG2)
@@ -1255,8 +1228,8 @@ void HandleUI(uint8_t key)
 		/* no menu selected                                               */
 		/******************************************************************/
 		case MENU_NONE1 :
-			helptext=helptexts[HELPTEXT_NONE];
-			menumask=0;
+			helptext = helptexts[HELPTEXT_NONE];
+			menumask = 0;
 			OsdDisable();
 			menustate = MENU_NONE2;
 			break;
@@ -1264,23 +1237,21 @@ void HandleUI(uint8_t key)
 		case MENU_NONE2 :
 			if (menu)
 			{
-				if(user_io_core_type() == CORE_TYPE_MINIMIG_V2)
-					SetupMinimigMenu();
-				else if(user_io_core_type() == CORE_TYPE_MISTERY)
-					tos_setup_menu();
-				else if(user_io_core_type() == CORE_TYPE_ARCHIE)
-					archie_setup_menu();
-				else {
-					if(strcmp(user_io_get_core_name(), "MENU") || (user_io_get_core_features() & FEAT_MENU)) {
+				bool need_menu = (user_io_get_core_features() & FEAT_MENU);
+				bool is_menu_core = !strcmp(user_io_get_core_name(), "MENU");
+				if (core && core->setup_menu) {
+					if (!is_menu_core || need_menu) {
 						// new menu cores does have a settings page
-						Setup8bitMenu();
+						core->setup_menu();
 					} else {
 						// old menu core
 						SetupSystemMenu();
 						page_idx = 1; // Firmware & Core page
 					}
+				}
+				if (user_io_core_type() == CORE_TYPE_8BIT) {
 					// the "menu" core is special in jumps directly to the core selection menu
-					if(!strcmp(user_io_get_core_name(), "MENU") || (user_io_get_core_features() & FEAT_MENU)) {
+					if (is_menu_core || need_menu) {
 						SelectFileNG("RBFARC", SCAN_LFN | SCAN_SYSDIR, CoreFileSelected, 0);
 					}
 				}
@@ -1303,7 +1274,7 @@ void HandleUI(uint8_t key)
 
 		case MENU_NG1: {
 			char idx, itemidx, valid, *item;
-			menumask=0;
+			menumask = 0;
 			itemidx = menuidx[0];
 			for(idx=0; idx<osdlines; idx++) {
 				valid = 0;
@@ -1319,10 +1290,10 @@ void HandleUI(uint8_t key)
 								break;
 							menuidx[idx-firstline] = itemidx-1;
 							menu_last = idx-firstline;
-							if(menu_item.newpage) {
+							if (menu_item.newpage) {
 								char l = 25-strlen(menu_item.item);
 								strcpy(s, menu_item.item);
-								while(l--) strcat(s, " ");
+								while (l--) strcat(s, " ");
 								strcat(s,"\x16"); // right arrow
 								item = s;
 							} else {
@@ -1353,7 +1324,7 @@ void HandleUI(uint8_t key)
 					}
 				}
 				if (menu_page.stdexit && idx == osdlines-1) {
-					switch(menu_page.stdexit) {
+					switch (menu_page.stdexit) {
 						case 1:
 							item = STD_EXIT;
 							menumask |= 1<<(osdlines-1);
@@ -1370,11 +1341,13 @@ void HandleUI(uint8_t key)
 				if (!valid) {
 					menu_item.stipple = 0;
 				}
-				if (!(menumask & 1<<idx) && menusub == idx) menusub++;
+				if (!(menumask & 1<<idx) && menusub == idx)
+					menusub++;
 				if (!(helpstate && idx == osdlines-1))
 					OsdWrite(idx, item, menusub == idx, menu_item.stipple);
 			}
-			if (menu_page.timer) page_timer = GetTimer(menu_page.timer);
+			if (menu_page.timer)
+				page_timer = GetTimer(menu_page.timer);
 			menustate = MENU_NG2;
 			parentstate=MENU_NG1;
 			menu_debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x",
@@ -1387,8 +1360,8 @@ void HandleUI(uint8_t key)
 
 			if (menu_page.stdexit == MENU_STD_COMBO_EXIT) {
 				StateKeyboardPressed(keys);
-				for(i=0; i<6; i++) {
-					if(keys[i]==0x29) { //ESC
+				for (i=0; i<6; i++) {
+					if (keys[i]==0x29) { //ESC
 						if (key == KEY_SPACE) stdexit = 1;
 					}
 				}
@@ -1399,25 +1372,25 @@ void HandleUI(uint8_t key)
 			}
 
 			if (key == KEY_PGDN) {
-				if (menusub < (osdlines - 1 - (menu_page.stdexit?1:0))) {
+				if (menusub < (osdlines - 1 - (menu_page.stdexit ? 1 : 0))) {
 					unsigned char save_menusub = menusub;
-					menusub = osdlines - 1 - (menu_page.stdexit?1:0);
-					while((menumask & (1<<menusub)) == 0) menusub--;
+					menusub = osdlines - 1 - (menu_page.stdexit ? 1 : 0);
+					while ((menumask & (1<<menusub)) == 0) menusub--;
 					if (menusub == save_menusub) {
 						// at the last active line, try to scroll down
-						scroll_down = osdlines - (menu_page.stdexit?1:0);
+						scroll_down = osdlines - (menu_page.stdexit ? 1 : 0);
 					} else {
 						menustate = parentstate;
 					}
 				} else {
-					scroll_down = osdlines - (menu_page.stdexit?1:0);
+					scroll_down = osdlines - (menu_page.stdexit ? 1 : 0);
 				}
 			}
 
 			if (scroll_down) {
 				menu_debugf("menu_ng: scroll down");
 				idx = menuidx[menu_last]+1;
-				while(menu_item_callback(idx, 0, &menu_item)) {      // are more items there?
+				while (menu_item_callback(idx, 0, &menu_item)) { // are more items there?
 					if (menu_item.page == page_idx) {            // same page?
 						items++;
 						if (!newidx) newidx = idx;           // the next invisible item
@@ -1437,16 +1410,18 @@ void HandleUI(uint8_t key)
 				if (menusub > firstline) {
 					unsigned char save_menusub = menusub;
 					menusub = firstline;
-					while((menumask & (1<<menusub)) == 0 && menusub<osdlines) menusub++;
-					if(menusub == osdlines) menusub = firstline;
+					while ((menumask & (1<<menusub)) == 0 && menusub<osdlines)
+						menusub++;
+					if (menusub == osdlines)
+						menusub = firstline;
 					if (menusub == save_menusub) {
 						// at the first active line, try to scroll up
-						scroll_up = osdlines - (menu_page.stdexit?1:0);
+						scroll_up = osdlines - (menu_page.stdexit ? 1 : 0);
 					} else {
 						menustate = parentstate;
 					}
 				} else {
-					scroll_up = osdlines - firstline - (menu_page.stdexit?1:0);
+					scroll_up = osdlines - firstline - (menu_page.stdexit ? 1 : 0);
 				}
 			}
 
@@ -1454,8 +1429,8 @@ void HandleUI(uint8_t key)
 				menu_debugf("menu_ng: scroll up");
 				if (menuidx[0] > 0) {
 					idx = menuidx[0] - 1;
-					while(menu_item_callback(idx, 0, &menu_item)) {// are more items there?
-						if (menu_item.page == page_idx && menu_item.active) {     // any selectable?
+					while (menu_item_callback(idx, 0, &menu_item)) { // are more items there?
+						if (menu_item.page == page_idx && menu_item.active) { // any selectable?
 							menuidx[0] = idx; // then scroll up
 							menusub = firstline;
 							if (!--scroll_up) break;
@@ -1466,7 +1441,6 @@ void HandleUI(uint8_t key)
 					menustate = parentstate;
 				}
 				scroll_up = 0;
-
 			}
 			if ((backsp || stdexit) && page_level) {
 				ClosePage();
@@ -1516,13 +1490,13 @@ void HandleUI(uint8_t key)
 		/******************************************************************/
 
 		case MENU_8BIT_ABOUT1:
-			menumask=0;
+			menumask = 0;
 			helptext = helptexts[HELPTEXT_NONE];
 			OsdSetTitle("About", 0);
 			menustate = MENU_8BIT_ABOUT2;
-			parentstate=MENU_8BIT_ABOUT1;
+			parentstate = MENU_8BIT_ABOUT1;
 			for (int i=0; i<osdlines-2; i++) {
-				OsdDrawLogo(i,i,1);
+				OsdDrawLogo(i, i, 1);
 			}
 			OsdWrite(osdlines-3, "", 0, 0);
 			OsdWrite(osdlines-2, "", 0, 0);
@@ -1543,52 +1517,13 @@ void HandleUI(uint8_t key)
 				menusub = 6+firstline;
 			}
 			break;
-/*
-		case MENU_8BIT_CHRTEST1:
-			char usb_id[32];
-			helptext = helptexts[HELPTEXT_NONE];
-			menumask=0;
-			OsdSetTitle("CHR", 0);
-			menustate = MENU_8BIT_CHRTEST2;
-			parentstate=MENU_8BIT_CHRTEST1;
-			strcpy(usb_id, "                          ");
-			for(i=1; i<24; i++) {
-				if(i<4 || i>13)
-					usb_id[i] = i;
-				else
-					usb_id[i] = ' ';
-			}
-			OsdWrite(0, usb_id, 0, 0);
-			for(i=0; i<24; i++) usb_id[i] = i+24;
-			OsdWrite(1, usb_id, 0, 0);
-			for(i=0; i<24; i++) usb_id[i] = i+(24*2);
-			OsdWrite(2, usb_id, 0, 0);
-			for(i=0; i<24; i++) usb_id[i] = i+(24*3);
-			OsdWrite(3, usb_id, 0, 0);
-			for(i=0; i<24; i++) usb_id[i] = i+(24*4);
-			OsdWrite(4, usb_id, 0, 0);
-			strcpy(usb_id, "                          ");
-			for(i=0; i<8; i++) usb_id[i] = i+(24*5);
-			OsdWrite(5, usb_id, 0, 0);
-			//for(i=0; i<24; i++) usb_id[i] = i+(24*6);
-			OsdWrite(6, "", 0, 0);
-			OsdWrite(7, STD_SPACE_EXIT, menusub==0, 0);
-			break;
 
-		case MENU_8BIT_CHRTEST2:
-
-			if(c==KEY_SPACE) {
-				menustate = MENU_8BIT_CONTROLLERS1;
-				menusub = 1;
-			}
-			break;
-*/
 		/******************************************************************/
 		/* file selection menu                                            */
 		/******************************************************************/
 		case MENU_FILE_SELECT:
 			OsdSetTitle("Select",0);
-			helptext=helptexts[HELPTEXT_NONE];
+			helptext = helptexts[HELPTEXT_NONE];
 			menustate = parentstate = MENU_FILE_SELECT1;
 			if (iSelectedEntry >= osdlines) iSelectedEntry = 0;
 			if ((maxDirEntries != osdlines) || (!nDirEntries && fat_medium_present()))
@@ -1601,8 +1536,7 @@ void HandleUI(uint8_t key)
 			break;
 
 		case MENU_FILE_SELECT2 :
-			menumask=0;
-
+			menumask = 0;
 			ScrollLongName(); // scrolls file name if longer than display line
 
 			if (key == KEY_HOME)
@@ -1742,24 +1676,24 @@ void HandleUI(uint8_t key)
 		/* dialog box                                                     */
 		/******************************************************************/
 		case MENU_DIALOG1: {
-			int i=0, l=0;
+			int i = 0, l = 0;
 			const char *message = dialog_text;
 			menumask = 0;
 			parentstate = menustate;
-			s[0]=0;
+			s[0] = 0;
 			while (l<firstline) OsdWrite(l++, s, 0, 0);
 			do {
 				// line full or line break
-				if((i == 29) || (*message == '\n') || !*message) {
+				if ((i == 29) || (*message == '\n') || !*message) {
 					s[i] = 0;
 					OsdWrite(l++, s, 0,0);
-					i=0;  // start next line
+					i = 0;  // start next line
 				} else {
 					s[i++] = *message;
 				}
-			} while(*message++);
+			} while (*message++);
 
-			if(dialog_errorcode && (l < osdlines)) {
+			if (dialog_errorcode && (l < osdlines)) {
 				siprintf(s, " Code: #%d", dialog_errorcode);
 				OsdWrite(l++, s, 0,0);
 			}
@@ -1776,7 +1710,7 @@ void HandleUI(uint8_t key)
 					OsdWrite(l++, "             no", menusub == 1,0);
 				}
 			}
-			while(l < osdlines) OsdWrite(l++, "", 0,0);
+			while (l < osdlines) OsdWrite(l++, "", 0,0);
 			menustate = MENU_DIALOG2;
 		}
 		break;
@@ -1787,7 +1721,7 @@ void HandleUI(uint8_t key)
 			  ((dialog_options & MENU_DIALOG_TIMER) && CheckTimer(menu_timer))) {
 				menustate = parentstate = dialog_autoclose ? MENU_NONE1 : MENU_NG;
 				helptext = dialog_helptext; // restore helptext
-				if(dialog_callback) dialog_callback(menusub);
+				if (dialog_callback) dialog_callback(menusub);
 				menusub = dialog_menusub;
 			}
 			break;
@@ -1799,7 +1733,6 @@ void HandleUI(uint8_t key)
 			break;
 	}
 }
-
 
 static void ScrollLongName(void)
 {
@@ -1815,7 +1748,7 @@ static void ScrollLongName(void)
 		// FIXME - yuk, we don't want to do this every frame!
 		len = strlen(DirEntries[k].fname); // get name length
 
-		if((len > 4) && !fs_ShowExt)
+		if ((len > 4) && !fs_ShowExt)
 			if (DirEntries[k].fname[len - 4] == '.')
 				len -= 4; // remove extension
 
@@ -1857,12 +1790,13 @@ static char* GetDiskInfo(char* lfn, long len)
             if (!cmp) // match found
             {
                 k = i - 1; // no need to check if k is valid since i is greater than zero
-
                 c = lfn[k]; // get the first character to the left of the matched template substring
+
                 if (c >= '0' && c <= '9') // check if a digit
                 {
                     info[1] = c; // copy to buffer
                     info[0] = ' '; // clear previous character
+
                     k--; // go to the preceding character
                     if (k >= 0) // check if index is valid
                     {
@@ -1873,10 +1807,12 @@ static char* GetDiskInfo(char* lfn, long len)
 
                     k = i + sizeof(template); // get first character to the right of the mached template substring
                     c = lfn[k]; // no need to check if index is valid
+
                     if (c >= '0' && c <= '9') // check if a digit
                     {
                         info[3] = c; // copy to buffer
                         info[4] = ' '; // clear next char
+
                         k++; // go to the followwing character
                         if (k < len) // check if index is valid
                         {
@@ -1884,6 +1820,7 @@ static char* GetDiskInfo(char* lfn, long len)
                             if (c >= '0' && c <= '9') // check if a digit
                                 info[4] = c; // copy to buffer
                         }
+
                         return info;
                     }
                 }
@@ -1909,6 +1846,7 @@ static void PrintDirectory(void)
     for (i = 0; i < OsdLines(); i++)
     {
         memset(s, ' ', 32); // clear line buffer
+
         if (i < nDirEntries)
         {
             k = sort_table[i]; // ordered index in storage buffer
@@ -1982,7 +1920,7 @@ void ErrorMessage(const char *message, unsigned char code) {
 
 void InfoMessage(const char *message) {
 	if (menustate != MENU_DIALOG2) {
-		OsdSetTitle("Message",0);
+		OsdSetTitle("Message", 0);
 		OsdEnable(0); // do not disable keyboard
 	}
 	DialogBox(message, MENU_DIALOG_TIMER, 0);

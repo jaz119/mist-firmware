@@ -11,6 +11,6 @@ extern const char *config_hdf_msg[];
 extern const char *config_chipset_msg[];
 const char *config_memory_fast_txt();
 
-void SetupMinimigMenu();
+void setup_minimig_menu();
 
 #endif // MENU_MINIMIG_H

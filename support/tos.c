@@ -625,6 +625,8 @@ static void tos_init() {
   tos_upload(NULL);
 }
 
+static void tos_setup_menu();
+
 // core iface
 const user_io_core_t mistery_core = {
   .init = tos_init,
@@ -635,6 +637,7 @@ const user_io_core_t mistery_core = {
   .send_keycode = send_keycode_ps2,
   .send_mouse = send_mouse_ps2,
   .send_digital_joy = send_digital_joystick,
+  .setup_menu = tos_setup_menu,
   .eject_all = tos_eject_all,
   .name = "MISTERY",
 };
@@ -1165,6 +1168,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
   return 1;
 }
 
-void tos_setup_menu() {
+static void tos_setup_menu() {
+  debugf("Setting up MISTery menu");
   SetupMenu(tos_get_menu_page, tos_get_menu_item, NULL);
 }

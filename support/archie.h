@@ -3,8 +3,6 @@
 
 #include <user_io_core.h>
 
-void archie_setup_menu();
-
 // core iface
 extern const user_io_core_t archie_core;
 

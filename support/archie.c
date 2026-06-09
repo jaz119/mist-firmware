@@ -505,6 +505,8 @@ static void archie_eject_all()
   config.hardfile[1].present = 0;
 }
 
+static void archie_setup_menu();
+
 // core iface
 const user_io_core_t archie_core = {
   .init = archie_init,
@@ -515,6 +517,7 @@ const user_io_core_t archie_core = {
   .send_keycode = archie_kbd,
   .send_mouse = archie_mouse,
   .send_digital_joy = send_digital_joystick,
+  .setup_menu = archie_setup_menu,
   .eject_all = archie_eject_all,
   .name = "ARCHIE",
 };
@@ -625,7 +628,7 @@ static char archie_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
   return 1;
 }
 
-void archie_setup_menu()
+static void archie_setup_menu()
 {
   archie_debugf("Setting up Archie menu");
   SetupMenu(archie_getmenupage, archie_getmenuitem, NULL);

@@ -1,12 +1,13 @@
 #include <string.h>
 #include <8bit/core.h>
+#include <8bit/menu.h>
+#include <8bit/settings.h>
 #include <8bit/idx_files.h>
 #include <user_io.h>
 #include <user_io_hid.h>
 #include <spi.h>
 #include <osd.h>
 #include <arc_file.h>
-#include <settings.h>
 #include <data_io.h>
 #include <pcecd.h>
 #include <neocd.h>
@@ -476,6 +477,7 @@ static void generic_8bit_poll()
 static void generic_8bit_reset(bool)
 {
     kbd_reset = 1;
+    user_io_8bit_set_status(arc_get_default(), ~0);
 }
 
 // core iface
@@ -489,6 +491,6 @@ const user_io_core_t generic_core = {
     .send_mouse = send_mouse_ps2,
     .send_analog_joy = send_analog_joystick,
     .send_digital_joy = send_digital_joystick,
-    // .eject_all = TODO,
+    .setup_menu = setup_8bit_menu,
     .name = "8BIT",
 };
