@@ -19,12 +19,13 @@
 #define JOYSTICK_H
 
 #include <stdlib.h>
-#include "state.h"
-#include "mist_cfg.h"
+#include <state.h>
+#include <mist_cfg.h>
 
 uint8_t joystick_add();
 uint8_t joystick_renumber(uint8_t joy);
-uint8_t joystick_release(uint8_t joy);
+uint8_t on_joystick_release();
+uint8_t joysticks_renumber();
 
 static inline uint8_t joystick_count() {
   return StateNumJoysticks();

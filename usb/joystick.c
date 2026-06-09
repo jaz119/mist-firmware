@@ -19,15 +19,67 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "joystick.h"
-#include "usb.h"
-#include "debug.h"
-#include "utils.h"
+#include <joystick.h>
+#include <usb.h>
+#include <utils.h>
+#include <debug.h>
 
-uint8_t joystick_add() {
-    uint8_t index = joystick_count();
-    StateNumJoysticksSet(index + 1);
-    return index;
+typedef struct {
+    uint8_t jindex; // current index
+    uint8_t round;  // 0 for pure devices, 1 for composite
+} visitor_ctx_t;
+
+static bool shift_jindex_visitor(usb_device_t *dev, void *arg) {
+    visitor_ctx_t *ctx = (visitor_ctx_t *)arg;
+    usb_hid_info_t *info = &(dev->hid_info);
+    bool is_composite = false;
+
+    if (!dev->vid && !dev->pid)
+        return true;
+    if (dev->class->type != USB_HID || !(info->device_types & HID_DEVICE_JOYSTICK))
+        return true;
+
+    if (info->device_types & HID_DEVICE_KEYBOARD)
+        is_composite = true;
+    if (info->device_types & HID_DEVICE_MOUSE)
+        is_composite = true;
+
+    if (ctx->round == 0 && is_composite)
+        return true;
+    if (ctx->round == 1 && !is_composite)
+        return true;
+
+    // joystick reindex
+    for (uint8_t i = 0; i < info->num_ifaces; i++)
+    {
+        usb_hid_iface_info_t *iface = &info->iface[i];
+
+        if (iface->device_type != HID_DEVICE_JOYSTICK)
+            continue;
+
+        iface->jindex = ctx->jindex++;
+
+        // make it visible in menu
+        StateUsbIdSet(
+            dev->vid, dev->pid,
+            iface->conf.joystick_mouse.button_count,
+            iface->jindex);
+    }
+
+    return true;
+}
+
+uint8_t joysticks_renumber() {
+    visitor_ctx_t ctx = { 0, 0 };
+
+    // native usb joysticks must be first in list
+    visit_devices(shift_jindex_visitor, &ctx);
+
+    // composite devices after they
+    ctx.round = 1;
+    visit_devices(shift_jindex_visitor, &ctx);
+
+    return ctx.jindex;
 }
 
 // the physical joysticks (db9 ports at the right device side)
@@ -74,45 +126,21 @@ uint8_t joystick_renumber(uint8_t j)
     return j;
 }
 
-uint8_t joystick_release(uint8_t raw_jindex) {
-    usb_device_t *dev = usb_get_devices();
-    uint8_t count = joystick_count();
-    if (!count) return 0;
+uint8_t joystick_add() {
+    uint8_t index = joystick_count();
+    StateNumJoysticksSet(index + 1);
+    return index;
+}
 
-    // walk through all devices and search for sticks with a higher id
-    for (uint8_t j=0; j < USB_NUMDEVICES; j++)
-    {
-        // search for all joystick interfaces on all hid devices
-        if (dev[j].bAddress && (dev[j].class == &usb_hid_class))
-        {
-            for (uint8_t k=0; k < MAX_IFACES; k++)
-            {
-                usb_hid_iface_info_t *iface = &dev[j].hid_info.iface[k];
-
-                // search for joystick interfaces
-                if (iface->device_type == HID_DEVICE_JOYSTICK)
-                {
-                    if (iface->jindex > raw_jindex)
-                    {
-                        hid_debugf("decreasing joystick index of dev #%d from %d to %d",
-                            j, iface->jindex, iface->jindex - 1);
-
-                        iface->jindex--;
-                        StateUsbIdSet(dev[j].vid, dev[j].pid,
-                            iface->conf.joystick_mouse.button_count,
-                            iface->jindex);
-                    }
-                }
-            }
-        }
-    }
+uint8_t on_joystick_release() {
+    uint8_t count = joysticks_renumber();
 
     // one less joystick in the system ...
-    StateNumJoysticksSet(--count);
+    StateNumJoysticksSet(count);
 
-    raw_jindex = joystick_index(count);
-    if (raw_jindex < 6)
-        memset(&mist_joysticks[raw_jindex], 0, sizeof(mist_joystick_t));
+    if (count < MAX_NUM_JOYS) {
+        memset(&mist_joysticks[count], 0, sizeof(mist_joystick_t));
+    }
 
     return 0;
 }

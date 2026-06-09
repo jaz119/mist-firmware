@@ -226,30 +226,35 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
-    usb_device_t dev;
+    usb_device_t *dev = &usb_get_devices()[0];
     usb_device_descriptor_t dev_desc;
     uint8_t rcode;
 
-    memset(&dev, 0, sizeof(usb_device_t));
-    dev.ep0.nakPower = USB_NAK_DEFAULT;
-    dev.ep0.maxPktSize = 8;
+    memset(dev, 0, sizeof(usb_device_t));
+    dev->ep0.nakPower = USB_NAK_DEFAULT;
+    dev->ep0.type = EP_TYPE_CTRL;
+    dev->ep0.maxPktSize = 8;
 
-    if ((rcode = usb_get_dev_descr(&dev, sizeof(usb_device_descriptor_t), &dev_desc))) {
+    if ((rcode = usb_get_dev_descr(dev, sizeof(usb_device_descriptor_t), &dev_desc))) {
         printf("Get USB device descriptor, error 0x%x\n", rcode);
         return rcode;
     }
 
-    dev.ep0.maxPktSize = dev_desc.bMaxPacketSize0;
+    dev->ep0.maxPktSize = dev_desc.bMaxPacketSize0;
+    dev->class = &usb_hid_class;
+    dev->bAddress = 1;
+
     usb_dump_device_descriptor(&dev_desc);
 
-    printf("USB vendor ID: %04x, product ID: %04x\n", dev_desc.idVendor, dev_desc.idProduct);
+    printf("USB vendor ID: %04x, product ID: %04x\n",
+        dev_desc.idVendor, dev_desc.idProduct);
 
     // Save VID/PID
-    dev.vid = dev_desc.idVendor;
-    dev.pid = dev_desc.idProduct;
+    dev->vid = dev_desc.idVendor;
+    dev->pid = dev_desc.idProduct;
 
     // Driver init
-    rcode = usb_hid_class.init(&dev, &dev_desc);
+    rcode = usb_hid_class.init(dev, &dev_desc);
     if (rcode) {
         printf("USB device NOT accepted, error 0x%02x\n", rcode);
         return rcode;
@@ -259,7 +264,7 @@ int main(int argc, char *argv[])
     for (int n = 0; n < 3; n++)
     {
         timer_delay_msec(12);
-        rcode = usb_hid_class.poll(&dev);
+        rcode = usb_hid_class.poll(dev);
 
         if (rcode) {
             printf("USB device POLL, error 0x%02x\n", rcode);
@@ -267,7 +272,7 @@ int main(int argc, char *argv[])
     }
 
     // Driver unload
-    rcode = usb_hid_class.release(&dev);
+    rcode = usb_hid_class.release(dev);
     if (rcode) {
         printf("USB device RELEASE, error 0x%02x\n", rcode);
             return rcode;

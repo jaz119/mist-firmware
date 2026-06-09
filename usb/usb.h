@@ -327,6 +327,9 @@ usb_device_t *usb_get_next_device(bool);
 usb_device_t *usb_get_device(usb_dev_type_t);
 usb_device_t *usb_get_devices();
 
+typedef bool (*usb_dev_visitor_cb_t)(usb_device_t *, void *);
+void visit_devices(usb_dev_visitor_cb_t visitor, void *);
+
 // device-specific functions
 uint8_t usb_in_transfer( usb_device_t *, ep_t *ep, uint16_t *nbytesptr, uint8_t *data );
 uint8_t usb_out_transfer( usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_t *data );

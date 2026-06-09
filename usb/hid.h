@@ -41,9 +41,9 @@
 #define REPORT_BUF_SZ         64
 
 #define HID_DEVICE_UNKNOWN    0
-#define HID_DEVICE_MOUSE      1
-#define HID_DEVICE_KEYBOARD   2
-#define HID_DEVICE_JOYSTICK   3
+#define HID_DEVICE_MOUSE      BIT(0)
+#define HID_DEVICE_KEYBOARD   BIT(1)
+#define HID_DEVICE_JOYSTICK   BIT(2)
 
 // when the joystick axis counts as trigger a direction for binary
 #define JOYSTICK_AXIS_MIN           0
@@ -56,7 +56,7 @@ typedef struct {
   ep_t ep_in;
   ep_t ep_out;
 
-  uint32_t lastPollTime;      // last poll time
+  uint32_t last_poll_time;    // last poll time
 
   union {
     struct {
@@ -80,9 +80,11 @@ typedef struct {
 typedef struct hid_dev_info_t hid_dev_info_t;
 
 typedef struct {
-  bool pollEnable;            // poll enable flag
+  uint8_t poll_enable;        // poll enable flag
+  uint8_t device_types;       // device combined type
+  uint8_t num_ifaces;         // interfaces count
+
   const hid_dev_info_t *quirks; // quirks info
-  uint8_t  numIfaces;         // ifaces count
   usb_hid_iface_info_t iface[MAX_IFACES];
 } usb_hid_info_t;
 

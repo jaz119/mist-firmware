@@ -294,6 +294,7 @@ static void BootCustomInit()
 //// BootInit() ////
 void BootInit()
 {
+  BootHome();
   BootEnableMem();
   BootClearScreen(SCREEN_ADDRESS, SCREEN_MEM_SIZE);
   BootUploadLogo();

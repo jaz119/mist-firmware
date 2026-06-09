@@ -363,10 +363,7 @@ static char CoreFileSelected(uint8_t idx, const char *SelectedName) {
 	// close OSD now as the new core may not even have one
 	OsdDisable();
 
-	// reset minimig boot text position
-	BootHome();
-
-	//remember core name loaded
+	// remember core name loaded
 	OsdCoreNameSet(SelectedName);
 
 	int64_t mod = 0;
@@ -387,22 +384,27 @@ static char CoreFileSelected(uint8_t idx, const char *SelectedName) {
 		rbfname = (char*) &s;
 		arc = 1;
 	}
+
 	user_io_reset();
 	user_io_set_core_mod(mod);
+
 	// reset fpga with core
 	err = fpga_init(rbfname);
+
 	if (err == ERROR_BITSTREAM_OPEN && arc) {
 		strcpy(s, "/");
 		strcat(s, arc_get_rbfname());
 		strcat(s, ".RBF");
 		err = fpga_init(s);
 	}
-	if (err != ERROR_NONE) FatalError(err);
+
+	if (err != ERROR_NONE)
+		FatalError(err);
+
 	// De-init joysticks to allow re-ordering for new core
-	StateReset();
+	StateResetAll();
 
 	usb_dev_reconnect();
-
 	CloseMenu();
 
 	return 0;

@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "timer.h"
-#include "usb.h"
-#include "debug.h"
+#include <usb.h>
+#include <joystick.h>
+#include <timer.h>
+#include <debug.h>
 
 static usb_device_t usb_devices[USB_NUMDEVICES];
 
@@ -30,9 +31,8 @@ usb_device_t *usb_get_next_device(bool with_poll) {
 	for (int n = 0; n < USB_NUMDEVICES; n++) {
 		cur_index++;
 
-		if (cur_index >= USB_NUMDEVICES) {
+		if (cur_index >= USB_NUMDEVICES)
 			cur_index = 0;
-		}
 
 		if (!devs[cur_index].bAddress || !devs[cur_index].class)
 			continue;
@@ -44,6 +44,19 @@ usb_device_t *usb_get_next_device(bool with_poll) {
 	}
 
 	return NULL;
+}
+
+void visit_devices(usb_dev_visitor_cb_t visitor, void *ctx) {
+	usb_device_t *it = &usb_devices[0],
+		*it_end = &usb_devices[USB_NUMDEVICES];
+
+	for (; it != it_end; it++) {
+		if (!it->bAddress || !it->class)
+			continue;
+
+		if (!visitor(it, ctx))
+			break;
+	}
 }
 
 void usb_init() {
@@ -91,9 +104,9 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 	usb_device_descriptor_t dev_desc;
 
 	// find an empty device entry
-	for(i=0; i<USB_NUMDEVICES && usb_devices[i].bAddress; i++);
+	for (i=0; i<USB_NUMDEVICES && usb_devices[i].bAddress; i++);
 
-	if(i < USB_NUMDEVICES) {
+	if (i < USB_NUMDEVICES) {
 		usb_debugf("using free entry at %d", i);
 
 		usb_device_t *dev = &usb_devices[i];
@@ -109,7 +122,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		dev->ep0.type = EP_TYPE_CTRL;
 		dev->ep0.nakPower = USB_NAK_DEFAULT;
 
-		if((rcode = usb_get_dev_descr(dev, 8, &dev_desc)))
+		if ((rcode = usb_get_dev_descr(dev, 8, &dev_desc)))
 			return rcode;
 
 		dev->ep0.maxPktSize = dev_desc.bMaxPacketSize0;
@@ -118,7 +131,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		// Assign new address to the device
 		static uint8_t dev_count = 0;
 		rcode = usb_set_addr(dev, ((i << 2) | (dev_count++ & 3)) + 1);
-		if(rcode) {
+		if (rcode) {
 			errorf("usb: failed to assign address, error 0x%02x", rcode);
 			return rcode;
 		}
@@ -129,7 +142,7 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 			timer_delay_msec(2);
 		} while (rcode && !timer_check(timer, 20)); // Some recovery interval (2 ms as USB 2.0 9.2.6.3)
 
-		if(rcode) {
+		if (rcode) {
 			dev->bAddress = 0;
 			return rcode;
 		}
@@ -146,22 +159,25 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 		// The Retroflag Classic USB Gamepad doesn't report
 		// movement until the string descriptors are read,
 		// so read all of them here (and show them on the console)
-		if(!usb_get_string_descr(dev, sizeof(str), 0, 0, &str.str_desc)) {
+		if (!usb_get_string_descr(dev, sizeof(str), 0, 0, &str.str_desc)) {
 			// supported languages descriptor
 			usb_debugf("wLangId: 0x%04X", str.str0_desc.wLANGID[0]);
 		}
 
 		// try to connect device to one of the supported classes
-		for(int c=0; class_list[c]; c++) {
+		for (int c=0; class_list[c]; c++) {
 			usb_debugf("trying to init class %d", c);
 
 			rcode = class_list[c]->init(dev, &dev_desc);
-			if(rcode) continue;
+			if (rcode) continue;
 
 			dev->class = class_list[c];
 			infof("USB %s device %d, address %d, %lu ms",
 				dev->lowspeed ? "LS" : "FS", i, dev->bAddress,
 				GetRTTC() - time);
+
+			if (dev->class->type == USB_HID)
+				joysticks_renumber();
 
 			return 0;
 		}
@@ -178,19 +194,19 @@ uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed) {
 uint8_t usb_release_device(uint8_t parent, uint8_t port) {
 	usb_debugf("%s(parent=0x%x, port=%d)", __FUNCTION__, parent, port);
 
-	for(uint8_t i=0; i<USB_NUMDEVICES; i++) {
-		if(usb_devices[i].bAddress && usb_devices[i].parent == parent && usb_devices[i].port == port) {
+	for (uint8_t i=0; i<USB_NUMDEVICES; i++) {
+		if (usb_devices[i].bAddress && usb_devices[i].parent == parent && usb_devices[i].port == port) {
 			usb_debugf("  -> device with address %u", usb_devices[i].bAddress);
 
 			// check if this is a hub (parent of some other device)
 			// and release its kids first
-			for(uint8_t j=0; j<USB_NUMDEVICES; j++) {
-				if(usb_devices[j].parent == usb_devices[i].bAddress)
+			for (uint8_t j=0; j<USB_NUMDEVICES; j++) {
+				if (usb_devices[j].parent == usb_devices[i].bAddress)
 					usb_release_device(usb_devices[i].bAddress, usb_devices[j].port);
 			}
 
 			uint8_t rcode = 0;
-			if(usb_devices[i].class)
+			if (usb_devices[i].class)
 				rcode = usb_devices[i].class->release(&usb_devices[i]);
 
 			usb_devices[i].bAddress = 0;
