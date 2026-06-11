@@ -80,9 +80,10 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 	uint8_t report_size = 0, report_count = 0;
 	uint16_t bit_count = 0, usage_count = 0;
-	int16_t logical_minimum=0, physical_minimum=0;
-	uint16_t logical_maximum=0, physical_maximum=0;
-	uint32_t usage_minimum=0, usage_maximum=0;
+	int16_t logical_minimum = 0, physical_minimum = 0;
+	uint16_t logical_maximum = 0, physical_maximum = 0;
+	uint32_t usage_minimum = 0, usage_maximum = 0;
+	uint16_t usage_page = 0;
 
 	memset(conf, 0, sizeof(hid_report_t));
 	conf->type = REPORT_TYPE_NONE;
@@ -96,9 +97,10 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 	uint8_t btns = 0;
 	int8_t hat = -1;
 
-	for (int i=0; i<MAX_AXES; i++) axis[i] = -1;
+	for (int i=0; i<MAX_AXES; i++)
+		axis[i] = -1;
 
-	while(rep_size >= 1) {
+	while (rep_size >= 1) {
 		uint32_t value = 0;
 
 		// extract short item
@@ -121,25 +123,25 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 		}
 
 		// we are currently skipping an unknown/unsupported collection)
-		if(skip_collection) {
-			if(!type) {
+		if (skip_collection) {
+			if (!type) {
 				// main item
-				if(tag == 8 || tag == 9 || tag == 11) {
+				if (tag == 8 || tag == 9 || tag == 11) {
 					bit_count += (uint32_t)report_count * report_size;
 				}
 				// any new collection increases the depth of collections to skip
-				if(tag == 10) {
+				if (tag == 10) {
 					skip_collection++;
 					collection_depth++;
 				}
 
 				// any end collection decreases it
-				if(tag == 12) {
+				if (tag == 12) {
 					skip_collection--;
 					collection_depth--;
 
 					// leaving the depth the generic desktop was valid for
-					if(generic_desktop > collection_depth)
+					if (generic_desktop > collection_depth)
 						generic_desktop = -1;
 				}
 			}
@@ -147,22 +149,22 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 			btns = 0;
 
 		} else {
-			// hidp_extreme_debugf("-> Item tag=%d type=%d size=%d", tag, type, size);
+			// hidp_debugf("-> Item tag=%d type=%d size=%d", tag, type, size);
 			uint16_t usage_id = (value & 0xffff);
 
-			switch(type) {
+			switch (type) {
 			case 0:
 				// main item
-				switch(tag) {
+				switch (tag) {
 				case 8:
 					// handle found buttons
 					hidp_debugf("INPUT(%lu)", value);
-					if(btns) {
-						if((conf->type == REPORT_TYPE_JOYSTICK) ||
+					if (btns) {
+						if ((conf->type == REPORT_TYPE_JOYSTICK) ||
 						   (conf->type == REPORT_TYPE_MOUSE)) {
 							// scan for buttons
-							for(int b=0; b<report_count && b<MAX_BUTTONS; b++) {
-								if(conf->joystick_mouse.button_count < MAX_BUTTONS) {
+							for (int b=0; b<report_count && b<MAX_BUTTONS; b++) {
+								if (conf->joystick_mouse.button_count < MAX_BUTTONS) {
 									uint16_t this_bit = bit_count + b * report_size;
 									uint8_t idx = conf->joystick_mouse.button_count;
 
@@ -177,20 +179,20 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 							// we found at least one button which is all
 							// we want to accept this as a valid joystick
-							if(conf->joystick_mouse.button_count > 0) report_complete |= JOY_MOUSE_REQ_BTN_0;
-							if(conf->joystick_mouse.button_count > 1) report_complete |= JOY_MOUSE_REQ_BTN_1;
+							if (conf->joystick_mouse.button_count > 0) report_complete |= JOY_MOUSE_REQ_BTN_0;
+							if (conf->joystick_mouse.button_count > 1) report_complete |= JOY_MOUSE_REQ_BTN_1;
 						}
 					}
 
 					// handle found axes
-					for(int c=0; c<MAX_AXES; c++) {
-						if(axis[c] >= 0) {
+					for (int c=0; c<MAX_AXES; c++) {
+						if (axis[c] >= 0) {
 							const char axis_names[] = "XYZRST";
 							uint16_t cnt = bit_count + (axis[c] * report_size);
         					hidp_debugf("  (%c-AXIS @ %d (byte %d, bit %d))",
 								axis_names[c], cnt, cnt / 8, cnt & 7);
 
-							if((conf->type == REPORT_TYPE_JOYSTICK) || (conf->type == REPORT_TYPE_MOUSE)) {
+							if ((conf->type == REPORT_TYPE_JOYSTICK) || (conf->type == REPORT_TYPE_MOUSE)) {
 								// save in joystick report
 								conf->joystick_mouse.axis[c].offset = cnt;
 								conf->joystick_mouse.axis[c].size = report_size;
@@ -203,12 +205,12 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					}
 
 					// handle found hat
-					if(hat >= 0) {
+					if (hat >= 0) {
 						uint16_t cnt = bit_count + report_size * hat;
 						hidp_debugf("  (HAT @ %d (byte %d, bit %d), size %d)",
 						  cnt, cnt / 8, cnt & 7, report_size);
 
-						if(conf->type == REPORT_TYPE_JOYSTICK) {
+						if (conf->type == REPORT_TYPE_JOYSTICK) {
 							conf->joystick_mouse.hat.offset = cnt;
 							conf->joystick_mouse.hat.size = report_size;
 							conf->joystick_mouse.hat.logical.min = logical_minimum;
@@ -219,7 +221,8 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					}
 
 					bit_count += (uint32_t)report_count * report_size;
-					for (int i=0; i<MAX_AXES; i++) axis[i] = -1;
+					for (int i=0; i<MAX_AXES; i++)
+						axis[i] = -1;
 					usage_minimum = 0;
 					usage_maximum = 0;
 					usage_count = 0;
@@ -244,13 +247,13 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					collection_depth++;
 					usage_count = 0;
 
-					if(value == 1) {   // app collection
+					if (value == 1) {   // app collection
 						hidp_debugf("  -> application");
 						app_collection++;
-					} else if(value == 0) {  // physical collection
+					} else if (value == 0) {  // physical collection
 						hidp_debugf("  -> physical");
 						phys_log_collection++;
-					} else if(value == 2) {  // logical collection
+					} else if (value == 2) {  // logical collection
 						hidp_debugf("  -> logical");
 						phys_log_collection++;
 					} else {
@@ -263,10 +266,16 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				case 12:
 					hidp_debugf("END_COLLECTION(%lu)", value);
 					collection_depth--;
-					if(phys_log_collection) {
+					if (!(usage_page & 0xff00) && collection_depth == 0 && bit_count > 8) {
+						if (report_is_usable(bit_count, report_complete, conf)) {
+							return true;
+						}
+						bit_count = 0;
+					}
+					if (phys_log_collection) {
 						hidp_debugf("  -> phys/log end");
 						phys_log_collection--;
-					} else if(app_collection > 0) {
+					} else if (app_collection > 0) {
 						app_collection--;
 					} else {
 						hidp_debugf(" -> unexpected");
@@ -274,30 +283,31 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				default:
-					hidp_debugf("unexpected main item %d", tag);
+					hidp_debugf("Unexpected main item %d", tag);
 					return false;
 				}
 				break;
 
 			case 1:
 				// global item
-				switch(tag) {
+				switch (tag) {
 				case 0:
 					hidp_debugf("USAGE_PAGE(0x%lx)", value);
+					usage_page = usage_id;
 					generic_desktop = -1;
 
-					if(usage_id == USAGE_PAGE_KEYBOARD) {
+					if (usage_id == USAGE_PAGE_KEYBOARD) {
 						hidp_debugf(" -> Keyboard");
-					} else if(usage_id == USAGE_PAGE_GAMING) {
+					} else if (usage_id == USAGE_PAGE_GAMING) {
 						hidp_debugf(" -> Game device");
-					} else if(usage_id == USAGE_PAGE_LEDS) {
+					} else if (usage_id == USAGE_PAGE_LEDS) {
 						hidp_debugf(" -> LEDs");
-					} else if(usage_id == USAGE_PAGE_CONSUMER) {
+					} else if (usage_id == USAGE_PAGE_CONSUMER) {
 						hidp_debugf(" -> Consumer");
-					} else if(usage_id == USAGE_PAGE_BUTTON) {
+					} else if (usage_id == USAGE_PAGE_BUTTON) {
 						hidp_debugf(" -> Buttons");
 						btns = 1;
-					} else if(usage_id == USAGE_PAGE_GENERIC_DESKTOP) {
+					} else if (usage_id == USAGE_PAGE_GENERIC_DESKTOP) {
 						hidp_debugf(" -> Generic Desktop");
 						generic_desktop = 1;
 					} else {
@@ -362,7 +372,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					conf->report_size = 0;
 					conf->report_id = value;
 					conf->joystick_mouse.button_count = 0;
-					for(int a=0; a<MAX_AXES; a++) {
+					for (int a=0; a<MAX_AXES; a++) {
 						conf->joystick_mouse.axis[a].offset = 0;
 						conf->joystick_mouse.axis[a].size = 0;
 					}
@@ -388,24 +398,24 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 				// local item
 				value &= 0xffff;
 
-				switch(tag) {
+				switch (tag) {
 				case 0:
 					// we only support mice, keyboards and joysticks
 					hidp_debugf("USAGE(0x%lx)", value);
 
-					if(usage_id == USAGE_KEYBOARD && generic_desktop == 1) {
+					if (usage_id == USAGE_KEYBOARD && generic_desktop == 1) {
 						// usage(keyboard) is always allowed
 						hidp_debugf(" -> Keyboard");
 						conf->type = REPORT_TYPE_KEYBOARD;
-					} else if(usage_id == USAGE_MOUSE && generic_desktop == 1) {
+					} else if (usage_id == USAGE_MOUSE && generic_desktop == 1) {
 						// usage(mouse) is always allowed
 						conf->type = REPORT_TYPE_MOUSE;
 						hidp_debugf(" -> Mouse");
-					} else if(((usage_id == USAGE_GAMEPAD) || (usage_id == USAGE_JOYSTICK)) && generic_desktop == 1) {
+					} else if (((usage_id == USAGE_GAMEPAD) || (usage_id == USAGE_JOYSTICK)) && generic_desktop == 1) {
 						hidp_debugf(" -> Gamepad/Joystick");
 						hidp_debugf("Gamepad/Joystick usage found");
 						conf->type = REPORT_TYPE_JOYSTICK;
-					} else if(usage_id == USAGE_POINTER && app_collection) {
+					} else if (usage_id == USAGE_POINTER && app_collection) {
 						// usage(pointer) is allowed within the application collection
 						hidp_debugf(" -> Pointer");
 					} else if ((usage_id == USAGE_HAT || (value == 0 && generic_desktop == 1))
@@ -416,7 +426,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 							hat = usage_count;
 							hidp_debugf(" -> Assigned HAT switch to usage index %d", hat);
 						}
-					} else if((conf->type != REPORT_TYPE_NONE) && app_collection) {
+					} else if ((conf->type != REPORT_TYPE_NONE) && app_collection) {
 						hidp_debugf(" -> axis usage");
 
 						// usage(x) and usage(y) are allowed within the app collection
@@ -475,18 +485,19 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 					break;
 
 				default:
-					hidp_debugf("unexpected local item %d", tag);
+					hidp_debugf("Unexpected local item %d", tag);
 					break;
 				}
 				break;
 
 			default:
 				// reserved
-				hidp_debugf("unexpected reserved item %d", tag);
+				hidp_debugf("Unexpected reserved item %d", tag);
 				break;
 			}
 		}
 	}
 
-	return report_is_usable(bit_count, report_complete, conf);
+	return (bit_count > 0)
+		? report_is_usable(bit_count, report_complete, conf) : false;
 }
