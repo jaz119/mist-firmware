@@ -41,10 +41,10 @@ extern char s[OSD_BUF_SIZE];
 typedef enum _RomType {ROM_NORMAL, ROM_PROCESSED} RomType;
 
 static unsigned char selected_drive_slot;
-static char data_processor_id[4]; //Max 3 chars, plus null at end
+static char data_processor_id[4]; // Max 3 chars, plus null at end
 static RomType romtype;
 
-static menu_page_plugin_t* PAGE_PLUGINS[MAX_PAGE_PLUGINS];
+static menu_page_plugin_t *PAGE_PLUGINS[MAX_PAGE_PLUGINS];
 static char non_supported_plugin[] = "Menu plugin XXX not found";
 
 void page_plugin_init() {
@@ -52,7 +52,7 @@ void page_plugin_init() {
 }
 
 char page_plugin_add(menu_page_plugin_t *plugin) {
-	if (plugin)	{
+	if (plugin) {
 		for (int i = 0; i < MAX_PAGE_PLUGINS; i++) {
 			if (!PAGE_PLUGINS[i]) {
 				PAGE_PLUGINS[i] = plugin;
@@ -79,11 +79,11 @@ static menu_page_plugin_t *get_page_plugin(const char *plugin_id) {
 static void substrcpy(char *d, char *s, char idx) {
 	char p = 0;
 
-	while(*s) {
-		if((p == idx) && *s && (*s != ','))
+	while (*s) {
+		if ((p == idx) && *s && (*s != ','))
 			*d++ = *s;
 
-		if(*s == ',')
+		if (*s == ',')
 			p++;
 
 		s++;
@@ -95,11 +95,11 @@ static char* GetExt(char *ext) {
 	static char extlist[32];
 	char *p = extlist;
 
-	while(*ext) {
+	while (*ext) {
 		strcpy(p, ",");
 		strncat(p, ext, 3);
-		if(strlen(ext)<=3) break;
-		ext +=3;
+		if (strlen(ext) <= 3) break;
+		ext += 3;
 		p += strlen(p);
 	}
 
@@ -107,18 +107,18 @@ static char* GetExt(char *ext) {
 }
 
 static unsigned char getIdx(char *opt) {
-	if((opt[1]>='0') && (opt[1]<='9')) return opt[1]-'0';    // bits 0-9
-	if((opt[1]>='A') && (opt[1]<='Z')) return opt[1]-'A'+10; // bits 10-35
-	if((opt[1]>='a') && (opt[1]<='z')) return opt[1]-'a'+36; // bits 36-61
+	if ((opt[1]>='0') && (opt[1]<='9')) return opt[1]-'0';    // bits 0-9
+	if ((opt[1]>='A') && (opt[1]<='Z')) return opt[1]-'A'+10; // bits 10-35
+	if ((opt[1]>='a') && (opt[1]<='z')) return opt[1]-'a'+36; // bits 36-61
 	return 0; // basically 0 cannot be valid because used as a reset. Thus can be used as a error.
 }
 
 static unsigned char getStatus(char *opt, unsigned long long status) {
 	int idx1 = getIdx(opt);
 	int idx2 = getIdx(opt+1);
-	unsigned char x = (status & ((unsigned long long)1<<idx1)) ? 1 : 0;
+	unsigned char x = !!(status & ((unsigned long long)BIT(idx1)));
 
-	if(idx2>idx1) {
+	if (idx2>idx1) {
 		x = status >> idx1;
 		x = x & ~(~0 << (idx2 - idx1 + 1));
 	}
@@ -131,7 +131,7 @@ static unsigned long long setStatus(char *opt, unsigned long long status, unsign
 	unsigned char idx2 = getIdx(opt+1);
 	unsigned long long x = 1;
 
-	if(idx2>idx1) x = ~(~0 << (idx2 - idx1 + 1));
+	if (idx2>idx1) x = ~(~0 << (idx2 - idx1 + 1));
 	x = x << idx1;
 
 	return (status & ~x) | (((unsigned long long)value << idx1) & x);
@@ -154,6 +154,7 @@ static char RomFileSelected(uint8_t, const char *SelectedName) {
 	char ext_idx = user_io_ext_idx(SelectedName, fs_pFileExt);
 
 	debugf("RomFileSelected romType=%d", romtype);
+
 	// this assumes that further file entries only exist if the first one also exists
 	if (IDXOpen(index, SelectedName, FA_READ) == FR_OK) {
 		IDXIndex(index, selected_drive_slot);
@@ -164,8 +165,11 @@ static char RomFileSelected(uint8_t, const char *SelectedName) {
 		}
 		IDXClose(index);
 	}
+
 	// close menu afterwards (but allow custom processor to have its own menu)
-	if (romtype != ROM_PROCESSED) CloseMenu();
+	if (romtype != ROM_PROCESSED)
+		CloseMenu();
+
 	return 0;
 }
 
@@ -182,6 +186,7 @@ static char ImageFileSelected(uint8_t idx, const char *SelectedName) {
 		data_io_set_index(user_io_ext_idx(SelectedName, fs_pFileExt)<<6 | selected_drive_slot);
 		user_io_file_mount(SelectedName, selected_drive_slot);
 	}
+
 	CloseMenu();
 	return 0;
 }
@@ -200,8 +205,8 @@ static char GetMenuPage_8bit(uint8_t idx, char action, menu_page_t *page) {
 	if (action == MENU_PAGE_EXIT) return 0;
 
 	const char *p = user_io_get_core_name();
-	if(!p[0]) page->title = "8BIT";
-	else      page->title = p;
+	if (!p[0]) page->title = "8BIT";
+	else       page->title = p;
 	page->flags = OSD_ARROW_RIGHT;
 	page->timer = 0;
 	page->stdexit = MENU_STD_EXIT;
@@ -212,7 +217,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 
 	char *p;
 	char *pos;
-	unsigned long long status = user_io_8bit_set_status(0,0);  // 0,0 gets status
+	unsigned long long status = user_io_8bit_set_status(0,0); // 0,0 gets status
 
 	if (action == MENU_ACT_RIGHT) {
 		SetupSystemMenu();
@@ -226,7 +231,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	item->newpage = 0;
 	item->newsub = 0;
 
-	if(idx == 0) {
+	if (idx == 0) {
 		item->page = 0xff; // hide
 		return 1;
 	}
@@ -235,18 +240,18 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	if (idx > 1 && !p) return 0;
 
 	// check if there's a file type supported
-	if(idx == 1) {
+	if (idx == 1) {
 		if (p && strlen(p)) {
 			if (action == MENU_ACT_SEL) {
 				// use a local copy of "p" since SelectFile will destroy the buffer behind it
 				static char ext[13];
 				strncpy(ext, p, 13);
-				while(strlen(ext) < 3) strcat(ext, " ");
+				while (strlen(ext) < 3) strcat(ext, " ");
 				selected_drive_slot = 1;
 				romtype = ROM_NORMAL;
 				SelectFileNG(ext, SCAN_DIR | SCAN_LFN, RomFileSelected, 1);
 			} else if (action == MENU_ACT_GET) {
-				//menumask = 1;
+				// menumask = 1;
 				strcpy(s, " Load *.");
 				strcat(s, GetExt(p));
 				item->item = s;
@@ -262,17 +267,17 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	}
 
 	// check for 'V'ersion strings
-	if(p && (p[0] == 'V')) {
+	if (p && (p[0] == 'V')) {
 		item->page = 0xff; // hide
 		return 1;
 	}
 
 	// check for 'P'age
 	char page = 0;
-	if(p && (p[0] == 'P')) {
+	if (p && (p[0] == 'P')) {
 		if (p[2] == ',') {
-		// 'P' is to open a submenu
-			if(action == MENU_ACT_GET || action == MENU_ACT_SEL) {
+			// 'P' is to open a submenu
+			if (action == MENU_ACT_GET || action == MENU_ACT_SEL) {
 				s[0] = ' ';
 				substrcpy(s+1, p, 1);
 				item->newpage = getIdx(p);
@@ -301,14 +306,14 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 		} else {
 			// 'P' is a prefix fo F,S,O,T,R
 			page = getIdx(p);
-			p+=2;
+			p += 2;
 			menu_debugf("P is prefix for: %s", p);
 		}
 	}
 
 	// check for 'F'ile or 'S'D image strings
-	if(p && ((p[0] == 'F') || (p[0] == 'S'))) {
-		if(action == MENU_ACT_SEL) {
+	if (p && ((p[0] == 'F') || (p[0] == 'S'))) {
+		if (action == MENU_ACT_SEL) {
 			static char ext[13];
 			bool is_cue = false;
 			unsigned char firstline = OsdLines() <= 8 ? 0 : 2;
@@ -343,7 +348,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 				strcpy(data_processor_id, "CHR");
 			}
 			substrcpy(ext, p, 1);
-			while(strlen(ext) < 3) strcat(ext, " ");
+			while (strlen(ext) < 3) strcat(ext, " ");
 			SelectFileNG(ext, SCAN_DIR | SCAN_LFN, (p[0] == 'F') ? RomFileSelected : is_cue ? CueFileSelected : ImageFileSelected, 1);
 		} else if (action == MENU_ACT_BKSP) {
 			if (p[0] == 'S' && p[1] && p[2] == 'U') {
@@ -362,7 +367,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			}
 		} else if (action == MENU_ACT_GET) {
 			substrcpy(s, p, 2);
-			if(strlen(s)) {
+			if (strlen(s)) {
 				strcpy(s, " ");
 				substrcpy(s+1, p, 2);
 				strcat(s, " *.");
@@ -391,9 +396,9 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	}
 
 	// check for 'T'oggle strings
-	if(p && (p[0] == 'T')) {
+	if (p && (p[0] == 'T')) {
 		if (action == MENU_ACT_SEL || action == MENU_ACT_PLUS || action == MENU_ACT_MINUS) {
-			unsigned long long mask = (unsigned long long)1<<getIdx(p);
+			unsigned long long mask = (unsigned long long)BIT(getIdx(p));
 			menu_debugf("Option %s 0x%llx", p, status ^ mask);
 			// change bit
 			user_io_8bit_set_status(status ^ mask, mask);
@@ -408,7 +413,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	}
 
 	// check for Prof'I'le strings
-	if(p && (p[0] == 'I')) {
+	if (p && (p[0] == 'I')) {
 		if (action == MENU_ACT_SEL || action == MENU_ACT_PLUS || action == MENU_ACT_MINUS) {
 			unsigned long long mask = 0, preset = 0;
 			substrcpy(s, p, 2);
@@ -429,12 +434,12 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	}
 
 	// check for 'O'ption strings
-	if(p && (p[0] == 'O')) {
-		if(action == MENU_ACT_SEL) {
+	if (p && (p[0] == 'O')) {
+		if (action == MENU_ACT_SEL) {
 			unsigned char x = getStatus(p, status) + 1;
 			// check if next value available
 			substrcpy(s, p, 2+x);
-			if(!strlen(s)) x = 0;
+			if (!strlen(s)) x = 0;
 			// menu_debugf("Option %s 0x%llx 0x%llx %x %x", p, status, mask, x2, x);
 			user_io_8bit_set_status(setStatus(p, status, x), ~0);
 		} else if (action == MENU_ACT_GET) {
@@ -444,7 +449,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			// get currently active option
 			substrcpy(s, p, 2+x);
 			int l = strlen(s);
-			if(!l) {
+			if (!l) {
 				// option's index is outside of available values.
 				// reset to 0.
 				x = 0;
@@ -457,7 +462,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			substrcpy(s+1, p, 1);
 			strcat(s, ":");
 			l = 26-l-strlen(s);
-			while(l-- >= 0) strcat(s, " ");
+			while (l-- >= 0) strcat(s, " ");
 			substrcpy(s+strlen(s), p, 2+x);
 		} else {
 			return 0;
@@ -465,7 +470,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	}
 
 	// check for 'R'AM strings
-	if(p && (p[0] == 'R')) {
+	if (p && (p[0] == 'R')) {
 		if (action == MENU_ACT_SEL) {
 			int len = strtol(p+1,0,0);
 			menu_debugf("Option %s %d", p, len);
@@ -496,7 +501,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	item->page = page;
 
 	// Check for separator ("-")
-	if(p && (p[0] == '-')) {
+	if (p && (p[0] == '-')) {
 		item->item = "";
 		item->active = 0;
 	}

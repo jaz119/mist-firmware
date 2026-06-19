@@ -60,17 +60,17 @@ static uint8_t menuidx[16];
 const char *helptext;
 
 static const char *dialog_text;
-static char dialog_options;
+static uint8_t dialog_options;
 static menu_dialog_t dialog_callback;
 static const char *dialog_helptext;
 static unsigned char dialog_errorcode;
 static unsigned char dialog_menusub;
 static unsigned char dialog_autoclose;
 
-static unsigned int menustate = MENU_NONE1;
-static unsigned int parentstate;
-unsigned int menusub = 0;
-static unsigned int menumask = 0; // Used to determine which rows are selectable...
+static uint8_t menustate = MENU_NONE1;
+static uint8_t parentstate;
+uint32_t menusub = 0;
+static uint32_t menumask = 0; // Used to determine which rows are selectable...
 static unsigned long menu_timer = 0;
 static menu_get_items_t menu_item_callback;
 static menu_get_page_t menu_page_callback;
@@ -102,7 +102,7 @@ const char *helptexts[]={
 };
 
 // one screen width
-const char *HELPTEXT_SPACER= "                                ";
+const char *HELPTEXT_SPACER = "                                ";
 char helptext_custom[450]; // spacer(32) + corename(64) + minimig version(16) + helptexts[x](335)
 
 // file selection menu variables
@@ -210,28 +210,35 @@ static void get_joystick_state_usb( char s[32], unsigned char joy_num ) {
 	/* USB specific - current "raw" state
 	  (in reverse binary format to correspont to MIST.INI mapping entries)
 	*/
-	char binary_string[9]="00000000";
+	char binary_string[9] = "00000000";
 	unsigned char joy = 0;
 	unsigned int max_btn = 1;
-	if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2) || (!mist_cfg.joystick_db9_fixed_index && StateNumJoysticks() <= joy_num))
+
+	if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2)
+		|| (!mist_cfg.joystick_db9_fixed_index && StateNumJoysticks() <= joy_num))
 	{
-		strcpy( s, " ");
+		strcpy(s, " ");
 		return;
 	}
+
 	max_btn = StateUsbGetNumButtons(joy_num);
 	joy = StateUsbJoyGet(joy_num);
+
 	siprintf(s, "USB: ---- 0000 0000 0000 ----");
 	siprintbinary(binary_string, joy);
-	s[5]  = binary_string[0]=='\x1a'?'>':'\x1b';
-	s[6]  = binary_string[1]=='\x1a'?'<':'\x1b';
-	s[7]  = binary_string[2]=='\x1a'?'\x13':'\x1b';
-	s[8]  = binary_string[3]=='\x1a'?'\x12':'\x1b';
+
+	s[5]  = binary_string[0] == '\x1a' ? '>'    : '\x1b';
+	s[6]  = binary_string[1] == '\x1a' ? '<'    : '\x1b';
+	s[7]  = binary_string[2] == '\x1a' ? '\x13' : '\x1b';
+	s[8]  = binary_string[3] == '\x1a' ? '\x12' : '\x1b';
 	s[10] = binary_string[4];
 	s[11] = max_btn>1 ? binary_string[5] : ' ';
 	s[12] = max_btn>2 ? binary_string[6] : ' ';
 	s[13] = max_btn>3 ? binary_string[7] : ' ';
+
 	joy = StateUsbJoyGetExtra(joy_num);
 	siprintbinary(binary_string, joy);
+
 	s[15] = max_btn>4 ? binary_string[0] : ' ';
 	s[16] = max_btn>5 ? binary_string[1] : ' ';
 	s[17] = max_btn>6 ? binary_string[2] : ' ';
@@ -242,11 +249,11 @@ static void get_joystick_state_usb( char s[32], unsigned char joy_num ) {
 	s[23] = max_btn>11 ? binary_string[7] : ' ';
 
 	joy = StateJoyGetRight(joy_num);
-	s[25]  = (joy & JOY_RIGHT)?'>':'\x1b';
-	s[26]  = (joy & JOY_LEFT) ?'<':'\x1b';
-	s[27]  = (joy & JOY_DOWN) ?'\x13':'\x1b';
-	s[28]  = (joy & JOY_UP  ) ?'\x12':'\x1b';
-	return;
+
+	s[25]  = (joy & JOY_RIGHT) ? '>'    : '\x1b';
+	s[26]  = (joy & JOY_LEFT)  ? '<'    : '\x1b';
+	s[27]  = (joy & JOY_DOWN)  ? '\x13' : '\x1b';
+	s[28]  = (joy & JOY_UP  )  ? '\x12' : '\x1b';
 }
 
 static void append_joystick_usbid( char *usb_id, unsigned int usb_vid, unsigned int usb_pid ) {
@@ -263,12 +270,14 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 
 	char buffer[25] = { 0 }; // limited by width of OSD
 
-	//hack populate from outside
+	// Hack populate from outside
 	int vid = StateUsbVidGet(joy_num);
 	int pid = StateUsbPidGet(joy_num);
 
-	if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2) || (!mist_cfg.joystick_db9_fixed_index && joy_num >= StateNumJoysticks())) {
-		if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2) || (!mist_cfg.joystick_db9_fixed_index && joy_num < StateNumJoysticks()+2)) {
+	if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2)
+		|| (!mist_cfg.joystick_db9_fixed_index && joy_num >= StateNumJoysticks())) {
+		if ((mist_cfg.joystick_db9_fixed_index && joy_num < 2)
+			|| (!mist_cfg.joystick_db9_fixed_index && joy_num < StateNumJoysticks() + 2)) {
 			strcpy( buffer, "Atari DB9 Joystick" );
 		} else {
 			strcpy( buffer, "None" );
@@ -284,7 +293,6 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 	}
 
 	strcpy(usb_id, buffer);
-	return;
 }
 
 static char FirmwareUpdateError() {
@@ -343,7 +351,7 @@ static char CoreFileSelected(uint8_t idx, const char *SelectedName) {
 	OsdCoreNameSet(SelectedName);
 
 	int64_t mod = 0;
-	char arc = 0;
+	uint8_t arc = 0;
 	unsigned char err;
 	const char *extension = GetExtension(SelectedName);
 	const char *rbfname = SelectedName;
@@ -351,7 +359,7 @@ static char CoreFileSelected(uint8_t idx, const char *SelectedName) {
 
 	if (extension && !strncasecmp(extension, "ARC", 3)) {
 		mod = arc_open(SelectedName);
-		if(mod < 0 || !strlen(arc_get_rbfname())) { // error
+		if (mod < 0 || !strlen(arc_get_rbfname())) { // error
 			CloseMenu();
 			return 0;
 		}
@@ -427,7 +435,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 	page->timer = 1000;
 	page->stdexit = MENU_STD_EXIT;
 	page->flags = 0;
-	helptext=helptexts[HELPTEXT_NONE];
+	helptext = helptexts[HELPTEXT_NONE];
 
 	switch (idx) {
 		case 0:
@@ -562,7 +570,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->active = 0;
 					break;
 				case 11:
-					if(strlen(OsdCoreName())<26) {
+					if(strlen(OsdCoreName()) < 26) {
 						siprintf(s, "%*s%s", (29-strlen(OsdCoreName()))/2, " ", OsdCoreName());
 					}
 					else strcpy(s, OsdCoreName());
@@ -683,7 +691,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 							joy |= StateUsbJoyGetExtra(joy_num) << 8;
 							if (!joy_prev && joy) {
 								for (int i = 0; i<16; i++) {
-									if (joy & (1<<i)) mapping.mapping[i] = 1<<(setup_phase - 1);
+									if (joy & BIT(i))
+										mapping.mapping[i] = BIT(setup_phase - 1);
 								}
 								setup_phase++;
 							}
@@ -720,7 +729,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 				case 38: {
 					uint8_t keys[6] = { 0,0,0,0,0,0 };
 					StateKeyboardPressed(keys);
-					siprintf(s, "     %2x   %2x   %2x   %2x", keys[0], keys[1], keys[2], keys[3]); // keys[4], keys[5]);
+					siprintf(s, "     %2x   %2x   %2x   %2x",
+						keys[0], keys[1], keys[2], keys[3]); // keys[4], keys[5]);
 					item->item = s;
 					};
 					break;
@@ -738,7 +748,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					uint16_t keys_ps2[6] = { 0,0,0,0,0,0 };
 					StateKeyboardPressedPS2(keys_ps2);
 					add_modifiers(mod, keys_ps2);
-					siprintf(s, "   %4x %4x %4x %4x ", keys_ps2[0], keys_ps2[1], keys_ps2[2], keys_ps2[3]);// keys_ps2[4], keys_ps2[5]);
+					siprintf(s, "   %4x %4x %4x %4x ",
+						keys_ps2[0], keys_ps2[1], keys_ps2[2], keys_ps2[3]); // keys_ps2[4], keys_ps2[5]);
 					item->item = s;
 					};
 					break;
@@ -770,16 +781,18 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 				case 48:
 					if (storage_size > 1024) {
-						siprintf(s, " Medium:      %6s / %3luGB", fs_type_to_string(), storage_size / 1024);
+						siprintf(s, " Medium:      %6s / %3luGB",
+							fs_type_to_string(), storage_size / 1024);
 					} else {
-						siprintf(s, " Medium:      %6s / %3luMB", fs_type_to_string(), storage_size);
+						siprintf(s, " Medium:      %6s / %3luMB",
+							fs_type_to_string(), storage_size);
 					}
 					item->active = fat_medium_present();
 					item->stipple = !item->active;
 					item->item = s;
 					break;
 				case 49: {
-					unsigned char keyboard_count = get_keyboards();
+					uint8_t keyboard_count = get_keyboards();
 					siprintf(s, " Keyboard:");
 					keyboard_count ? siprintf(s + 10, " %8u", keyboard_count) : siprintf(s + 10, "     none");
 					siprintf(s + 19, " detected");
@@ -789,7 +802,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					}
 					break;
 				case 50: {
-					unsigned char mouse_count = get_mice();
+					uint8_t mouse_count = get_mice();
 					siprintf(s, " Mouse:");
 					mouse_count ? siprintf(s + 7, " %11u", mouse_count) : siprintf(s + 7, "        none");
 					siprintf(s + 19, " detected");
@@ -1063,7 +1076,7 @@ void SetupMenu(menu_get_page_t menu_page_cb, menu_get_items_t menu_item_cb, menu
 
 void HandleUI(uint8_t key)
 {
-	unsigned char i, up, down, select, backsp, menu, right, left, plus, minus;
+	uint8_t i, up, down, select, backsp, menu, right, left, plus, minus;
 	static bool ctrl = false;
 	static bool lalt = false;
 	static long helptext_timer;
@@ -1106,8 +1119,10 @@ void HandleUI(uint8_t key)
 				{
 					char autofire_tmp = config.autofire & 3;
 					autofire_tmp++;
-					config.autofire=(config.autofire & 0x0c) | (autofire_tmp & 3);
+
+					config.autofire = (config.autofire & 0x0c) | (autofire_tmp & 3);
 					ConfigAutofire(config.autofire);
+
 					if (menustate == MENU_NONE2 || menustate == MENU_DIALOG2)
 						InfoMessage(config_autofire_msg[config.autofire & 3]);
 				}
@@ -1169,11 +1184,13 @@ void HandleUI(uint8_t key)
 			if (CheckTimer(helptext_timer))
 			{
 				helptext_timer = GetTimer(FRAME_DELAY);
+
 				if (menu_page.stdexit)
 					OsdWriteOffset(osdlines-1, (menu_page.stdexit == 1)
 						? STD_EXIT : menu_page.stdexit == 2
 							? STD_SPACE_EXIT : STD_COMBO_EXIT,
 						0, 0, helpstate);
+
 				++helpstate;
 			}
 		}
@@ -1193,11 +1210,11 @@ void HandleUI(uint8_t key)
 	if (menumask)
 	{
 		if (down) {
-			if (menumask >= (1<<(menusub+1)))	// Any active entries left?
+			if (menumask >= BIT(menusub + 1))	// Any active entries left?
 			{
 				do
 					menusub++;
-				while ((menumask & (1<<menusub)) == 0);
+				while ((menumask & BIT(menusub)) == 0);
 				menustate = parentstate;
 			}
 			else if (menustate == MENU_NG2)
@@ -1211,7 +1228,7 @@ void HandleUI(uint8_t key)
 			{
 				do
 					--menusub;
-				while ((menumask & (1<<menusub)) == 0);
+				while ((menumask & BIT(menusub)) == 0);
 				menustate = parentstate;
 			}
 			else if (menustate == MENU_NG2)
@@ -1268,7 +1285,8 @@ void HandleUI(uint8_t key)
 
 		case MENU_NG:
 			menu_page_callback(page_idx, MENU_PAGE_ENTER, &menu_page);
-			if (menu_page.title) OsdSetTitle(menu_page.title, menu_page.flags);
+			if (menu_page.title)
+				OsdSetTitle(menu_page.title, menu_page.flags);
 			page_timer = 0;
 			menustate = parentstate = MENU_NG1;
 
@@ -1299,7 +1317,7 @@ void HandleUI(uint8_t key)
 							} else {
 								item = menu_item.item;
 							}
-							if (menu_item.active) menumask |= 1<<idx;
+							if (menu_item.active) menumask |= BIT(idx);
 							break;
 						}
 						menu_item.page = page_idx;
@@ -1310,7 +1328,7 @@ void HandleUI(uint8_t key)
 						bool rtc = GetRTC((uint8_t*)&date);
 						if (rtc) {
 							siprintf(s, "%s%04d/%02d/%02d %02d:%02d:%02d %s",
-								date[T_WDAY]==4 ? "" : " ",1900+date[T_YEAR], date[T_MONTH], date[T_DAY],
+								date[T_WDAY] == 4 ? "" : " ",1900+date[T_YEAR], date[T_MONTH], date[T_DAY],
 								date[T_HOUR], date[T_MIN], date[T_SEC],
 								(date[T_WDAY] && date[T_WDAY] <= 7) ? days[date[T_WDAY]-1] : "--------");
 							if (!menu_page.timer) menu_page.timer = 1000;
@@ -1327,7 +1345,7 @@ void HandleUI(uint8_t key)
 					switch (menu_page.stdexit) {
 						case 1:
 							item = STD_EXIT;
-							menumask |= 1<<(osdlines-1);
+							menumask |= BIT(osdlines-1);
 							break;
 						case 2:
 							item = STD_SPACE_EXIT;
@@ -1341,7 +1359,7 @@ void HandleUI(uint8_t key)
 				if (!valid) {
 					menu_item.stipple = 0;
 				}
-				if (!(menumask & 1<<idx) && menusub == idx)
+				if (!(menumask & BIT(idx)) && menusub == idx)
 					menusub++;
 				if (!(helpstate && idx == osdlines-1))
 					OsdWrite(idx, item, menusub == idx, menu_item.stipple);
@@ -1349,7 +1367,7 @@ void HandleUI(uint8_t key)
 			if (menu_page.timer)
 				page_timer = GetTimer(menu_page.timer);
 			menustate = MENU_NG2;
-			parentstate=MENU_NG1;
+			parentstate = MENU_NG1;
 			menu_debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x",
 				menuidx[0], menuidx[menu_last], menusub, menumask);
 		}
@@ -1361,7 +1379,7 @@ void HandleUI(uint8_t key)
 			if (menu_page.stdexit == MENU_STD_COMBO_EXIT) {
 				StateKeyboardPressed(keys);
 				for (i=0; i<6; i++) {
-					if (keys[i]==0x29) { //ESC
+					if (keys[i] == 0x29) { // ESC
 						if (key == KEY_SPACE) stdexit = 1;
 					}
 				}
@@ -1373,9 +1391,9 @@ void HandleUI(uint8_t key)
 
 			if (key == KEY_PGDN) {
 				if (menusub < (osdlines - 1 - (menu_page.stdexit ? 1 : 0))) {
-					unsigned char save_menusub = menusub;
+					uint32_t save_menusub = menusub;
 					menusub = osdlines - 1 - (menu_page.stdexit ? 1 : 0);
-					while ((menumask & (1<<menusub)) == 0) menusub--;
+					while ((menumask & BIT(menusub)) == 0) menusub--;
 					if (menusub == save_menusub) {
 						// at the last active line, try to scroll down
 						scroll_down = osdlines - (menu_page.stdexit ? 1 : 0);
@@ -1396,7 +1414,7 @@ void HandleUI(uint8_t key)
 						if (!newidx) newidx = idx;           // the next invisible item
 						if (menu_item.active) {              // any selectable?
 							menuidx[0] = items < (osdlines - (menu_page.stdexit?1:0)) ? menuidx[items] : newidx; // then scroll down
-							menusub = osdlines - 1 - (menu_page.stdexit?1:0);
+							menusub = osdlines - 1 - (menu_page.stdexit ? 1 : 0);
 							if (!--scroll_down) break;
 						}
 					}
@@ -1408,9 +1426,9 @@ void HandleUI(uint8_t key)
 
 			if (key == KEY_PGUP) {
 				if (menusub > firstline) {
-					unsigned char save_menusub = menusub;
+					uint32_t save_menusub = menusub;
 					menusub = firstline;
-					while ((menumask & (1<<menusub)) == 0 && menusub<osdlines)
+					while ((menumask & BIT(menusub)) == 0 && menusub < osdlines)
 						menusub++;
 					if (menusub == osdlines)
 						menusub = firstline;
@@ -1500,7 +1518,7 @@ void HandleUI(uint8_t key)
 			}
 			OsdWrite(osdlines-3, "", 0, 0);
 			OsdWrite(osdlines-2, "", 0, 0);
-			OsdWrite(osdlines-1, STD_EXIT, menusub==0, 0);
+			OsdWrite(osdlines-1, STD_EXIT, menusub == 0, 0);
 			StarsInit();
 			ScrollReset();
 			break;
@@ -1676,18 +1694,19 @@ void HandleUI(uint8_t key)
 		/* dialog box                                                     */
 		/******************************************************************/
 		case MENU_DIALOG1: {
-			int i = 0, l = 0;
+			uint32_t i = 0, l = 0;
 			const char *message = dialog_text;
 			menumask = 0;
 			parentstate = menustate;
 			s[0] = 0;
-			while (l<firstline) OsdWrite(l++, s, 0, 0);
+			while (l < firstline)
+				OsdWrite(l++, s, 0, 0);
 			do {
 				// line full or line break
 				if ((i == 29) || (*message == '\n') || !*message) {
 					s[i] = 0;
 					OsdWrite(l++, s, 0,0);
-					i = 0;  // start next line
+					i = 0; // start next line
 				} else {
 					s[i++] = *message;
 				}
@@ -1710,7 +1729,8 @@ void HandleUI(uint8_t key)
 					OsdWrite(l++, "             no", menusub == 1,0);
 				}
 			}
-			while (l < osdlines) OsdWrite(l++, "", 0,0);
+			while (l < osdlines)
+				OsdWrite(l++, "", 0,0);
 			menustate = MENU_DIALOG2;
 		}
 		break;
@@ -1739,7 +1759,7 @@ static void ScrollLongName(void)
 	// this function is called periodically when file selection window is displayed
 	// it checks if predefined period of time has elapsed and scrolls the name if necessary
 
-	char k = sort_table[iSelectedEntry];
+	uint8_t k = sort_table[iSelectedEntry];
 	static int len;
 	int max_len;
 
@@ -1906,14 +1926,15 @@ void DialogBox(const char *message, char options, menu_dialog_t callback) {
 	dialog_autoclose = !user_io_osd_is_visible();
 	helptext = helptexts[HELPTEXT_NONE];
 	menusub = 0;
-	if ((options & 0x03) == MENU_DIALOG_YESNO) menusub = 1;
+	if ((options & 0x03) == MENU_DIALOG_YESNO)
+		menusub = 1;
 	menustate = parentstate = MENU_DIALOG1;
 }
 
 /*  Error Message */
 void ErrorMessage(const char *message, unsigned char code) {
 	DialogBox(message, MENU_DIALOG_OK, 0);
-	OsdSetTitle("Error",0);
+	OsdSetTitle("Error", 0);
 	dialog_errorcode = code;
 	OsdEnable(DISABLE_KEYBOARD);
 }

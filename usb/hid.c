@@ -383,8 +383,8 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 			info->device_types |= HID_DEVICE_JOYSTICK;
 		}
 
-		infof("%s%d: report 0x%02x, size %d",
-			hid_device_name[iface->conf.type], iface->jindex,
+		infof("%s: report 0x%02x, size %d",
+			hid_device_name[iface->conf.type],
 			iface->conf.report_id, iface->conf.report_size);
 
 		for (int k=0; k<MAX_AXES; k++) {
@@ -434,17 +434,14 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 		// try to enable Boot mode if its not disabled
 		if (iface->has_boot_mode && !iface->ignore_boot_mode) {
 			if (hid_set_protocol(dev, iface->iface_idx, HID_BOOT_PROTOCOL) == 0) {
-				infof("%s%d: using BOOT mode",
-					hid_device_name[iface->device_type], iface->jindex);
+				infof("%s: using BOOT mode", hid_device_name[iface->device_type]);
 			}
 		} else {
 			hid_set_protocol(dev, iface->iface_idx, HID_RPT_PROTOCOL);
 		}
 	}
 
-	hid_debugf("all configured");
 	info->poll_enable = true;
-
 	return 0;
 }
 

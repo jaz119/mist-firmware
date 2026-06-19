@@ -43,11 +43,12 @@ static const ini_var_t core_ini_local_vars[] = {
 };
 
 static char settings_setup(ini_cfg_t *ini, char global) {
-	if(global) {
+	if (global) {
 		ini->filename = "/MISTCFG.INI";
 	} else {
-		if(user_io_core_type() == CORE_TYPE_8BIT &&
-		   !user_io_create_config_name(s, "CFG", CONFIG_ROOT)) {
+		if (user_io_core_type() == CORE_TYPE_8BIT
+			&& !user_io_create_config_name(s, "CFG", CONFIG_ROOT))
+		{
 			ini->filename = s;
 		} else {
 			return 0;
@@ -64,21 +65,30 @@ static char settings_setup(ini_cfg_t *ini, char global) {
 unsigned char settings_load(char global)
 {
 	ini_cfg_t core_ini_cfg;
+
 	if (!settings_setup(&core_ini_cfg, global))
 		return 0;
 
 	ini_parse(&core_ini_cfg, 0, global ? 1 : 2);
-	if (!global) user_io_8bit_set_status(status, ~1);
+
+	if (!global)
+		user_io_8bit_set_status(status, ~1);
+
 	return 1;
 };
 
 unsigned char settings_save(char global)
 {
 	ini_cfg_t core_ini_cfg;
+
 	if (!settings_setup(&core_ini_cfg, global))
 		return 0;
-	if (!global) status = user_io_8bit_set_status(0,0);
+
+	if (!global)
+		status = user_io_8bit_set_status(0,0);
+
 	virtual_joystick_remap_init(true);
 	ini_save(&core_ini_cfg, global ? 1 : 2);
+
 	return 1;
 }

@@ -24,9 +24,6 @@
 #include "data_io.h"
 #include <menu.h>
 
-// From menu.c — needed to reset cursor position when opening the IDX menu
-extern unsigned int menusub;
-
 #define IDX_EOT                 4
 #define CHAR_IS_LINEEND(c)      (((c) == '\n') || ((c) == '\r'))
 #define CHAR_IS_COMMENT(c)      (((c) == ';'))
