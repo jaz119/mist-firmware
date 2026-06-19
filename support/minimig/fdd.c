@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "spi.h"
 #include "fat_compat.h"
 #include "fdd.h"
+#include <config_union.h>
 #include "config.h"
 #include "debug.h"
 
@@ -39,22 +40,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 unsigned char drives = 0; // number of active drives reported by FPGA (may change only during reset)
 
-adfTYPE *pdfx;            // drive select pointer
-ALIGNED(4) adfTYPE df[4];            // drive 0 information structure
+static adfTYPE *pdfx; // drive select pointer
+static adfTYPE *df = config.df;
 
-#define TRACK_SIZE 12668
-#define HEADER_SIZE 0x40
-#define DATA_SIZE 0x400
-#define SECTOR_SIZE (HEADER_SIZE + DATA_SIZE)
-#define SECTOR_COUNT 11
-#define LAST_SECTOR (SECTOR_COUNT - 1)
-#define GAP_SIZE (TRACK_SIZE - SECTOR_COUNT * SECTOR_SIZE)
+#define TRACK_SIZE      12668
+#define HEADER_SIZE     0x40
+#define DATA_SIZE       0x400
+#define SECTOR_SIZE     (HEADER_SIZE + DATA_SIZE)
+#define SECTOR_COUNT    11
+#define LAST_SECTOR     (SECTOR_COUNT - 1)
+#define GAP_SIZE        (TRACK_SIZE - SECTOR_COUNT * SECTOR_SIZE)
 
 // sends the data in the sector buffer to the FPGA, translated into an Amiga floppy format sector
 // note that we do not insert clock bits because they will be stripped by the Amiga software anyway
 static void SendSector(unsigned char *pData, unsigned char sector, unsigned char track, unsigned char dsksynch, unsigned char dsksyncl)
 {
-    ALIGNED(4) unsigned char checksum[4];
+    unsigned char checksum[4];
     unsigned short i;
     unsigned char x;
     unsigned char *p;
@@ -669,4 +670,3 @@ void HandleFDD(unsigned int c1, unsigned int c2)
         WriteTrack(&df[sel]);
     }
 }
-

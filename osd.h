@@ -123,7 +123,6 @@ void OsdClear(void);
 void OsdEnable(unsigned char mode);
 void OsdDisable(void);
 void OsdWaitVBL(void);
-void OsdReset(unsigned char boot);
 void ConfigFilter(unsigned char lores, unsigned char hires);
 void OsdReconfig(); // Reset to Chameleon core.
 void ConfigVideo(unsigned char hires, unsigned char lores, unsigned char scanlines);

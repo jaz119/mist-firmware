@@ -7,23 +7,12 @@
 #include "menu.h"
 #include "osd.h"
 #include "archie.h"
-#include "hdd.h"
 #include "user_io.h"
 #include "data_io.h"
+#include <config_union.h>
 #include "debug.h"
 
 #define CONFIG_FILENAME  "/ARCHIE.CFG"
-#define MAX_FLOPPY 2
-
-typedef struct {
-  unsigned long system_ctrl;     // system control word
-  char rom_img[64];              // rom image file name
-  char cmos_img[64];             // cmos image file name
-  hardfileTYPE hardfile[2];
-} archie_config_t;
-
-static archie_config_t config;
-static char floppy_name[MAX_FLOPPY][64];
 
 extern char s[OSD_BUF_SIZE];
 
@@ -55,7 +44,7 @@ enum state {
 #define QUEUE_LEN 8
 static unsigned char tx_queue[QUEUE_LEN][2];
 static unsigned char tx_queue_rptr, tx_queue_wptr;
-#define QUEUE_NEXT(a) ((a+1)&(QUEUE_LEN-1))
+#define QUEUE_NEXT(a) ((a+1) & (QUEUE_LEN-1))
 
 static unsigned long ack_timeout;
 static int mouse_x, mouse_y;
@@ -72,18 +61,18 @@ static unsigned long hold_off_timer;
 void assign_full_path(char *, int, const char *);
 
 static inline const char *archie_get_rom_name() {
-  return get_fname(config.rom_img);
+  return get_fname(config.archie.rom_img);
 }
 
 static inline const char *archie_get_cmos_name() {
-  return get_fname(config.cmos_img);
+  return get_fname(config.archie.cmos_img);
 }
 
 static const char *archie_get_floppy_name(char i) {
-  if(!floppy_name[i][0]) {
+  if (!config.floppy_name[i][0]) {
     return "* no disk *";
   } else
-    return get_fname(floppy_name[i]);
+    return get_fname(config.floppy_name[i]);
 }
 
 static void archie_save_config() {
@@ -92,7 +81,7 @@ static void archie_save_config() {
 
   // save configuration data
   if (f_open(&file, CONFIG_FILENAME, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
-    f_write(&file, &config, sizeof(archie_config_t), &bw);
+    f_write(&file, &config.archie, sizeof(archie_config_t), &bw);
     f_close(&file);
   }
 }
@@ -101,9 +90,9 @@ static void archie_set_floppy(int i, const unsigned char *name) {
   user_io_file_mount(name, i);
 
   if (user_io_is_mounted(i)) {
-    assign_full_path(floppy_name[i], sizeof(floppy_name[i]), name);
+    assign_full_path(config.floppy_name[i], sizeof(config.floppy_name[i]), name);
   } else {
-    floppy_name[i][0] = 0;
+    config.floppy_name[i][0] = 0;
   }
 }
 
@@ -111,7 +100,7 @@ static void archie_save_cmos() {
   FIL file;
   archie_debugf("Saving CMOS file");
 
-  if (f_open(&file, config.cmos_img, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
+  if (f_open(&file, config.archie.cmos_img, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
     data_io_file_rx(&file, 0x03, 256);
     f_close(&file);
   }
@@ -121,10 +110,10 @@ static void archie_set_cmos(const unsigned char *name) {
   FIL file;
   if (!name) return;
 
-  if(f_open(&file, name, FA_READ) == FR_OK) {
+  if (f_open(&file, name, FA_READ) == FR_OK) {
     archie_debugf("CMOS file %s with %lu bytes to send", name, (uint32_t) f_size(&file));
     // save file name
-    assign_full_path(config.cmos_img, sizeof(config.cmos_img), name);
+    assign_full_path(config.archie.cmos_img, sizeof(config.archie.cmos_img), name);
     data_io_file_tx(&file, 0x03, 0);
     f_close(&file);
   } else
@@ -135,10 +124,10 @@ static void archie_set_rom(const unsigned char *name) {
   FIL file;
   if (!name) return;
 
-  if(f_open(&file, name, FA_READ) == FR_OK) {
+  if (f_open(&file, name, FA_READ) == FR_OK) {
     archie_debugf("ROM file %s with %lu bytes to send", name, (uint32_t) f_size(&file));
     // save file name
-    assign_full_path(config.rom_img, sizeof(config.rom_img), name);
+    assign_full_path(config.archie.rom_img, sizeof(config.archie.rom_img), name);
     data_io_file_tx(&file, 0x01, 0);
     f_close(&file);
   } else
@@ -146,7 +135,7 @@ static void archie_set_rom(const unsigned char *name) {
 }
 
 static void archie_kbd_enqueue(unsigned char state, unsigned char byte) {
-  if(QUEUE_NEXT(tx_queue_wptr) == tx_queue_rptr) {
+  if (QUEUE_NEXT(tx_queue_wptr) == tx_queue_rptr) {
     archie_debugf("KBD tx queue overflow");
     return;
   }
@@ -170,10 +159,11 @@ static void archie_kbd_tx(unsigned char state, unsigned char byte) {
 
 static void archie_kbd_send(unsigned char state, unsigned char byte) {
   // don't send if we are waiting for an ack
-  if((kbd_state != STATE_WAIT4ACK1)&&(kbd_state != STATE_WAIT4ACK2))
+  if ((kbd_state != STATE_WAIT4ACK1) && (kbd_state != STATE_WAIT4ACK2)) {
     archie_kbd_tx(state, byte);
-  else
+  } else {
     archie_kbd_enqueue(state, byte);
+  }
 }
 
 static void archie_kbd_reset() {
@@ -190,23 +180,22 @@ static void archie_init() {
   char i;
 
   archie_debugf("init");
-
   ResetMenu();
 
   // set config defaults
-  config.system_ctrl = 0;
-  strcpy(config.rom_img, "RISCOS.ROM");
-  strcpy(config.cmos_img, "CMOS.RAM");
+  config.archie.system_ctrl = 0;
+  strcpy(config.archie.rom_img, "RISCOS.ROM");
+  strcpy(config.archie.cmos_img, "CMOS.RAM");
 
-  config.hardfile[0].enabled = HDF_FILE;
-  strcpy(config.hardfile[0].path, "/ARCHIE1.HDF");
-  config.hardfile[1].enabled = HDF_FILE;
-  strcpy(config.hardfile[1].path, "/ARCHIE2.HDF");
+  config.archie.hardfile[0].enabled = HDF_FILE;
+  strcpy(config.archie.hardfile[0].path, "/ARCHIE1.HDF");
+  config.archie.hardfile[1].enabled = HDF_FILE;
+  strcpy(config.archie.hardfile[1].path, "/ARCHIE2.HDF");
 
   // try to load config from card
-  if(f_open(&file, CONFIG_FILENAME, FA_READ) == FR_OK) {
-    if(f_size(&file) == sizeof(archie_config_t))
-      f_read(&file, &config, sizeof(archie_config_t), &br);
+  if (f_open(&file, CONFIG_FILENAME, FA_READ) == FR_OK) {
+    if (f_size(&file) == sizeof(archie_config_t))
+      f_read(&file, &config.archie, sizeof(archie_config_t), &br);
     else
       archie_debugf("Unexpected config size %lu != %u", (uint32_t) f_size(&file), sizeof(archie_config_t));
     f_close(&file);
@@ -214,10 +203,10 @@ static void archie_init() {
     iprintf("No %s config found\n", CONFIG_FILENAME);
 
   // upload rom file
-  archie_set_rom(config.rom_img);
+  archie_set_rom(config.archie.rom_img);
 
   // upload ext file
-  if(f_open(&file, "RISCOS.EXT", FA_READ) == FR_OK) {
+  if (f_open(&file, "RISCOS.EXT", FA_READ) == FR_OK) {
     iprintf("Found RISCOS.EXT, uploading it\n");
     data_io_file_tx(&file, 0x02, 0);
     f_close(&file);
@@ -225,51 +214,51 @@ static void archie_init() {
     archie_debugf("RISCOS.EXT no found");
 
   // upload cmos file
-  archie_set_cmos(config.cmos_img);
+  archie_set_cmos(config.archie.cmos_img);
 
   // try to open default floppies
-  for(i=0; i<MAX_FLOPPY; i++) {
+  for (i=0; i<ARRAY_SIZE(config.floppy_name); i++) {
     char fdc_name[] = "FLOPPY0.ADF";
     fdc_name[6] = '0'+i;
     user_io_file_mount(fdc_name, i);
     if (user_io_is_mounted(i)) {
-      strcpy(floppy_name[i], fdc_name);
+      strcpy(config.floppy_name[i], fdc_name);
       archie_debugf("Inserted floppy %d", i);
     } else
-      floppy_name[i][0] = 0;
+      config.floppy_name[i][0] = 0;
   }
 
   // open hdd image(s)
-  hardfile[0] = &config.hardfile[0];
-  hardfile[1] = &config.hardfile[1];
+  hardfile[0] = &config.archie.hardfile[0];
+  hardfile[1] = &config.archie.hardfile[1];
 
   OpenHardfile(0, true);
   OpenHardfile(1, true);
 
   archie_kbd_send(STATE_RAK1, HRST);
-  ack_timeout = GetTimer(20);  // give archie 20ms to reply
+  ack_timeout = GetTimer(20); // give archie 20ms to reply
 }
 
 static void archie_kbd(unsigned short code) {
   archie_debugf("KBD key code %x", code);
 
   // don't send anything yet if we are still in reset state
-  if(kbd_state <= STATE_RAK2) {
+  if (kbd_state <= STATE_RAK2) {
     archie_debugf("KBD still in reset");
     return;
   }
 
   // ignore any key event if key scanning is disabled
-  if(!(flags & FLAG_SCAN_ENABLED)) {
+  if (!(flags & FLAG_SCAN_ENABLED)) {
     archie_debugf("KBD keyboard scan is disabled!");
     return;
   }
 
   // select prefix for up or down event
-  unsigned char prefix = (code&0x8000)?KUDA:KDDA;
+  unsigned char prefix = (code & 0x8000) ? KUDA : KDDA;
 
-  archie_kbd_send(STATE_WAIT4ACK1, prefix | (code>>4));
-  archie_kbd_send(STATE_WAIT4ACK2, prefix | (code&0x0f));
+  archie_kbd_send(STATE_WAIT4ACK1, prefix | (code >> 4));
+  archie_kbd_send(STATE_WAIT4ACK2, prefix | (code & 0x0f));
 }
 
 static void archie_mouse(uint8_t, uint8_t b, int8_t x, int8_t y, int8_t) {
@@ -277,23 +266,23 @@ static void archie_mouse(uint8_t, uint8_t b, int8_t x, int8_t y, int8_t) {
 
   // max values -64 .. 63
   mouse_x += x;
-  if(mouse_x >  63) mouse_x =  63;
-  if(mouse_x < -64) mouse_x = -64;
+  if (mouse_x >  63) mouse_x =  63;
+  if (mouse_x < -64) mouse_x = -64;
 
   mouse_y -= y;
-  if(mouse_y >  63) mouse_y =  63;
-  if(mouse_y < -64) mouse_y = -64;
+  if (mouse_y >  63) mouse_y =  63;
+  if (mouse_y < -64) mouse_y = -64;
 
   // don't send anything yet if we are still in reset state
-  if(kbd_state <= STATE_RAK2) {
+  if (kbd_state <= STATE_RAK2) {
     archie_debugf("KBD still in reset");
     return;
   }
 
   // ignore any mouse movement if mouse is disabled or if nothing to report
-  if((flags & FLAG_MOUSE_ENABLED) && (mouse_x || mouse_y)) {
+  if ((flags & FLAG_MOUSE_ENABLED) && (mouse_x || mouse_y)) {
     // send asap if no pending byte
-    if(kbd_state == STATE_IDLE) {
+    if (kbd_state == STATE_IDLE) {
       archie_kbd_send(STATE_WAIT4ACK1, mouse_x & 0x7f);
       archie_kbd_send(STATE_WAIT4ACK2, mouse_y & 0x7f);
       mouse_x = mouse_y = 0;
@@ -301,16 +290,16 @@ static void archie_mouse(uint8_t, uint8_t b, int8_t x, int8_t y, int8_t) {
   }
 
   // ignore mouse buttons if key scanning is disabled
-  if(flags & FLAG_SCAN_ENABLED) {
+  if (flags & FLAG_SCAN_ENABLED) {
     static const uint8_t remap[] = { 0, 2, 1 };
     static unsigned char buts = 0;
     uint8_t s;
 
     // map all three buttons
-    for(s=0; s<3; s++) {
-      uint8_t mask = (1<<s);
-      if((b&mask) != (buts&mask)) {
-        unsigned char prefix = (b&mask) ? KDDA : KUDA;
+    for (s=0; s<3; s++) {
+      uint8_t mask = BIT(s);
+      if ((b & mask) != (buts & mask)) {
+        unsigned char prefix = (b & mask) ? KDDA : KUDA;
         archie_kbd_send(STATE_WAIT4ACK1, prefix | 0x07);
         archie_kbd_send(STATE_WAIT4ACK2, prefix | remap[s]);
       }
@@ -320,7 +309,7 @@ static void archie_mouse(uint8_t, uint8_t b, int8_t x, int8_t y, int8_t) {
 }
 
 static void archie_check_queue() {
-  if(tx_queue_rptr == tx_queue_wptr)
+  if (tx_queue_rptr == tx_queue_wptr)
     return;
 
   archie_kbd_tx(tx_queue[tx_queue_rptr][0], tx_queue[tx_queue_rptr][1]);
@@ -330,7 +319,7 @@ static void archie_check_queue() {
 void archie_handle_kbd() {
 
 #ifdef HOLD_OFF_TIME
-  if((kbd_state == STATE_HOLD_OFF) && CheckTimer(hold_off_timer)) {
+  if ((kbd_state == STATE_HOLD_OFF) && CheckTimer(hold_off_timer)) {
     archie_debugf("KBD resume after hold off");
     kbd_state = STATE_IDLE;
     archie_check_queue();
@@ -338,11 +327,11 @@ void archie_handle_kbd() {
 #endif
 
   // timeout waiting for ack?
-  if((kbd_state == STATE_WAIT4ACK1) || (kbd_state == STATE_WAIT4ACK2)) {
-    if(CheckTimer(ack_timeout)) {
-      if(kbd_state == STATE_WAIT4ACK1)
+  if ((kbd_state == STATE_WAIT4ACK1) || (kbd_state == STATE_WAIT4ACK2)) {
+    if (CheckTimer(ack_timeout)) {
+      if (kbd_state == STATE_WAIT4ACK1)
         archie_debugf(">>>> KBD ACK TIMEOUT 1ST BYTE <<<<");
-      if(kbd_state == STATE_WAIT4ACK2)
+      if (kbd_state == STATE_WAIT4ACK2)
         archie_debugf(">>>> KBD ACK TIMEOUT 2ND BYTE <<<<");
 
       kbd_state = STATE_IDLE;
@@ -350,44 +339,44 @@ void archie_handle_kbd() {
   }
 
   // timeout in reset sequence?
-  if(kbd_state <= STATE_RAK2) {
-    if(CheckTimer(ack_timeout)) {
+  if (kbd_state <= STATE_RAK2) {
+    if (CheckTimer(ack_timeout)) {
       archie_debugf("KBD timeout in reset state");
 
       archie_kbd_send(STATE_RAK1, HRST);
-      ack_timeout = GetTimer(20);  // 20ms timeout
+      ack_timeout = GetTimer(20); // 20ms timeout
     }
   }
 
   spi_uio_cmd_cont(0x04);
-  if(spi_in() == 0xa1) {
+  if (spi_in() == 0xa1) {
     unsigned char data = spi_in();
     DisableIO();
 
     archie_debugf("KBD RX %x", data);
 
-    switch(data) {
+    switch (data) {
       // arm requests reset
     case HRST:
       archie_kbd_reset();
       archie_kbd_send(STATE_RAK1, HRST);
-      ack_timeout = GetTimer(20);  // 20ms timeout
+      ack_timeout = GetTimer(20); // 20ms timeout
       break;
 
       // arm sends reset ack 1
     case RAK1:
-      if(kbd_state == STATE_RAK1) {
+      if (kbd_state == STATE_RAK1) {
         archie_kbd_send(STATE_RAK2, RAK1);
-        ack_timeout = GetTimer(20);  // 20ms timeout
+        ack_timeout = GetTimer(20); // 20ms timeout
       } else
         kbd_state = STATE_HRST;
       break;
 
       // arm sends reset ack 2
     case RAK2:
-      if(kbd_state == STATE_RAK2) {
+      if (kbd_state == STATE_RAK2) {
         archie_kbd_send(STATE_IDLE, RAK2);
-        ack_timeout = GetTimer(20);  // 20ms timeout
+        ack_timeout = GetTimer(20); // 20ms timeout
       } else
         kbd_state = STATE_HRST;
       break;
@@ -399,7 +388,7 @@ void archie_handle_kbd() {
 
       // arm acks first byte
     case BACK:
-      if(kbd_state != STATE_WAIT4ACK1) {
+      if (kbd_state != STATE_WAIT4ACK1) {
           archie_debugf("KBD unexpected BACK, resetting KBD");
           kbd_state = STATE_HRST;
       } else {
@@ -420,22 +409,22 @@ void archie_handle_kbd() {
     case SACK:
     case MACK:
     case SMAK:
-      if(((data == SACK) || (data == SMAK)) && !(flags & FLAG_SCAN_ENABLED)) {
+      if (((data == SACK) || (data == SMAK)) && !(flags & FLAG_SCAN_ENABLED)) {
         archie_debugf("KBD Enabling key scanning");
         flags |= FLAG_SCAN_ENABLED;
       }
 
-      if(((data == NACK) || (data == MACK)) && (flags & FLAG_SCAN_ENABLED)) {
+      if (((data == NACK) || (data == MACK)) && (flags & FLAG_SCAN_ENABLED)) {
         archie_debugf("KBD Disabling key scanning");
         flags &= ~FLAG_SCAN_ENABLED;
       }
 
-      if(((data == MACK) || (data == SMAK)) && !(flags & FLAG_MOUSE_ENABLED)) {
+      if (((data == MACK) || (data == SMAK)) && !(flags & FLAG_MOUSE_ENABLED)) {
         archie_debugf("KBD Enabling mouse");
         flags |= FLAG_MOUSE_ENABLED;
       }
 
-      if(((data == NACK) || (data == SACK)) && (flags & FLAG_MOUSE_ENABLED)) {
+      if (((data == NACK) || (data == SACK)) && (flags & FLAG_MOUSE_ENABLED)) {
         archie_debugf("KBD Disabling mouse");
         flags &= ~FLAG_MOUSE_ENABLED;
       }
@@ -456,7 +445,7 @@ void archie_handle_kbd() {
 }
 
 void archie_handle_hdd() {
-  unsigned char  c1;
+  unsigned char c1;
 
   EnableFpga();
   c1 = SPI(0); // cmd request
@@ -491,18 +480,17 @@ static uint16_t archie_modify_keycode(uint8_t key) {
   return archie_modifier[key];
 }
 
-static void archie_eject_all()
-{
-  for (int i=0; i<MAX_FLOPPY; i++) {
-    floppy_name[i][0] = 0;
+static void archie_eject_all() {
+  for (int i=0; i<ARRAY_SIZE(config.floppy_name); i++) {
+    config.floppy_name[i][0] = 0;
   }
 
   for (int i=0; i<ARRAY_SIZE(sd_image); i++) {
     IDXClose(&sd_image[i]);
   }
 
-  config.hardfile[0].present = 0;
-  config.hardfile[1].present = 0;
+  config.archie.hardfile[0].present = 0;
+  config.archie.hardfile[1].present = 0;
 }
 
 static void archie_setup_menu();
@@ -527,7 +515,7 @@ const user_io_core_t archie_core = {
 //////////////////////////
 
 static char archie_file_selected(uint8_t idx, const char *SelectedName) {
-  switch(idx) {
+  switch (idx) {
     case 0:
     case 1:
       archie_set_floppy(idx, SelectedName);
@@ -565,7 +553,7 @@ static char archie_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
 
   switch (action) {
     case MENU_ACT_GET:
-      switch(idx) {
+      switch (idx) {
         case 0:
           strcpy(s, " Floppy 0: ");
           strcat(s, archie_get_floppy_name(0));
@@ -598,10 +586,10 @@ static char archie_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
       }
       break;
     case MENU_ACT_SEL:
-      switch(idx) {
+      switch (idx) {
         case 0:  // Floppy 0
         case 1:  // Floppy 1
-          if(user_io_is_mounted(idx)) {
+          if (user_io_is_mounted(idx)) {
             archie_set_floppy(idx, NULL);
           } else
             SelectFileNG("ADF", SCAN_DIR | SCAN_LFN, archie_file_selected, 1);
@@ -628,8 +616,7 @@ static char archie_getmenuitem(uint8_t idx, char action, menu_item_t *item) {
   return 1;
 }
 
-static void archie_setup_menu()
-{
+static void archie_setup_menu() {
   archie_debugf("Setting up Archie menu");
   SetupMenu(archie_getmenupage, archie_getmenuitem, NULL);
 }

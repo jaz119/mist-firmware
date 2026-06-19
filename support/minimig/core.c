@@ -2,7 +2,6 @@
 #include <user_io_hid.h>
 #include <minimig/core.h>
 #include <minimig/menu.h>
-#include <minimig/config.h>
 #include <minimig/boot.h>
 #include <minimig/fdd.h>
 #include <8bit/core.h>
@@ -10,6 +9,7 @@
 #include <keycodes.h>
 #include <spi.h>
 #include <fpga.h>
+#include <config_union.h>
 #include <arc_file.h>
 #include <mist_cfg.h>
 
@@ -21,6 +21,8 @@ uint8_t minimig_ver_beta;
 uint8_t minimig_ver_major;
 uint8_t minimig_ver_minor;
 uint8_t minimig_ver_minion;
+
+static adfTYPE *df = config.df;
 
 // 16 bytes fifo for amiga key codes
 // to limit max key rate sent into the core
@@ -190,13 +192,16 @@ static void mouse_poll()
 
 static void minimig_eject_all()
 {
-  for (int i = 0; i < ARRAY_SIZE(df); i++)
-  {
-    df[i].status = 0;
-  }
+    for (int i = 0; i < ARRAY_SIZE(config.df); i++) {
+        f_close(&df[i].file);
+        df[i].status = 0;
+    }
 
-  config.hardfile[0].present = 0;
-  config.hardfile[1].present = 0;
+    for (int i = 0; i < ARRAY_SIZE(config.minimig.hardfile); i++) {
+        config.minimig.hardfile[i].present = 0;
+        config.minimig.hardfile[i].enabled = HDF_DISABLED;
+        config.hdf[i].type = HDF_DISABLED;
+    }
 }
 
 static void minimig_init()
@@ -238,6 +243,7 @@ static void minimig_init()
         minimig_ver_major, minimig_ver_minor, minimig_ver_minion);
     BootPrintEx(rtl_ver);
     BootPrintEx(" ");
+
     BootPrintEx("MINIMIG-AGA for MiST by Rok Krajnc (rok.krajnc@gmail.com)");
     BootPrintEx("Original Minimig by Dennis van Weeren");
     BootPrintEx("Updates by Jakub Bednarski, Tobias Gubener, Sascha Boing, A.M. Robinson & others");
@@ -247,7 +253,7 @@ static void minimig_init()
 
     minimig_eject_all();
 
-    config.kickstart[0] = 0;
+    config.minimig.kickstart[0] = 0;
     SetConfigurationFilename(arc_get_cfg_file_n());
 
     // use slot-based config filename
@@ -256,7 +262,8 @@ static void minimig_init()
 
 static void minimig_reset(bool)
 {
-    OsdReset(RESET_NORMAL);
+    spi_osd_cmd8(OSD_CMD_RST, SPI_RST_USR);
+    spi_osd_cmd8(OSD_CMD_RST, 0x00);
 }
 
 static void handle_drives()

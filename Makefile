@@ -19,6 +19,7 @@ SRC += FatFs/ff.c FatFs/ffunicode.c fat_compat.c
 SRC += support/minimig/core.c support/minimig/boot.c support/minimig/config.c support/minimig/fdd.c support/minimig/menu.c
 SRC += support/8bit/core.c support/8bit/idx_files.c support/pcecd.c support/neocd.c support/snes.c support/8bit/menu.c support/8bit/menu_info.c support/8bit/settings.c
 SRC += support/tos.c support/archie.c support/zx_col.c acsi_hdc.c cdc_control.c
+SRC += support/config_union.c
 # SRC += usb/storage.c # -DUSB_STORAGE
 # SRC += usb/pl2303.c # -DUSB_PL2303_CDC
 # SRC += usb/asix.c # -DUSB_ASIX_NET

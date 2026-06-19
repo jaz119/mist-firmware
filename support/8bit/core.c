@@ -7,6 +7,7 @@
 #include <user_io_hid.h>
 #include <spi.h>
 #include <osd.h>
+#include <config_union.h>
 #include <arc_file.h>
 #include <data_io.h>
 #include <pcecd.h>
@@ -26,11 +27,13 @@ uint32_t core_features = 0;
 // keep state over core type and its capabilities
 static char core_type_8bit_with_config_string = 0;
 
+// ATA drives
+static hardfileTYPE *hardfiles = config.hardfiles;
+
 // max 16 bytes for core name
 char core_name[16 + 1];
 
 int conf_items = 0;
-uint16_t conf_idx[CONF_TBL_MAX];
 
 void user_io_send_core_mod()
 {
@@ -69,7 +72,7 @@ const char *user_io_get_core_name()
     return *arc_core_name ? arc_core_name : core_name;
 }
 
-char user_io_create_config_name(char *s, const char *ext, uint8_t flags)
+bool user_io_create_config_name(char *s, const char *ext, uint8_t flags)
 {
     const char *p = 0;
 
@@ -93,10 +96,10 @@ char user_io_create_config_name(char *s, const char *ext, uint8_t flags)
             strcat(s,ext);
         }
 
-        return 0;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 char user_io_is_8bit_with_config_string()
@@ -135,11 +138,10 @@ char *user_io_8bit_get_string(uint8_t index)
     unsigned char i, lidx = 0, d = 0, arc = 0;
     int arc_ptr = 0, j = 0;
     char dip[3];
-    static char buffer[128 + 1]; // max 128 bytes per config item
     uint16_t start_chr;
 
     // clear buffer
-    buffer[0] = 0;
+    config.buffer[0] = 0;
 
     // use the config index table to get where to start
     // conf_idx stores the starting position of every 4th item
@@ -147,10 +149,10 @@ char *user_io_8bit_get_string(uint8_t index)
     uint32_t pos = 0, lastpos = 0;
 
     i = index >> 2;
-    while (i > 0 && (i > conf_items || conf_idx[i] == 0))
+    while (i > 0 && (i > conf_items || config.conf_idx[i] == 0))
         i--;
 
-    pos = lastpos = conf_idx[i];
+    pos = lastpos = config.conf_idx[i];
     lidx = i << 2;
 
     // iprintf("index=%d cached pos=%d lidx=%d\n", index, pos, lidx);
@@ -183,13 +185,13 @@ char *user_io_8bit_get_string(uint8_t index)
         }
     }
 
-    while ((i != 0) && (i != 0xff) && (j < sizeof(buffer)))
+    while ((i != 0) && (i != 0xff) && (j < sizeof(config.buffer)))
     {
         if (i == ';')
         {
             if ((lidx & 0x03) == 0 && (lidx >> 2) < CONF_TBL_MAX)
             {
-                conf_idx[lidx >> 2] = arc ? 0 : lastpos;
+                config.conf_idx[lidx >> 2] = arc ? 0 : lastpos;
                 if (conf_items < (lidx >> 2))
                     conf_items = (lidx >> 2);
             }
@@ -201,7 +203,7 @@ char *user_io_8bit_get_string(uint8_t index)
                 if (lidx == index) {
                     // skip the DIP line
                     j = 0;
-                    buffer[0] = 0;
+                    config.buffer[0] = 0;
                 }
                 arc = 1;
             }
@@ -209,7 +211,7 @@ char *user_io_8bit_get_string(uint8_t index)
             {
                 if (lidx == index)
                 {
-                    buffer[j++] = 0;
+                    config.buffer[j++] = 0;
                     break;
                 }
                 lidx++;
@@ -219,7 +221,7 @@ char *user_io_8bit_get_string(uint8_t index)
         else
         {
             if(lidx == index)
-                buffer[j++] = i;
+                config.buffer[j++] = i;
             if (d < 3)
                 dip[d++] = i;
         }
@@ -242,13 +244,13 @@ char *user_io_8bit_get_string(uint8_t index)
     // if this was the last string in the config string list,
     // then it still needs to be terminated
     if (lidx == index)
-        buffer[j] = 0;
+        config.buffer[j] = 0;
 
     // also return NULL for empty strings
-    if (!buffer[0])
+    if (!config.buffer[0])
         return NULL;
 
-    return buffer;
+    return config.buffer;
 }
 
 uint64_t user_io_8bit_set_status(uint64_t new_status, uint64_t mask)
@@ -480,6 +482,14 @@ static void generic_8bit_reset(bool)
     user_io_8bit_set_status(arc_get_default(), ~0);
 }
 
+static void eject_all()
+{
+    for (int i = 0; i < ARRAY_SIZE(config.hardfiles); i++) {
+        hardfiles[i].enabled = HDF_DISABLED;
+        hardfiles[i].present = 0;
+    }
+}
+
 // core iface
 const user_io_core_t generic_core = {
     .init = generic_8bit_init,
@@ -492,5 +502,6 @@ const user_io_core_t generic_core = {
     .send_analog_joy = send_analog_joystick,
     .send_digital_joy = send_digital_joystick,
     .setup_menu = setup_8bit_menu,
+    .eject_all = eject_all,
     .name = "8BIT",
 };

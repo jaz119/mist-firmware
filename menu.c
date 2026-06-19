@@ -34,9 +34,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <firmware.h>
 #include <8bit/core.h>
 #include <8bit/settings.h>
-#include <minimig/config.h>
 #include "usb/joymapping.h"
 #include "usb/hidquirks.h"
+#include <config_union.h>
 #include <arc_file.h>
 #include <mist_cfg.h>
 #include <usbdev.h>
@@ -89,7 +89,7 @@ const char *config_cpu_msg[] = { "68000", "68010", "68EC020", "68020" };
 const char *config_autofire_msg[] = {"\n\n        AUTOFIRE OFF", "\n\n        AUTOFIRE FAST", "\n\n       AUTOFIRE MEDIUM", "\n\n        AUTOFIRE SLOW"};
 static const char *days[] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
-const char *helptexts[]={
+const char *helptexts[] = {
 	0,
 	"                                Welcome to MiST!  Use the cursor keys to navigate the menus.  Use space bar or enter to select an item.  Press Esc or F12 to exit the menus.  Joystick emulation on the numeric keypad can be toggled with the numlock key, while pressing Ctrl-Alt-0 (numeric keypad) toggles autofire mode.",
 	"                                Minimig can emulate an A600 IDE harddisk interface.  The emulation can make use of Minimig-style hardfiles (complete disk images) or UAE-style hardfiles (filesystem images with no partition table).  It is also possible to use either the entire SD card or an individual partition as an emulated harddisk.",
@@ -328,14 +328,16 @@ static char OnReset(uint8_t idx) {
 	if (idx != 0)
 		return 0; // No
 	CloseMenu();
-	if (core && core->reset)
-		core->reset(1);
+	if (core && core->reset) {
+		core->reset(true);
+	}
 	if (user_io_core_type() != CORE_TYPE_8BIT)
 		return 0;
 	if (settings_save(false)) {
 		debugf("Settings for %s written", user_io_get_core_name());
-		if (core && core->setup_menu)
+		if (core && core->setup_menu) {
 			core->setup_menu();
+		}
 		menusub = 0;
 	} else {
 		ErrorMessage("\n   Error writing settings!\n", 0);
@@ -492,7 +494,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 	item->newpage = 0;
 	item->newsub = 0;
 	item->item = "";
-	if(idx<=6) item->page = 0;
+	if (idx<=6) item->page = 0;
 	else if (idx<=13) item->page = 1;
 	else if (idx<=20) item->page = 2;
 	else if (idx<=26) item->page = 3;
@@ -509,7 +511,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 
 	switch (action) {
 		case MENU_ACT_GET:
-			switch(idx) {
+			switch (idx) {
 				// page 0
 				case 0:
 					item->item = " Firmware & Core";
@@ -526,10 +528,10 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->newpage = 3;
 					break;
 				case 3:
-					if(is_a || is_st) {
+					if (is_a || is_st) {
 						item->active = 0;
 					} else
-						item->item = is_m ? " Reset" : " Reset settings";
+						item->item = " Reset";
 					break;
 				case 4:
 					if (is_m || is_a || is_st) {
@@ -570,7 +572,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->active = 0;
 					break;
 				case 11:
-					if(strlen(OsdCoreName()) < 26) {
+					if (strlen(OsdCoreName()) < 26) {
 						siprintf(s, "%*s%s", (29-strlen(OsdCoreName()))/2, " ", OsdCoreName());
 					}
 					else strcpy(s, OsdCoreName());
@@ -579,7 +581,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->active = 0;
 					break;
 				case 12:
-					if(arc_get_rbfname() && *arc_get_rbfname()) {
+					if (arc_get_rbfname() && *arc_get_rbfname()) {
 						siprintf(s, "%*s%s.RBF", (29-strlen(arc_get_rbfname()))/2-2, " ", arc_get_rbfname());
 						item->item = s;
 					}
@@ -885,7 +887,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 			break;
 
 		case MENU_ACT_SEL:
-			switch(idx) {
+			switch (idx) {
 				case 0:
 					item->newpage = 1;
 					item->newsub = 6;
@@ -897,19 +899,18 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->newpage = 3;
 					break;
 				case 3: {
-					char m = 0;
-					if (user_io_core_type() == CORE_TYPE_MINIMIG_V2)
-						m = 1;
-					DialogBox(m ? "\n         Reset MiST?" : "\n       Reset settings?",
-						MENU_DIALOG_YESNO, OnReset);
+					DialogBox("\n       Reset system?",
+						MENU_DIALOG_YESNO,
+						OnReset);
 					break;
 				}
 				case 4:
 					// Save settings
 					if (settings_save(false)) {
 						debugf("Settings for %s written", user_io_get_core_name());
-						if (core && core->setup_menu)
+						if (core && core->setup_menu) {
 							core->setup_menu();
+						}
 						menusub = 0;
 					} else
 						ErrorMessage("\n   Error writing settings!\n", 0);
@@ -954,8 +955,9 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 		case MENU_ACT_MINUS:
 			if (page_idx == 0 && action == MENU_ACT_LEFT) {
 				// go back to core requesting this menu
-				if (core && core->setup_menu)
+				if (core && core->setup_menu) {
 					core->setup_menu();
+				}
 				if (user_io_core_type() == CORE_TYPE_MINIMIG_V2) {
 					last_page[0] = 0;
 					last_menu_first[0] = 0;
@@ -976,7 +978,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					bool is_leap = (!(year % 4) && (year % 100)) || !(year % 400);
 					int maxday = mdays[month - 1] + (month == 2 && is_leap);
 
-					switch(idx) {
+					switch (idx) {
 						case 14: if (left) date[T_YEAR]--; else date[T_YEAR]++; break;
 						case 15: if (left) date[T_MONTH] = decval(date[T_MONTH], 1, 12); else date[T_MONTH] = incval(date[T_MONTH], 1, 12); break;
 						case 16: if (left) date[T_DAY] = decval(date[T_DAY], 1, maxday); else date[T_DAY] = incval(date[T_DAY], 1, maxday); break;
@@ -985,7 +987,9 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 						case 19: if (left) date[T_SEC] = decval(date[T_SEC], 0, 59); else date[T_SEC] = incval(date[T_SEC], 0, 59); break;
 						case 20: if (left) date[T_WDAY] = decval(date[T_WDAY], 1, 7); else date[T_WDAY] = incval(date[T_WDAY], 1, 7); break;
 					}
-					if (idx>=14 && idx<=20) SetRTC((uint8_t*)&date);
+
+					if (idx>=14 && idx<=20)
+						SetRTC((uint8_t*)&date);
 				}
 			}
 			break;
@@ -1035,7 +1039,7 @@ void ChangePage(char idx) {
 static void PrintDirectory(void);
 static void ScrollLongName(void);
 
-void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect, char chdir)
+void SelectFile(char *pFileExt, unsigned char Options, unsigned char MenuSelect, char chdir)
 {
 	// this function displays file selection menu
 	menu_debugf("%s - %s", pFileExt, fs_pFileExt);
@@ -1045,7 +1049,7 @@ void SelectFile(char* pFileExt, unsigned char Options, unsigned char MenuSelect,
 		ChangeDirectoryName("/");
 
 		// for 8 bit cores try to
-		if(((user_io_core_type() == CORE_TYPE_8BIT) || (user_io_core_type() == CORE_TYPE_ARCHIE)) && chdir)
+		if (((user_io_core_type() == CORE_TYPE_8BIT) || (user_io_core_type() == CORE_TYPE_ARCHIE)) && chdir)
 			user_io_change_into_core_dir();
 
 		ScanDirectory(SCAN_INIT, pFileExt, Options);
@@ -1084,7 +1088,7 @@ void HandleUI(uint8_t key)
 	static int helpstate = 0;
 	const int osdlines = OsdLines();
 	int firstline = osdlines <= 8 ? 0 : 2;
-	ALIGNED(4) uint8_t keys[6] = { 0,0,0,0,0,0 };
+	uint8_t keys[6] = { 0,0,0,0,0,0 };
 
 	// decode and set events
 	menu = false;
@@ -1117,14 +1121,14 @@ void HandleUI(uint8_t key)
 			{
 				if (menustate == MENU_NONE2 || menustate == MENU_DIALOG2)
 				{
-					char autofire_tmp = config.autofire & 3;
+					char autofire_tmp = config.minimig.autofire & 3;
 					autofire_tmp++;
 
-					config.autofire = (config.autofire & 0x0c) | (autofire_tmp & 3);
-					ConfigAutofire(config.autofire);
+					config.minimig.autofire = (config.minimig.autofire & 0x0c) | (autofire_tmp & 3);
+					ConfigAutofire(config.minimig.autofire);
 
 					if (menustate == MENU_NONE2 || menustate == MENU_DIALOG2)
-						InfoMessage(config_autofire_msg[config.autofire & 3]);
+						InfoMessage(config_autofire_msg[config.minimig.autofire & 3]);
 				}
 			}
 			break;
@@ -1210,7 +1214,7 @@ void HandleUI(uint8_t key)
 	if (menumask)
 	{
 		if (down) {
-			if (menumask >= BIT(menusub + 1))	// Any active entries left?
+			if (menumask >= BIT(menusub + 1)) // Any active entries left?
 			{
 				do
 					menusub++;
@@ -1224,7 +1228,7 @@ void HandleUI(uint8_t key)
 		}
 
 		if (up) {
-			if (menusub > 0 && (menumask & ((1<<menusub)-1)))
+			if (menusub > 0 && (menumask & (BIT(menusub) - 1)))
 			{
 				do
 					--menusub;
@@ -1294,7 +1298,7 @@ void HandleUI(uint8_t key)
 			char idx, itemidx, valid, *item;
 			menumask = 0;
 			itemidx = menuidx[0];
-			for(idx=0; idx<osdlines; idx++) {
+			for (idx=0; idx<osdlines; idx++) {
 				valid = 0;
 				item = "";
 				menu_item.page = page_idx;
@@ -1328,7 +1332,7 @@ void HandleUI(uint8_t key)
 						bool rtc = GetRTC((uint8_t*)&date);
 						if (rtc) {
 							siprintf(s, "%s%04d/%02d/%02d %02d:%02d:%02d %s",
-								date[T_WDAY] == 4 ? "" : " ",1900+date[T_YEAR], date[T_MONTH], date[T_DAY],
+								date[T_WDAY] == 4 ? "" : " ", 1900+date[T_YEAR], date[T_MONTH], date[T_DAY],
 								date[T_HOUR], date[T_MIN], date[T_SEC],
 								(date[T_WDAY] && date[T_WDAY] <= 7) ? days[date[T_WDAY]-1] : "--------");
 							if (!menu_page.timer) menu_page.timer = 1000;
@@ -1345,7 +1349,7 @@ void HandleUI(uint8_t key)
 					switch (menu_page.stdexit) {
 						case 1:
 							item = STD_EXIT;
-							menumask |= BIT(osdlines-1);
+							menumask |= BIT(osdlines - 1);
 							break;
 						case 2:
 							item = STD_SPACE_EXIT;
@@ -1361,7 +1365,7 @@ void HandleUI(uint8_t key)
 				}
 				if (!(menumask & BIT(idx)) && menusub == idx)
 					menusub++;
-				if (!(helpstate && idx == osdlines-1))
+				if (!(helpstate && idx == osdlines - 1))
 					OsdWrite(idx, item, menusub == idx, menu_item.stipple);
 			}
 			if (menu_page.timer)
@@ -1736,9 +1740,10 @@ void HandleUI(uint8_t key)
 		break;
 
 		case MENU_DIALOG2:
-			if (select ||
-			  !(dialog_options & (MENU_DIALOG_OK | MENU_DIALOG_YESNO | MENU_DIALOG_TIMER)) ||
-			  ((dialog_options & MENU_DIALOG_TIMER) && CheckTimer(menu_timer))) {
+			if (select
+				|| !(dialog_options & (MENU_DIALOG_OK | MENU_DIALOG_YESNO | MENU_DIALOG_TIMER))
+				|| ((dialog_options & MENU_DIALOG_TIMER) && CheckTimer(menu_timer)))
+			{
 				menustate = parentstate = dialog_autoclose ? MENU_NONE1 : MENU_NG;
 				helptext = dialog_helptext; // restore helptext
 				if (dialog_callback) dialog_callback(menusub);
@@ -1780,7 +1785,7 @@ static void ScrollLongName(void)
 	}
 }
 
-static char* GetDiskInfo(char* lfn, long len)
+static char *GetDiskInfo(char *lfn, long len)
 {
 // extracts disk number substring from file name
 // if file name contains "X of Y" substring where X and Y are one or two digit number

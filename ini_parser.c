@@ -290,7 +290,7 @@ bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
   #else
   if (f_open(&ini_file, cfg->filename, FA_READ) != FR_OK) {
   #endif
-    ini_parser_debugf("Can't open file %s !", cfg->filename);
+    errorf("Cannot open %s file", cfg->filename);
     return false;
   }
 
@@ -311,7 +311,7 @@ bool ini_parse(const ini_cfg_t* cfg, const char *alter_section, int tag)
   int vars = 0;
 
   // parse ini
-  while (1) {
+  while (true) {
     // get line
     line_status = ini_getline(line);
     ini_parser_debugf("line(%d): \"%s\".", line_status, line);

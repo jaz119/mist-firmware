@@ -1,7 +1,7 @@
 #ifndef FDD_H
 #define FDD_H
 
-#include "FatFs/ff.h"
+#include <FatFs/ff.h>
 
 // floppy disk interface defs
 #define CMD_RDTRK 0x01
@@ -24,7 +24,6 @@ typedef struct
     char          name[22]; /*floppy name*/
 } adfTYPE;
 
-extern adfTYPE df[4];
 extern unsigned char drives;
 
 void UpdateFDDStatus(void);

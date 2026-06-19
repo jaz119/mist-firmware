@@ -1,33 +1,33 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "hdd.h"
+#include <hdd.h>
 
 typedef struct
 {
     unsigned char lores;
     unsigned char hires;
-} filterTYPE;
+} minimig_filter_t;
 
 typedef struct
 {
     unsigned char speed;
     unsigned char drives;
-} floppyTYPE;
+} minimig_floppy_t;
 
 typedef struct
 {
     unsigned char audiofiltermode;
     unsigned char powerledoffstate;
-} featuresTYPE;
+} minimig_features_t;
 
 typedef struct
 {
-    char          kickstart[80];
-    filterTYPE    filter;
+    char kickstart[FF_LFN_BUF];
+    minimig_filter_t filter;
     unsigned char memory;
     unsigned char chipset;
-    floppyTYPE    floppy;
+    minimig_floppy_t floppy;
     unsigned char disable_ar3;
     unsigned char enable_ide[2];
     unsigned char scanlines;
@@ -35,10 +35,8 @@ typedef struct
     hardfileTYPE  hardfile[HARDFILES];
     unsigned char cpu;
     unsigned char autofire;
-    featuresTYPE  features;
-} configTYPE;
-
-extern configTYPE config;
+    minimig_features_t features;
+} minimig_config_t;
 
 bool UploadKickstart(const char *);
 bool LoadConfiguration(const char *, bool);

@@ -84,26 +84,11 @@ void FatalError(unsigned int error)
 
 static void eject_all_media()
 {
-    // Floppies
-    for (int i=0; i<ARRAY_SIZE(df); i++)
-    {
-        df[i].status = 0;
-        df[i].file.obj.fs = 0;
-    }
-
     // Indexes
-    for (int i=0; i<ARRAY_SIZE(sd_image); i++)
+    for (int i = 0; i < ARRAY_SIZE(sd_image); i++)
     {
         IDXClose(&sd_image[i]);
         sd_image[i].file.obj.fs = 0;
-    }
-
-    // Disks images
-    for (int i=0; i<ARRAY_SIZE(config.hardfile); i++)
-    {
-        config.hardfile[i].present = 0;
-        config.hardfile[i].enabled = HDF_DISABLED;
-        hdf[i].type = HDF_DISABLED;
     }
 
     ini_file.obj.fs = 0;
@@ -300,7 +285,7 @@ int main()
 
         if (user_io_core_type() == CORE_TYPE_8BIT)
         {
-            // 8bit cores can also have a UI
+            // 8BIT cores can also have a UI
             // if a valid config string can be read from it
             if (!user_io_is_8bit_with_config_string())
                 continue;

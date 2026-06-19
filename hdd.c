@@ -37,6 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "fpga.h"
 #include "scsi.h"
 #include "cue_parser.h"
+#include <config_union.h>
 #ifdef HAVE_QSPI
 #include "qspi.h"
 #include "user_io.h"
@@ -44,10 +45,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "debug.h"
 #include "utils.h"
 
-hardfileTYPE  *hardfile[HARDFILES];
-
-// hardfile structure
-ALIGNED(4) hdfTYPE hdf[HARDFILES];
+hardfileTYPE *hardfile[HARDFILES];
+static hdfTYPE *hdf = config.hdf;
 
 #define AUDIO_PLAYING  0x11
 #define AUDIO_PAUSED   0x12

@@ -16,32 +16,17 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-This is the Minimig OSD (on-screen-display) handler.
-
-2012-02-09 - Split character rom out to separate header file, with upper 128 entries
-             as rotated copies of the first 128 entries.  -- AMR
-
-29-12-2006 - created
-30-12-2006 - improved and simplified
--- JB --
-2008-10-04 - ARM version
-2008-10-26 - added cpu and floppy configuration functions
-2008-12-31 - added enable HDD command
-2009-02-03 - full keyboard support
-2009-06-23 - hires OSD display
-2009-08-23 - adapted ConfigIDE() - support for 2 hardfiles
 */
 
 #include <string.h>
 #include <stdio.h>
 
-#include "osd.h"
-#include "logo.h"
+#include <osd.h>
+#include <logo.h>
 #include "state.h"
 #include "user_io.h"
 #include <8bit/core.h>
-#include "font.h"
+#include <font.h>
 
 // conversion table of Amiga keyboard scan codes to ASCII codes
 ALIGNED(4) static const char keycode_table[128] =
@@ -62,8 +47,8 @@ struct star
 	int dx, dy;
 };
 
-ALIGNED(4) struct star stars[64];
-ALIGNED(4) static char linebuffer[256];
+struct star stars[64];
+static char linebuffer[256];
 
 static int quickrand()
 {
@@ -125,7 +110,7 @@ static unsigned long scroll_timer=0;  // file/dir name scrolling timer
 extern char s[OSD_BUF_SIZE];
 
 static int arrow;
-ALIGNED(4) static unsigned char titlebuffer[128];
+static unsigned char titlebuffer[128];
 
 static void rotatechar(unsigned char *in,unsigned char *out)
 {
@@ -213,7 +198,7 @@ char OsdLines()
 void OsdWriteOffset(unsigned char n, char *s, unsigned char invert, unsigned char stipple,char offset)
 {
   char *text = s;
-  ALIGNED(4) char arrowline[31];
+  char arrowline[31];
   if(n==OsdLines()-1 && arrow) {
     text = arrowline;
     memset(arrowline, 32, sizeof(arrowline));
@@ -433,12 +418,6 @@ void OsdDisable(void)
       spi_osd_cmd(MM1_OSDCMDDISABLE);
     else
       spi_osd_cmd8(OSD_CMD_OSD, 0x00);
-}
-
-void OsdReset(unsigned char boot)
-{
-    spi_osd_cmd8(OSD_CMD_RST, 0x01);
-    spi_osd_cmd8(OSD_CMD_RST, 0x00);
 }
 
 void ConfigVideo(unsigned char hires, unsigned char lores, unsigned char scanlines) {

@@ -92,7 +92,6 @@ typedef struct
 
 // variables
 extern hardfileTYPE *hardfile[HARDFILES];
-extern hdfTYPE hdf[HARDFILES];
 
 // functions
 void HandleHDD(unsigned char c1, unsigned char c2, unsigned char cs1ena);

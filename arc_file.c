@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ini_parser.h"
-#include "arc_file.h"
-#include "debug.h"
+#include <ini_parser.h>
+#include <arc_file.h>
+#include <utils.h>
 
 #define MAX_CONF_SIZE 512
 #define MAX_BUTTONS_SIZE 128
@@ -24,7 +24,7 @@ typedef struct {
 static arc_t arc;
 static int conf_ptr;
 
-char arc_set_conf(char *, char, int);
+static char arc_set_conf(const char *, char, int);
 
 // arc ini sections
 static const ini_section_t arc_ini_sections[] = {
@@ -44,31 +44,36 @@ static const ini_var_t arc_ini_vars[] = {
 	{"CFG_FILE_N", (void*)(&arc.cfg_file_n), UINT8, 0, 99, 1},
 };
 
-char arc_set_conf(char *c, char action, int tag)
+static char arc_set_conf(const char *c, char action, int tag)
 {
-	if (action == INI_SAVE) return 0;
-	if ((conf_ptr+strlen(c))<MAX_CONF_SIZE-1) {
+	if (action == INI_SAVE)
+		return 0;
+
+	if ((conf_ptr + strlen(c)) < MAX_CONF_SIZE-1) {
 		strcpy(&arc.conf[conf_ptr], c);
 		strcat(arc.conf, ";");
 		conf_ptr += strlen(c) + 1;
 	}
+
 	return 0;
 }
 
 int64_t arc_open(const char *fname)
 {
-	ini_cfg_t arc_ini_cfg;
-
-	arc_ini_cfg.filename = fname;
-	arc_ini_cfg.sections = arc_ini_sections;
-	arc_ini_cfg.vars = arc_ini_vars;
-	arc_ini_cfg.nsections = (int)(sizeof(arc_ini_sections) / sizeof(ini_section_t));
-	arc_ini_cfg.nvars =  (int)(sizeof(arc_ini_vars) / sizeof(ini_var_t));
+	const ini_cfg_t arc_ini_cfg = {
+		.filename = fname,
+		.nsections = ARRAY_SIZE(arc_ini_sections),
+		.sections = arc_ini_sections,
+		.nvars = ARRAY_SIZE(arc_ini_vars),
+		.vars = arc_ini_vars,
+	};
 
 	arc_reset();
-	arc.mod = -1; // indicate error by default, valid ARC file will overrdide with the correct MOD value
+	arc.mod = -1LL; // indicate error by default, valid ARC file will overrdide with the correct MOD value
+
 	if (ini_parse(&arc_ini_cfg, 0, 0))
-		iprintf("ARC CONF STR: %s\n", arc.conf);
+		iprintf("ARC CONF: %s\n", arc.conf);
+
 	return arc.mod;
 }
 
@@ -118,7 +123,10 @@ const char *arc_get_button(int index)
 	int i = 0;
 	char *str = arc.buttons_str;
 	static char btn[15];
-	if (!str) return 0;
+
+	if (!str)
+		return 0;
+
 	while (*str) {
 		if (i == index) {
 			i = 0;
@@ -132,6 +140,7 @@ const char *arc_get_button(int index)
 		if (*str == ',') i++;
 		str++;
 	}
+
 	return 0;
 }
 

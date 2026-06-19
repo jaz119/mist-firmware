@@ -17,14 +17,13 @@
 #include "firmware.h"
 #include "ini_parser.h"
 #include "usb/usb.h"
+#include <config_union.h>
 #include "misc_cfg.h"
 #include <timer.h>
 
-configTYPE config;
-static configTYPE tmpconf;
-static char configfilename[13];
-
 extern char s[OSD_BUF_SIZE];
+
+static hdfTYPE *hdf = config.hdf;
 static unsigned char *romkey = (sector_buffer + 512);
 
 static const ini_section_t config_ini_sections[] = {
@@ -32,29 +31,29 @@ static const ini_section_t config_ini_sections[] = {
 };
 
 static const ini_var_t config_ini_vars[] = {
-  {"KICKSTART",        (void*)tmpconf.kickstart, STRING, 1, 79, 1},
-  {"FILTER_LO",        (void*)&tmpconf.filter.lores, UINT8, 0, 3, 1},
-  {"FILTER_HI",        (void*)&tmpconf.filter.hires, UINT8, 0, 3, 1},
-  {"MEMORY",           (void*)&tmpconf.memory, UINT8, 0, 127, 1},
-  {"CHIPSET",          (void*)&tmpconf.chipset, UINT8, 0, 127, 1},
-  {"FLOPPY_SPD",       (void*)&tmpconf.floppy.speed, UINT8, 0, 1, 1},
-  {"FLOPPY_CNT",       (void*)&tmpconf.floppy.drives, UINT8, 0, 4, 1},
-  {"AR3_DISABLE",      (void*)&tmpconf.disable_ar3, UINT8, 0, 1, 1},
-  {"IDE0_ENABLE",      (void*)&tmpconf.enable_ide[0], UINT8, 0, 1, 1},
-  {"IDE1_ENABLE",      (void*)&tmpconf.enable_ide[1], UINT8, 0, 1, 1},
-  {"SCANLINES",        (void*)&tmpconf.scanlines, UINT8, 0, 15, 1},
-  {"HDD0_ENABLE",      (void*)&tmpconf.hardfile[0].enabled, UINT32, 0, 255, 1},
-  {"HDD0",             (void*)tmpconf.hardfile[0].path, STRING, 1, 63, 1},
-  {"HDD1_ENABLE",      (void*)&tmpconf.hardfile[1].enabled, UINT32, 0, 255, 1},
-  {"HDD1",             (void*)tmpconf.hardfile[1].path, STRING, 1, 63, 1},
-  {"HDD2_ENABLE",      (void*)&tmpconf.hardfile[2].enabled, UINT32, 0, 255, 1},
-  {"HDD2",             (void*)tmpconf.hardfile[2].path, STRING, 1, 63, 1},
-  {"HDD3_ENABLE",      (void*)&tmpconf.hardfile[3].enabled, UINT32, 0, 255, 1},
-  {"HDD3",             (void*)tmpconf.hardfile[3].path, STRING, 1, 63, 1},
-  {"CPU",              (void*)&tmpconf.cpu, UINT8, 0, 15, 1},
-  {"AUTOFIRE",         (void*)&tmpconf.autofire, UINT8, 0, 7, 1},
-  {"AUDIOFILTERMODE",  (void*)&tmpconf.features.audiofiltermode, UINT8, 0, 2, 1},
-  {"POWERLEDOFFSTATE", (void*)&tmpconf.features.powerledoffstate, UINT8, 0, 1, 1}
+  {"KICKSTART",        (void*)config.minimig_tmp.kickstart, STRING, 1, FF_LFN_BUF-1, 1},
+  {"FILTER_LO",        (void*)&config.minimig_tmp.filter.lores, UINT8, 0, 3, 1},
+  {"FILTER_HI",        (void*)&config.minimig_tmp.filter.hires, UINT8, 0, 3, 1},
+  {"MEMORY",           (void*)&config.minimig_tmp.memory, UINT8, 0, 127, 1},
+  {"CHIPSET",          (void*)&config.minimig_tmp.chipset, UINT8, 0, 127, 1},
+  {"FLOPPY_SPD",       (void*)&config.minimig_tmp.floppy.speed, UINT8, 0, 1, 1},
+  {"FLOPPY_CNT",       (void*)&config.minimig_tmp.floppy.drives, UINT8, 0, 4, 1},
+  {"AR3_DISABLE",      (void*)&config.minimig_tmp.disable_ar3, UINT8, 0, 1, 1},
+  {"IDE0_ENABLE",      (void*)&config.minimig_tmp.enable_ide[0], UINT8, 0, 1, 1},
+  {"IDE1_ENABLE",      (void*)&config.minimig_tmp.enable_ide[1], UINT8, 0, 1, 1},
+  {"SCANLINES",        (void*)&config.minimig_tmp.scanlines, UINT8, 0, 15, 1},
+  {"HDD0_ENABLE",      (void*)&config.minimig_tmp.hardfile[0].enabled, UINT32, 0, 255, 1},
+  {"HDD0",             (void*)config.minimig_tmp.hardfile[0].path, STRING, 1, 63, 1},
+  {"HDD1_ENABLE",      (void*)&config.minimig_tmp.hardfile[1].enabled, UINT32, 0, 255, 1},
+  {"HDD1",             (void*)config.minimig_tmp.hardfile[1].path, STRING, 1, 63, 1},
+  {"HDD2_ENABLE",      (void*)&config.minimig_tmp.hardfile[2].enabled, UINT32, 0, 255, 1},
+  {"HDD2",             (void*)config.minimig_tmp.hardfile[2].path, STRING, 1, 63, 1},
+  {"HDD3_ENABLE",      (void*)&config.minimig_tmp.hardfile[3].enabled, UINT32, 0, 255, 1},
+  {"HDD3",             (void*)config.minimig_tmp.hardfile[3].path, STRING, 1, 63, 1},
+  {"CPU",              (void*)&config.minimig_tmp.cpu, UINT8, 0, 15, 1},
+  {"AUTOFIRE",         (void*)&config.minimig_tmp.autofire, UINT8, 0, 7, 1},
+  {"AUDIOFILTERMODE",  (void*)&config.minimig_tmp.features.audiofiltermode, UINT8, 0, 2, 1},
+  {"POWERLEDOFFSTATE", (void*)&config.minimig_tmp.features.powerledoffstate, UINT8, 0, 1, 1}
 };
 
 static void ClearKickstartMirrorE0(void)
@@ -87,10 +86,9 @@ static void ClearVectorTable(void)
   delay_usec(1);
 }
 
-char kick1xfoundstr[] = "Kickstart v1.x found\n";
-const char applymemdetectionpatchstr[] = "Applying Kickstart 1.x memory detection patch\n";
-
-const char *kickfoundstr = NULL, *applypatchstr = NULL;
+static char kick1xfoundstr[] = "Kickstart v1.x found\n";
+static const char applymemdetectionpatchstr[] = "Applying Kickstart 1.x memory detection patch\n";
+static const char *kickfoundstr = NULL, *applypatchstr = NULL;
 
 static void PatchKick1xMemoryDetection()
 {
@@ -292,13 +290,13 @@ static bool UploadActionReplay()
   data = 0xff; // key, 1 byte
   SPI((data>>0)&0xff);
   delay_usec(1);
-  data = config.enable_ide[0] ? 0xff : 0; // ide, 1 byte
+  data = config.minimig.enable_ide[0] ? 0xff : 0; // ide, 1 byte
   SPI((data>>0)&0xff);
   delay_usec(1);
   data = 0xff; // a1200, 1 byte
   SPI((data>>0)&0xff);
   delay_usec(1);
-  data = config.chipset&CONFIG_AGA ? 0xff : 0; // aga, 1 byte
+  data = (config.minimig.chipset & CONFIG_AGA) ? 0xff : 0; // aga, 1 byte
   SPI((data>>0)&0xff);
   delay_usec(1);
   data = 0xff; // insert, 1 byte
@@ -313,7 +311,7 @@ static bool UploadActionReplay()
   data = 0x00; // cd32, 1 byte
   SPI((data>>0)&0xff);
   delay_usec(1);
-  data = !!(config.chipset & CONFIG_NTSC); // screenmode, 1 byte
+  data = !!(config.minimig.chipset & CONFIG_NTSC); // screenmode, 1 byte
   SPI((data>>0)&0xff);
   delay_usec(1);
   data = 0xff; // novbr, 1 byte
@@ -329,7 +327,7 @@ static bool UploadActionReplay()
   delay_usec(1);
   addr = 0xa10000 + 68;
   spi_osd_cmd32le_cont(OSD_CMD_WR, addr);
-  data = ((config.memory&0x3) + 1) * 512 * 1024; // maxchip, 4 bytes TODO is this correct?
+  data = ((config.minimig.memory & 0x3) + 1) * 512 * 1024; // maxchip, 4 bytes TODO is this correct?
   SPI((data>>24)&0xff); SPI((data>>16)&0xff); delay_usec(1); SPI((data>>8)&0xff); SPI((data>>0)&0xff);
   delay_usec(1);
   DisableOsd();
@@ -342,9 +340,9 @@ static bool UploadActionReplay()
 void SetConfigurationFilename(int slot)
 {
   if (slot) {
-    siprintf(configfilename, "/MINIMIG%d.CFG", slot);
+    siprintf(config.filename, "/MINIMIG%d.CFG", slot);
   } else {
-    strcpy(configfilename, "/MINIMIG.CFG");
+    strcpy(config.filename, "/MINIMIG.CFG");
   }
 }
 
@@ -354,7 +352,7 @@ bool ConfigurationExists(const char *filename)
   FIL file;
   if (!filename) {
     // use slot-based filename if none provided
-    filename = configfilename;
+    filename = config.filename;
   }
   if (f_open(&file, filename, FA_READ) == FR_OK) {
     f_close(&file);
@@ -373,10 +371,10 @@ bool LoadConfiguration(const char *filename, bool verbose)
 
   if (!filename) {
     // use slot-based filename if none provided
-    filename = configfilename;
+    filename = config.filename;
   }
 
-  memset((void*)&tmpconf, 0, sizeof(config));
+  memset(&config.minimig_tmp, 0, sizeof(minimig_config_t));
 
   const ini_cfg_t config_ini = {
     .filename = filename,
@@ -388,17 +386,17 @@ bool LoadConfiguration(const char *filename, bool verbose)
 
   ini_parse(&config_ini, 0, 0);
 
-  if (tmpconf.floppy.drives<=4 && tmpconf.kickstart[0]) {
+  if (config.minimig_tmp.floppy.drives <= 4 && config.minimig_tmp.kickstart[0]) {
     // successfully loaded the config
-    memcpy((void*)&config, (void*)&tmpconf, sizeof(config));
+    memcpy(&config.minimig, &config.minimig_tmp, sizeof(minimig_config_t));
     result = true;
   } else {
     // using default configuration
-    memset((void*)&config, 0, sizeof(config));
-    strncpy(config.kickstart, "KICK.ROM", sizeof(config.kickstart));
-    config.memory = 0x11;
-    config.floppy.drives = 1;
-    config.floppy.speed = CONFIG_FLOPPY2X;
+    memset(&config.minimig, 0, sizeof(minimig_config_t));
+    strncpy(config.minimig.kickstart, "KICK.ROM", sizeof(config.minimig.kickstart));
+    config.minimig.memory = 0x11;
+    config.minimig.floppy.drives = 1;
+    config.minimig.floppy.speed = CONFIG_FLOPPY2X;
     BootPrintEx("*** No config found. Using defaults.");
     BootPrintEx(" ");
   }
@@ -406,12 +404,12 @@ bool LoadConfiguration(const char *filename, bool verbose)
   // print config to boot screen
   if (verbose) {
     char cfg_str[81];
-    siprintf(cfg_str, "CPU:     %s", config_cpu_msg[config.cpu & 0x03]); BootPrintEx(cfg_str);
-    siprintf(cfg_str, "Chipset: %s", config_chipset_msg[(config.chipset >> 2) & 7]); BootPrintEx(cfg_str);
+    siprintf(cfg_str, "CPU:     %s", config_cpu_msg[config.minimig.cpu & 0x03]); BootPrintEx(cfg_str);
+    siprintf(cfg_str, "Chipset: %s", config_chipset_msg[(config.minimig.chipset >> 2) & 7]); BootPrintEx(cfg_str);
     siprintf(cfg_str, "Memory:  CHIP: %s  FAST: %s  SLOW: %s%s",
-        config_memory_chip_msg[(config.memory >> 0) & 0x03],
+        config_memory_chip_msg[(config.minimig.memory >> 0) & 0x03],
         config_memory_fast_txt(),
-        config_memory_slow_msg[(config.memory >> 2) & 0x03],
+        config_memory_slow_msg[(config.minimig.memory >> 2) & 0x03],
         minimig_cfg.kick1x_memory_detection_patch ? "  [Kick 1.x patch enabled]" : "");
     BootPrintEx(cfg_str);
   }
@@ -419,12 +417,12 @@ bool LoadConfiguration(const char *filename, bool verbose)
   key = OsdGetCtrl();
   if (key == KEY_F1) {
     // force NTSC mode if F1 pressed
-    config.chipset |= CONFIG_NTSC;
+    config.minimig.chipset |= CONFIG_NTSC;
   }
 
   if (key == KEY_F2) {
     // force PAL mode if F2 pressed
-    config.chipset &= ~CONFIG_NTSC;
+    config.minimig.chipset &= ~CONFIG_NTSC;
   }
 
   ApplyConfiguration(true);
@@ -434,24 +432,24 @@ bool LoadConfiguration(const char *filename, bool verbose)
 //// ApplyConfiguration() ////
 static void ApplyConfiguration(bool reloadkickstart)
 {
-  ConfigCPU(config.cpu);
+  ConfigCPU(config.minimig.cpu);
 
   if (!reloadkickstart) {
-    ConfigChipset(config.chipset);
-    ConfigFloppy(config.floppy.drives, config.floppy.speed);
+    ConfigChipset(config.minimig.chipset);
+    ConfigFloppy(config.minimig.floppy.drives, config.minimig.floppy.speed);
   }
 
   bool idxfail = false;
 
-  for (int i = 0; i < ARRAY_SIZE(config.hardfile); i++)
-    hardfile[i] = &config.hardfile[i];
+  for (int i = 0; i < ARRAY_SIZE(config.minimig.hardfile); i++)
+    hardfile[i] = &config.minimig.hardfile[i];
 
   ResetMenu();
 
   // Whether or not we uploaded a kickstart image we now need to set various parameters from the config.
-  for (int i = 0; i < ARRAY_SIZE(hdf); i++) {
+  for (int i = 0; i < ARRAY_SIZE(config.hdf); i++) {
     if (OpenHardfile(i, true)) {
-      switch(hdf[i].type) {
+      switch (hdf[i].type) {
         // Customise message for SD card acces
         case (HDF_FILE | HDF_SYNTHRDB):
           siprintf(s, "\nHardfile %d (with fake RDB): %s", i, get_fname(hardfile[i]->path));
@@ -485,43 +483,45 @@ static void ApplyConfiguration(bool reloadkickstart)
     BootPrintEx("*** Indexing failed for a hardfile, continuing without indices.");
   }
 
-  ConfigIDE(config.enable_ide[0],        config.hardfile[0].present && config.hardfile[0].enabled, config.hardfile[1].present && config.hardfile[1].enabled);
-  ConfigIDE(config.enable_ide[1] | 0x02, config.hardfile[2].present && config.hardfile[2].enabled, config.hardfile[3].present && config.hardfile[3].enabled);
+  ConfigIDE(config.minimig.enable_ide[0],        config.minimig.hardfile[0].present && config.minimig.hardfile[0].enabled, config.minimig.hardfile[1].present && config.minimig.hardfile[1].enabled);
+  ConfigIDE(config.minimig.enable_ide[1] | 0x02, config.minimig.hardfile[2].present && config.minimig.hardfile[2].enabled, config.minimig.hardfile[3].present && config.minimig.hardfile[3].enabled);
 
-  siprintf(s, "CPU clock     : %s", config.chipset & 0x01 ? "turbo" : "normal");
+  siprintf(s, "CPU clock     : %s", config.minimig.chipset & 0x01 ? "turbo" : "normal");
   BootPrint(s);
-  siprintf(s, "Chip RAM size : %s", config_memory_chip_msg[config.memory & 0x03]);
+  siprintf(s, "Chip RAM size : %s", config_memory_chip_msg[config.minimig.memory & 0x03]);
   BootPrint(s);
-  siprintf(s, "Slow RAM size : %s", config_memory_slow_msg[config.memory >> 2 & 0x03]);
+  siprintf(s, "Slow RAM size : %s", config_memory_slow_msg[config.minimig.memory >> 2 & 0x03]);
   BootPrint(s);
   siprintf(s, "Fast RAM size : %s", config_memory_fast_txt());
   BootPrint(s);
-  siprintf(s, "Floppy drives : %u", config.floppy.drives + 1);
+  siprintf(s, "Floppy drives : %u", config.minimig.floppy.drives + 1);
   BootPrint(s);
-  siprintf(s, "Floppy speed  : %s", config.floppy.speed ? "fast": "normal");
+  siprintf(s, "Floppy speed  : %s", config.minimig.floppy.speed ? "fast": "normal");
   BootPrint(s);
   BootPrint("");
-  siprintf(s, "\nA600 IDE HDC is %s/%s.", config.enable_ide[0] ? "enabled" : "disabled", config.enable_ide[1] ? "enabled" : "disabled");
+  siprintf(s, "\nA600 IDE HDC is %s/%s.",
+    config.minimig.enable_ide[0] ? "enabled" : "disabled",
+    config.minimig.enable_ide[1] ? "enabled" : "disabled");
   BootPrint(s);
 
-  for (int i = 0; i < ARRAY_SIZE(config.hardfile); i++) {
+  for (int i = 0; i < ARRAY_SIZE(config.minimig.hardfile); i++) {
     siprintf(s, "%s %s HDD is %s.",
       (i & 0x02) ? "Secondary" : "Primary", (i & 0x01) ? "Slave" : "Master",
-      config.hardfile[i].present ? config.hardfile[i].enabled ? "enabled" : "disabled" : "not present");
+      config.minimig.hardfile[i].present ? config.minimig.hardfile[i].enabled ? "enabled" : "disabled" : "not present");
     BootPrint(s);
   }
 
   BootPrint("\nExiting bootloader...");
 
-  ConfigMemory(config.memory);
-  ConfigCPU(config.cpu);
-  ConfigAutofire(config.autofire);
+  ConfigMemory(config.minimig.memory);
+  ConfigCPU(config.minimig.cpu);
+  ConfigAutofire(config.minimig.autofire);
 
   {
-    ConfigVideo(config.filter.hires, config.filter.lores, config.scanlines);
-    ConfigChipset(config.chipset);
-    ConfigFloppy(config.floppy.drives, config.floppy.speed);
-    ConfigFeatures(config.features.audiofiltermode, config.features.powerledoffstate);
+    ConfigVideo(config.minimig.filter.hires, config.minimig.filter.lores, config.minimig.scanlines);
+    ConfigChipset(config.minimig.chipset);
+    ConfigFloppy(config.minimig.floppy.drives, config.minimig.floppy.speed);
+    ConfigFeatures(config.minimig.features.audiofiltermode, config.minimig.features.powerledoffstate);
 
     if (reloadkickstart) {
       debugf("Reloading Kickstart ...");
@@ -533,9 +533,9 @@ static void ApplyConfiguration(bool reloadkickstart)
       DisableOsd();
       delay_usec(50);
       UploadActionReplay();
-      if (!UploadKickstart(config.kickstart)) {
-        strcpy(config.kickstart, "KICK.ROM");
-        if (!UploadKickstart(config.kickstart)) {
+      if (!UploadKickstart(config.minimig.kickstart)) {
+        strcpy(config.minimig.kickstart, "KICK.ROM");
+        if (!UploadKickstart(config.minimig.kickstart)) {
           FatalError(ERROR_KICKSTART_UPLOAD);
         }
       }
@@ -564,7 +564,7 @@ bool SaveConfiguration(const char *filename)
 {
   if (!filename) {
     // use slot-based filename if none provided
-    filename = configfilename;
+    filename = config.filename;
   }
 
   const ini_cfg_t config_ini = {
@@ -575,6 +575,6 @@ bool SaveConfiguration(const char *filename)
     .vars = config_ini_vars,
   };
 
-  memcpy((void*)&tmpconf, (void*)&config, sizeof(config));
+  memcpy(&config.minimig_tmp, &config.minimig, sizeof(minimig_config_t));
   return ini_save(&config_ini, 0);
 }

@@ -29,7 +29,9 @@
 #include <data_io.h>
 #include <fat_compat.h>
 #include <cue_parser.h>
+#include <config_union.h>
 #include <osd.h>
+#include <utils.h>
 #include <debug.h>
 
 extern char s[OSD_BUF_SIZE];
@@ -40,6 +42,7 @@ extern char s[OSD_BUF_SIZE];
 
 typedef enum _RomType {ROM_NORMAL, ROM_PROCESSED} RomType;
 
+static hardfileTYPE *hardfiles = config.hardfiles;
 static unsigned char selected_drive_slot;
 static char data_processor_id[4]; // Max 3 chars, plus null at end
 static RomType romtype;
@@ -76,7 +79,7 @@ static menu_page_plugin_t *get_page_plugin(const char *plugin_id) {
 	return NULL;
 }
 
-static void substrcpy(char *d, char *s, char idx) {
+static void substrcpy(char *d, const char *s, char idx) {
 	char p = 0;
 
 	while (*s) {
@@ -91,7 +94,7 @@ static void substrcpy(char *d, char *s, char idx) {
 	*d = 0;
 }
 
-static char* GetExt(char *ext) {
+static char* GetExt(const char *ext) {
 	static char extlist[32];
 	char *p = extlist;
 
@@ -106,14 +109,14 @@ static char* GetExt(char *ext) {
 	return extlist+1;
 }
 
-static unsigned char getIdx(char *opt) {
+static unsigned char getIdx(const char *opt) {
 	if ((opt[1]>='0') && (opt[1]<='9')) return opt[1]-'0';    // bits 0-9
 	if ((opt[1]>='A') && (opt[1]<='Z')) return opt[1]-'A'+10; // bits 10-35
 	if ((opt[1]>='a') && (opt[1]<='z')) return opt[1]-'a'+36; // bits 36-61
 	return 0; // basically 0 cannot be valid because used as a reset. Thus can be used as a error.
 }
 
-static unsigned char getStatus(char *opt, unsigned long long status) {
+static unsigned char getStatus(const char *opt, unsigned long long status) {
 	int idx1 = getIdx(opt);
 	int idx2 = getIdx(opt+1);
 	unsigned char x = !!(status & ((unsigned long long)BIT(idx1)));
@@ -126,7 +129,7 @@ static unsigned char getStatus(char *opt, unsigned long long status) {
 	return x;
 }
 
-static unsigned long long setStatus(char *opt, unsigned long long status, unsigned char value) {
+static unsigned long long setStatus(const char *opt, unsigned long long status, unsigned char value) {
 	unsigned char idx1 = getIdx(opt);
 	unsigned char idx2 = getIdx(opt+1);
 	unsigned long long x = 1;
@@ -176,6 +179,7 @@ static char RomFileSelected(uint8_t, const char *SelectedName) {
 static char ImageFileSelected(uint8_t idx, const char *SelectedName) {
 	// select image for SD card
 	debugf("Image selected: %s", SelectedName);
+
 	if ((user_io_get_core_features() & (FEAT_IDE0 << (2*selected_drive_slot))) == (FEAT_IDE0_ATA << (2*selected_drive_slot))) {
 		debugf("IDE %d: ATA Hard Disk", selected_drive_slot);
 		hardfiles[selected_drive_slot].enabled = HDF_FILE;
@@ -194,27 +198,31 @@ static char ImageFileSelected(uint8_t idx, const char *SelectedName) {
 static char CueFileSelected(uint8_t idx, const char *SelectedName) {
 	char res;
 	debugf("Cue file selected: %s", SelectedName);
+
 	data_io_set_index(user_io_ext_idx(SelectedName, fs_pFileExt)<<6 | selected_drive_slot);
 	res = user_io_cue_mount(SelectedName, selected_drive_slot);
 	if (res) ErrorMessage(cue_error_msg[res-1], res);
 	else     CloseMenu();
+
 	return 0;
 }
 
 static char GetMenuPage_8bit(uint8_t idx, char action, menu_page_t *page) {
-	if (action == MENU_PAGE_EXIT) return 0;
+	if (action == MENU_PAGE_EXIT)
+		return 0;
 
 	const char *p = user_io_get_core_name();
 	if (!p[0]) page->title = "8BIT";
 	else       page->title = p;
+
 	page->flags = OSD_ARROW_RIGHT;
 	page->timer = 0;
 	page->stdexit = MENU_STD_EXIT;
+
 	return 0;
 }
 
 static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
-
 	char *p;
 	char *pos;
 	unsigned long long status = user_io_8bit_set_status(0,0); // 0,0 gets status
@@ -235,9 +243,12 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 		item->page = 0xff; // hide
 		return 1;
 	}
+
 	p = user_io_8bit_get_string(idx);
 	menu_debugf("Option %d: %s", idx, p);
-	if (idx > 1 && !p) return 0;
+
+	if (idx > 1 && !p)
+		return 0;
 
 	// check if there's a file type supported
 	if (idx == 1) {
@@ -398,8 +409,9 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	// check for 'T'oggle strings
 	if (p && (p[0] == 'T')) {
 		if (action == MENU_ACT_SEL || action == MENU_ACT_PLUS || action == MENU_ACT_MINUS) {
-			unsigned long long mask = (unsigned long long)BIT(getIdx(p));
-			menu_debugf("Option %s 0x%llx", p, status ^ mask);
+			uint64_t mask = 1ULL << getIdx(p);
+			menu_debugf("Option %s 0x" PRIu64_llx,
+				p, PRIu64_LOW(status ^ mask), PRIu64_HIGH(status ^ mask));
 			// change bit
 			user_io_8bit_set_status(status ^ mask, mask);
 			// ... and change it again in case of a toggle bit

@@ -2,6 +2,7 @@
 #define TOS_H
 
 #include <user_io_core.h>
+#include <hdd.h>
 #include <utils.h>
 
 // FPGA spi commands
@@ -81,6 +82,19 @@
 
 #define TOS_CONTROL_VIKING        BIT(28)   // Viking graphics card
 #define TOS_CONTROL_BLEND         BIT(29)   // Composite blending
+
+typedef struct {
+  char path[FF_LFN_BUF];
+} image_path_t;
+
+typedef struct {
+  uint32_t system_ctrl;
+  char cdc_control_redirect;
+  char tos_img[FF_LFN_BUF];
+  char cart_img[FF_LFN_BUF];
+  hardfileTYPE acsi[2];
+  image_path_t fdd[2];
+} st_config_t;
 
 char tos_get_cdc_control_redirect();
 void tos_set_cdc_control_redirect(char mode);

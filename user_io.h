@@ -11,6 +11,7 @@
 #include <spi.h>
 #include <attrs.h>
 #include <user_io_core.h>
+#include <cue_parser.h>
 #include <hdd.h>
 
 #define UIO_STATUS          0x00
@@ -137,9 +138,7 @@
 
 extern uint32_t core_type; // current core type
 extern const user_io_core_t *core; // current core support module
-
 extern bool osd_is_visible;
-extern hardfileTYPE hardfiles[HARDFILES];
 
 // serial status data type returned from the core
 typedef struct {
@@ -170,7 +169,6 @@ void user_io_serial_tx(char *, uint16_t);
 bool user_io_serial_status(serial_status_t *, uint8_t);
 bool user_io_is_mounted(int index);
 bool user_io_file_mount(const unsigned char *, int);
-bool user_io_is_cue_mounted();
 char user_io_cue_mount(const unsigned char *, int);
 void user_io_sd_ack(uint8_t drive_index);
 void user_io_sd_set_config();
@@ -187,6 +185,10 @@ void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
 
 static inline bool user_io_osd_is_visible() {
     return osd_is_visible;
+}
+
+static inline bool user_io_is_cue_mounted() {
+    return toc.valid;
 }
 
 void user_io_change_into_core_dir();

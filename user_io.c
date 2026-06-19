@@ -9,7 +9,7 @@
 #include <data_io.h>
 #include <8bit/core.h>
 #include <minimig/core.h>
-#include <archie.h>
+#include <config_union.h>
 #include <psx.h>
 #include <tos.h>
 #include "cdc_control.h"
@@ -17,7 +17,6 @@
 #include "mist_cfg.h"
 #include "mmc.h"
 #include "arc_file.h"
-#include "cue_parser.h"
 #include <FatFs/diskio.h>
 #include "serial_sink.h"
 #include <utils.h>
@@ -25,7 +24,12 @@
 
 #ifdef HAVE_HDMI
 #include "it6613/HDMI_TX.h"
-#endif
+#define HDMI_FREQ 1000
+static uint8_t i2c_flags;
+static uint32_t hdmi_timer;
+static bool hdmi_detected = 0;
+static uint8_t hdmi_hiclk = 0;
+#endif // HAVE_HDMI
 
 extern char s[OSD_BUF_SIZE];
 
@@ -42,12 +46,6 @@ static const struct {
 
 const user_io_core_t *core = NULL;
 uint32_t core_type = CORE_TYPE_UNKNOWN;
-extern char core_name[16 + 1];
-
-extern int64_t core_mod;
-extern uint32_t core_features;
-extern uint16_t conf_idx[CONF_TBL_MAX];
-extern int conf_items;
 
 #define RTC_FREQ 500
 static uint32_t rtc_timer;
@@ -56,23 +54,10 @@ static uint32_t rtc_timer;
 // to the core which may be in use by an active OSD
 bool osd_is_visible = false;
 
-// ATA drives
-hardfileTYPE hardfiles[HARDFILES];
-
 static char umounted; // 1st image is file or direct SD?
 ALIGNED(4) static char cache_buffer[1024];
 static uint8_t buffer_drive_index = 0;
 static uint32_t buffer_lba = 0xffffffff;
-
-#ifdef HAVE_HDMI
-
-static uint8_t i2c_flags;
-static uint32_t hdmi_timer;
-static bool hdmi_detected = 0;
-static uint8_t hdmi_hiclk = 0;
-#define HDMI_FREQ 1000
-
-#endif // HAVE_HDMI
 
 static void user_io_send_buttons(bool);
 
@@ -83,17 +68,16 @@ void user_io_reset()
 	umounted = 0;
 	toc.valid = 0;
 	for (int n = 0; n < ARRAY_SIZE(sd_image); n++) {
-		sd_image[0].valid = 0;
+		IDXClose(&sd_image[n]);
 	}
-	for (int i = 0; i < ARRAY_SIZE(hardfiles); i++) {
-		hardfiles[i].enabled = HDF_DISABLED;
-		hardfiles[i].present = 0;
+	if (core && core->eject_all) {
+		core->eject_all();
 	}
-	core_mod = 0;
 	core_features = 0;
+	user_io_set_core_mod(0);
 	user_io_hid_reset();
+	config.conf_idx[0] = 0;
 	conf_items = 0;
-	conf_idx[0] = 0;
 	core = NULL;
 }
 
@@ -345,11 +329,6 @@ void user_io_eth_send_rx_frame(uint8_t *s, uint16_t len)
 	// spi_write(s, len);
 	spi8(0); // one additional byte to allow fpga to store the previous one
 	DisableIO();
-}
-
-bool user_io_is_cue_mounted()
-{
-	return toc.valid;
 }
 
 char user_io_cue_mount(const unsigned char *name, int index)
@@ -954,7 +933,7 @@ static char user_io_i2c_stat(uint8_t *data)
 {
 	unsigned char c, d;
 
-	while (1)
+	while (true)
 	{
 		spi_uio_cmd_cont(UIO_I2C_GET);
 		c = SPI(0xff);
