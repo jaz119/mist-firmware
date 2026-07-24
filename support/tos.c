@@ -336,7 +336,7 @@ static bool tos_upload_mistery(const char *name) {
     }
     f_close(&file);
   } else {
-    tos_debugf("Unable to find %s", config.tos_img);
+    tos_debugf("Unable to find %s", config.st.tos_img);
     return false;
   }
 
@@ -521,8 +521,7 @@ static void tos_eject_all() {
 
 static void tos_config_load(int slot) {
   // load/init configuration
-  static int last_slot = 0;
-  int new_slot = (slot == -1) ? last_slot : slot;
+  int new_slot = (slot == -1) ? config.last_slot : slot;
 
   tos_eject_all();
 
@@ -537,7 +536,7 @@ static void tos_config_load(int slot) {
 
   if (ini_parse(&config_ini, 0, 0)) {
     runtime_ctrl = config.st.system_ctrl;
-    last_slot = slot;
+    config.last_slot = slot;
     return;
   }
 

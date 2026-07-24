@@ -26,6 +26,7 @@ typedef union {
     struct {
         st_config_t st;
         char fname[16];
+        int last_slot;
     }; // MISTery
     struct {
         union {
