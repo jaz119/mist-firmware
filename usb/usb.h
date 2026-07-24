@@ -327,8 +327,8 @@ usb_device_t *usb_get_next_device(bool);
 usb_device_t *usb_get_device(usb_dev_type_t);
 usb_device_t *usb_get_devices();
 
-typedef bool (*usb_dev_visitor_cb_t)(usb_device_t *, void *);
-void visit_devices(usb_dev_visitor_cb_t visitor, void *);
+typedef bool (*usb_dev_visitor_cb)(usb_device_t *, void *);
+void visit_devices(uint8_t class_type, usb_dev_visitor_cb, void *);
 
 // device-specific functions
 uint8_t usb_in_transfer( usb_device_t *, ep_t *ep, uint16_t *nbytesptr, uint8_t *data );
@@ -338,6 +338,7 @@ uint8_t usb_ctrl_req( usb_device_t *, uint8_t bmReqType,
                       uint16_t wInd, uint16_t nbytes, uint8_t *dataptr );
 void usb_hw_init();
 uint8_t usb_poll();
+
 void usb_SetHubPreMask(void);
 void usb_ResetHubPreMask(void);
 

@@ -162,7 +162,7 @@ char virtual_joystick_remap(char *s, char action, int tag) {
         if (count < 16) {
             //parse sub-tokens sequentially and assign 16-bit value to them
             joystick_mappers[i].mapping[count] = value;
-            hid_debugf("parsed: 0x%x/0x%x %lu -> %d",
+            hid_debugf("parsed: 0x%x/0x%x %u -> %d",
                       joystick_mappers[i].vid, joystick_mappers[i].pid,
                       count, joystick_mappers[i].mapping[count]);
         }
@@ -233,16 +233,16 @@ void virtual_joystick_tag_update(uint16_t vid, uint16_t pid, int newtag)
  */
 
 FORCE_ARM uint16_t virtual_joystick_mapping(
-	uint16_t vid, uint16_t pid, uint16_t joy_input, const joy_remap_t *remap ) {
+	uint16_t vid, uint16_t pid, uint16_t joy_input, const joy_remap_t *remap) {
 
 	// no events - no work
 	if (!joy_input) return 0;
 
 	// defines translations between physical buttons and virtual joysticks
-	uint16_t mapping[16];
+	uint16_t mapping[ARRAY_SIZE(default_joystick_mapping)];
 
 	// Init all by defaults
-	for (int i = 0; i < 16; i++) {
+	for (int i=0; i<ARRAY_SIZE(mapping); i++) {
 		mapping[i] = default_joystick_mapping[i];
 	}
 
@@ -250,7 +250,7 @@ FORCE_ARM uint16_t virtual_joystick_mapping(
 	if (remap && remap->count) {
 		for (int n=0; n<remap->count; n++) {
 			uint8_t i = remap->btn[n].idx;
-			if (i < 16) {
+			if (i<ARRAY_SIZE(mapping)) {
 				mapping[i] = remap->btn[n].value;
 			}
 		}
@@ -267,7 +267,7 @@ FORCE_ARM uint16_t virtual_joystick_mapping(
 		if (joystick_mappers[j].vid == vid
 		  && joystick_mappers[j].pid == pid
 		  && joystick_mappers[j].tag >= tag) {
-			for (int i=0; i<16; i++)
+			for (int i=0; i<ARRAY_SIZE(mapping); i++)
 				mapping[i] = joystick_mappers[j].mapping[i];
 			tag = joystick_mappers[j].tag + 1;
 		}
@@ -275,7 +275,7 @@ FORCE_ARM uint16_t virtual_joystick_mapping(
 
 	// Get map of pressed buttons
 	uint16_t vjoy = 0;
-	for (int i=0; i<16; i++)
+	for (int i=0; i<ARRAY_SIZE(mapping); i++)
 		if (joy_input & BIT(i))
 			vjoy |= mapping[i];
 
@@ -427,7 +427,6 @@ bool virtual_joystick_keyboard( uint16_t vjoy ) {
 	}
 
 	// process mapped keyboard commands from mist.ini
-	uint8_t mapped_hit = 0;
 	uint8_t modifier = 0;
 	//uint8_t joy_buf[6] = { 0,0,0,0,0,0 };
 	for (uint32_t i=0; i<MAX_JOYSTICK_KEYBOARD_MAP; i++) {

@@ -76,7 +76,7 @@ void user_io_reset()
 	core_features = 0;
 	user_io_set_core_mod(0);
 	user_io_hid_reset();
-	config.conf_idx[0] = 0;
+	memset(&config, 0, sizeof(united_config_t));
 	conf_items = 0;
 	core = NULL;
 }

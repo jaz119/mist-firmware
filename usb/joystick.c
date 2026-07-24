@@ -29,14 +29,14 @@ typedef struct {
     uint8_t round;  // 0 for pure devices, 1 for composite
 } visitor_ctx_t;
 
-static bool shift_jindex_visitor(usb_device_t *dev, void *arg) {
+static bool jindex_shift(usb_device_t *dev, void *arg) {
     visitor_ctx_t *ctx = (visitor_ctx_t *)arg;
     usb_hid_info_t *info = &(dev->hid_info);
     bool is_composite = false;
 
     if (!dev->vid && !dev->pid)
         return true;
-    if (dev->class->type != USB_HID || !(info->device_types & HID_DEVICE_JOYSTICK))
+    if (!(info->device_types & HID_DEVICE_JOYSTICK))
         return true;
 
     if (info->device_types & HID_DEVICE_KEYBOARD)
@@ -73,11 +73,11 @@ uint8_t joysticks_renumber() {
     visitor_ctx_t ctx = { 0, 0 };
 
     // native usb joysticks must be first in list
-    visit_devices(shift_jindex_visitor, &ctx);
+    visit_devices(USB_HID, jindex_shift, &ctx);
 
     // composite devices after they
     ctx.round = 1;
-    visit_devices(shift_jindex_visitor, &ctx);
+    visit_devices(USB_HID, jindex_shift, &ctx);
 
     return ctx.jindex;
 }

@@ -61,8 +61,8 @@ typedef struct {
   union {
     struct {
       int16_t rem[MAX_AXES];  // mouse: position remainder
-      uint8_t is_alive;       // mouse: is alive
-    };
+      uint8_t is_indexed;     // mouse: jindex is valid
+    } mouse;
     uint32_t jmap;            // joystick: last reported state
     uint16_t key_state;       // 5200daptor: last reported key state
   };

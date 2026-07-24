@@ -119,7 +119,7 @@ static unsigned char getIdx(const char *opt) {
 static unsigned char getStatus(const char *opt, unsigned long long status) {
 	int idx1 = getIdx(opt);
 	int idx2 = getIdx(opt+1);
-	unsigned char x = !!(status & ((unsigned long long)BIT(idx1)));
+	unsigned char x = !!(status & (1ULL<<idx1));
 
 	if (idx2>idx1) {
 		x = status >> idx1;

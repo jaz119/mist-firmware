@@ -445,15 +445,10 @@ static uint8_t usb_hid_init(usb_device_t *dev, usb_device_descriptor_t *dev_desc
 	return 0;
 }
 
-typedef struct {
-	uint8_t value;
-} visitor_ctx_t;
+static bool usb_mouse_reindex(usb_device_t *dev, void *arg) {
+	uint8_t *c_jindex = (uint8_t *)arg;
 
-static bool usb_mouse_reindex_above(usb_device_t *dev, void *arg) {
-	visitor_ctx_t *ctx = (visitor_ctx_t *)arg;
-
-	if (dev->class->type != USB_HID
-		|| !(dev->hid_info.device_types & HID_DEVICE_MOUSE))
+	if (!(dev->hid_info.device_types & HID_DEVICE_MOUSE))
 		return true;
 
 	for (uint8_t n = 0; n<dev->hid_info.num_ifaces; n++)
@@ -463,8 +458,33 @@ static bool usb_mouse_reindex_above(usb_device_t *dev, void *arg) {
 		if (iface->device_type != HID_DEVICE_MOUSE)
 			continue;
 
-		if (iface->jindex > ctx->value)
+		if (iface->mouse.is_indexed)
+			continue;
+
+		iface->jindex = *c_jindex++;
+		iface->mouse.is_indexed = true;
+	}
+
+	return true;
+}
+
+static bool usb_mouse_reindex_on_remove(usb_device_t *dev, void *arg) {
+	const uint8_t c_jindex = *(uint8_t *)arg;
+
+	if (!(dev->hid_info.device_types & HID_DEVICE_MOUSE))
+		return true;
+
+	for (uint8_t n = 0; n<dev->hid_info.num_ifaces; n++)
+	{
+		usb_hid_iface_info_t *iface = &dev->hid_info.iface[n];
+
+		if (iface->device_type != HID_DEVICE_MOUSE)
+			continue;
+
+		if (iface->jindex > c_jindex)
 			iface->jindex--;
+
+		iface->mouse.is_indexed = false;
 	}
 
 	return true;
@@ -472,7 +492,6 @@ static bool usb_mouse_reindex_above(usb_device_t *dev, void *arg) {
 
 static uint8_t usb_hid_release(usb_device_t *dev) {
 	usb_hid_info_t *info = &(dev->hid_info);
-	hid_debugf("%s()", __FUNCTION__);
 
 	// mark for deletion
 	dev->vid = dev->pid = 0;
@@ -489,7 +508,7 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 
 		// check if a keyboard is released
 		if (iface->device_type == HID_DEVICE_KEYBOARD) {
-			hid_debugf("releasing keyboard #%d", keyboards);
+			hid_debugf("releasing keyboard #%d", keyboards - 1);
 			keyboards--;
 		}
 
@@ -497,39 +516,12 @@ static uint8_t usb_hid_release(usb_device_t *dev) {
 		if (iface->device_type == HID_DEVICE_MOUSE) {
 			uint8_t c_jindex = iface->jindex;
 			hid_debugf("releasing mouse #%d, renumbering", c_jindex);
-			visitor_ctx_t ctx = { c_jindex };
-			visit_devices(usb_mouse_reindex_above, &ctx);
+			visit_devices(USB_HID, usb_mouse_reindex_on_remove, &c_jindex);
 			mice--;
 		}
 	}
 
 	return 0;
-}
-
-// find a live mouse before this one
-FORCE_ARM static bool has_alive_before(const usb_device_t *dev)
-{
-	const usb_device_t *devs = usb_get_devices();
-
-	while (dev > &devs[0] && dev < &devs[USB_NUMDEVICES])
-	{
-		dev--; // get previous
-		if (!dev->bAddress || !dev->class || dev->class->type != USB_HID)
-			continue;
-
-		if (!(dev->hid_info.device_types & HID_DEVICE_MOUSE))
-			continue;
-
-		const usb_hid_iface_info_t *it = &dev->hid_info.iface[0],
-			*it_end = &dev->hid_info.iface[dev->hid_info.num_ifaces];
-
-		for (; it != it_end; it++) {
-			if (it->device_type == HID_DEVICE_MOUSE && it->is_alive)
-				return true;
-		}
-	}
-
-	return false;
 }
 
 // collect bits from byte stream and assemble them into a signed word
@@ -646,19 +638,25 @@ FORCE_ARM static void usb_process_iface(
 
 		for (uint32_t i=0; i<3; i++) {
 			if (i < 2) {
-				int32_t val = (int32_t)a[i] * mouse_speed + iface->rem[i];
+				int32_t val = (int32_t)a[i] * mouse_speed + iface->mouse.rem[i];
 				a[i] = val / 100;
-				iface->rem[i] = val - (a[i] * 100);
+				iface->mouse.rem[i] = val - (a[i] * 100);
 			}
 			if (a[i] > 127) a[i] = 127;
 			else if (a[i] < -128) a[i] = -128;
 		}
 
-		user_io_mouse(
-			has_alive_before(dev) ? 1 : 0,
-			btn, a[0], a[1], a[2]);
+		// first mouse selection
+		if (!iface->mouse.is_indexed) {
+			if (iface->mouse.rem[0] != 0 || iface->mouse.rem[1] != 0 || iface->mouse.rem[2] != 0) {
+				iface->mouse.is_indexed = true;
+				iface->jindex = 0;
+				uint8_t c_jindex = 1;
+				visit_devices(USB_HID, usb_mouse_reindex, &c_jindex);
+			}
+		}
 
-		iface->is_alive = true;
+		user_io_mouse(iface->jindex > 0, btn, a[0], a[1], a[2]);
 		return;
 	}
 
@@ -779,10 +777,9 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 }
 
 static bool set_kbd_led(usb_device_t *dev, void *arg) {
-	visitor_ctx_t *ctx = (visitor_ctx_t *)arg;
+	const uint8_t kbd_led_state = *(uint8_t *)arg;
 
-	if (dev->class->type != USB_HID
-		|| !(dev->hid_info.device_types & HID_DEVICE_KEYBOARD))
+	if (!(dev->hid_info.device_types & HID_DEVICE_KEYBOARD))
 		return true;
 
 	for (uint8_t n = 0; n<dev->hid_info.num_ifaces; n++)
@@ -798,10 +795,10 @@ static bool set_kbd_led(usb_device_t *dev, void *arg) {
 
 		if (report_id != 0) {
 			report[0] = report_id;
-			report[1] = ctx->value;
+			report[1] = kbd_led_state;
 			size = 2;
 		} else {
-			report[0] = ctx->value;
+			report[0] = kbd_led_state;
 		}
 
 		hid_set_report(dev, iface->iface_idx, 2, report_id, size, report);
@@ -818,8 +815,7 @@ void hid_set_kbd_led(unsigned char led, bool on) {
 		else    kbd_led_state &= ~led;
 
 		// update leds for all keyboards
-		visitor_ctx_t ctx = { kbd_led_state };
-		visit_devices(set_kbd_led, &ctx);
+		visit_devices(USB_HID, set_kbd_led, &kbd_led_state);
 	}
 }
 

@@ -5,13 +5,14 @@
 #include <errno.h>
 #include <time.h>
 
-#include "usb.h"
-#include "hid.h"
-#include "state.h"
-#include "mist_cfg.h"
+#include <usb.h>
+#include <hid.h>
+#include <state.h>
+#include <user_io.h>
+#include <mist_cfg.h>
 
 uint8_t adc_state = 0;
-uint32_t core_type = 0xff;
+uint32_t core_type = CORE_TYPE_UNKNOWN;
 bool osd_is_visible = false;
 mist_cfg_t mist_cfg;
 
@@ -186,13 +187,19 @@ uint8_t usb_ctrl_req(
     return 5; /* hrSTALL */
 }
 
-uint8_t user_io_swap_joystick(uint8_t joystick)
+uint8_t user_io_swap_joystick(uint8_t joy)
 {
-    if (joystick < 2) {
-        joystick ^= 1;
+    if (joy < 2 && !mist_cfg.joystick_disable_swap)
+    {
+        joy ^= 1;
     }
 
-    return joystick;
+    if (joy == 0 && mist_cfg.joystick0_prefer_db9)
+    {
+        return 1;
+    }
+
+    return joy;
 }
 
 static bool load_report(uint8_t *buf, const char* fname)
@@ -225,6 +232,15 @@ int main(int argc, char *argv[])
     }
 
     printf("\n");
+
+    mist_cfg.mouse_speed = 50;
+    mist_cfg.joystick_analog_mult = 20;
+    mist_cfg.joystick_analog_offset = -100;
+    mist_cfg.joystick_ignore_hat = false;
+    mist_cfg.joystick_db9_fixed_index = 0;
+    mist_cfg.joystick_disable_swap = 1;
+    mist_cfg.joystick0_prefer_db9 = 0;
+    mist_cfg.joystick_dead_range = 4;
 
     usb_device_t *dev = &usb_get_devices()[0];
     usb_device_descriptor_t dev_desc;

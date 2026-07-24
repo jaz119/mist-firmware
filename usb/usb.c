@@ -46,12 +46,15 @@ usb_device_t *usb_get_next_device(bool with_poll) {
 	return NULL;
 }
 
-void visit_devices(usb_dev_visitor_cb_t visitor, void *ctx) {
+void visit_devices(uint8_t class_type, usb_dev_visitor_cb visitor, void *ctx) {
 	usb_device_t *it = &usb_devices[0],
 		*it_end = &usb_devices[USB_NUMDEVICES];
 
 	for (; it != it_end; it++) {
 		if (!it->bAddress || !it->class)
+			continue;
+
+		if (class_type != 0 && it->class->type != class_type)
 			continue;
 
 		if (!visitor(it, ctx))

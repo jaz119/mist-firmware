@@ -435,7 +435,7 @@ static void poll_keyrah(
     uint8_t *keys = mods + 2;
 
     int count = 0;
-    uint8_t fn = 0, rctrl = 0, empty = 1;
+    uint8_t fn = 0, rctrl = 0;
 
     // Removing of unnecessary
     for (int i = 0; i < 6; i++)
@@ -443,10 +443,7 @@ static void poll_keyrah(
         if (!keys[i]) continue;
         if (keys[i] == 0x64) fn = 1;
         else if (keys[i] == 0x32) rctrl = 1;
-        else {
-            empty = 0;
-            keys[count++] = keys[i];
-        }
+        else keys[count++] = keys[i];
     }
     for (int i = count; i < 6; i++)
         keys[i] = 0;
