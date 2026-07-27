@@ -63,7 +63,7 @@ static bool jindex_shift(usb_device_t *dev, void *arg) {
         StateUsbIdSet(
             dev->vid, dev->pid,
             iface->conf.joystick_mouse.button_count,
-            iface->jindex);
+            joystick_index(iface->jindex));
     }
 
     return true;

@@ -387,9 +387,6 @@ static char CoreFileSelected(uint8_t idx, const char *SelectedName) {
 	if (err != ERROR_NONE)
 		FatalError(err);
 
-	// De-init joysticks to allow re-ordering for new core
-	StateResetAll();
-
 	usb_dev_reconnect();
 	CloseMenu();
 
