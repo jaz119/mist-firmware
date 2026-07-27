@@ -416,6 +416,8 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			user_io_8bit_set_status(status ^ mask, mask);
 			// ... and change it again in case of a toggle bit
 			user_io_8bit_set_status(status, mask);
+			// hide OSD
+			CloseMenu();
 		} else if (action == MENU_ACT_GET) {
 			s[0] = ' ';
 			substrcpy(s+1, p, 1);

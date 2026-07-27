@@ -68,7 +68,7 @@ static unsigned char dialog_menusub;
 static unsigned char dialog_autoclose;
 
 static uint8_t menustate = MENU_NONE1;
-static uint8_t parentstate;
+static uint8_t parentstate = MENU_NONE1;
 uint32_t menusub = 0;
 static uint32_t menumask = 0; // Used to determine which rows are selectable...
 static unsigned long menu_timer = 0;
@@ -145,7 +145,7 @@ static const char *buttons[16] = {
 
 // prints input as a string of binary (on/off) values
 // assumes big endian, returns using special characters (checked box/unchecked box)
-static void siprintbinary(char* buffer, uint8_t byte)
+static void siprintbinary(char *buffer, uint8_t byte)
 {
 	for (int j=0; j<8; j++) {
 		buffer[j] = (byte & 1) ? '\x1a' : '\x19';
@@ -298,10 +298,12 @@ static void get_joystick_id( char usb_id[32], unsigned char joy_num ) {
 static char FirmwareUpdateError() {
 	switch (Error) {
 		case ERROR_FILE_NOT_FOUND :
-			DialogBox("\n       Update file\n        not found!\n", MENU_DIALOG_OK, 0);
+			DialogBox("\n       Update file\n"
+					"        not found!\n", MENU_DIALOG_OK, 0);
 			break;
 		case ERROR_INVALID_DATA :
-			DialogBox("\n       Invalid\n     update file!\n", MENU_DIALOG_OK, 0);
+			DialogBox("\n       Invalid\n"
+					"     update file!\n", MENU_DIALOG_OK, 0);
 			break;
 		case ERROR_UPDATE_FAILED :
 			DialogBox("\n\n    Update failed!\n", MENU_DIALOG_OK, 0);
@@ -310,7 +312,7 @@ static char FirmwareUpdateError() {
 	return 0;
 }
 
-static char FirmwareUpdatingDialog(uint8_t idx) {
+static char OnFirmwareUpdate(uint8_t idx) {
 	WriteFirmware("/FIRMWARE.UPG");
 	Error = ERROR_UPDATE_FAILED;
 	FirmwareUpdateError();
@@ -319,7 +321,8 @@ static char FirmwareUpdatingDialog(uint8_t idx) {
 
 static char FirmwareUpdateDialog(uint8_t idx) {
 	if (idx == 0) { // Yes
-		DialogBox("\n      Updating firmware\n\n         Please wait\n", 0, FirmwareUpdatingDialog);
+		DialogBox("\n      Updating firmware\n"
+				"\n         Please wait\n", 0, OnFirmwareUpdate);
 	}
 	return 0;
 }
@@ -327,20 +330,21 @@ static char FirmwareUpdateDialog(uint8_t idx) {
 static char OnReset(uint8_t idx) {
 	if (idx != 0)
 		return 0; // No
-	CloseMenu();
-	if (core && core->reset) {
-		core->reset(true);
-	}
-	if (user_io_core_type() != CORE_TYPE_8BIT)
-		return 0;
-	if (settings_save(false)) {
-		debugf("Settings for %s written", user_io_get_core_name());
-		if (core && core->setup_menu) {
-			core->setup_menu();
+	if (user_io_core_type() == CORE_TYPE_MINIMIG_V2) {
+		CloseMenu();
+		if (core && core->reset) {
+			core->reset(true);
 		}
-		menusub = 0;
 	} else {
-		ErrorMessage("\n   Error writing settings!\n", 0);
+		user_io_8bit_set_status(arc_get_default(), ~0);
+		if (settings_save(false)) {
+			debugf("Settings for %s reset", user_io_get_core_name());
+			if (core && core->setup_menu) {
+				core->setup_menu();
+			}
+			menusub = 0;
+		} else
+			ErrorMessage("\n   Error writing settings!\n", 0);
 	}
 	return 0;
 }
@@ -409,7 +413,8 @@ static char KeyEvent_System(uint8_t key) {
 		if (key == KEY_F2 && !setup_phase) {
 			virtual_joystick_tag_update(vid, pid, 1); // new tag -> global tag
 			if (settings_save(true)) {
-				DialogBox("\n        Saved global\n     joystick mappings.", MENU_DIALOG_OK, NULL);
+				DialogBox("\n        Saved global\n"
+					"     joystick mappings.", MENU_DIALOG_OK, NULL);
 			} else {
 				ErrorMessage("\n   Error writing settings!\n", 0);
 			}
@@ -418,7 +423,8 @@ static char KeyEvent_System(uint8_t key) {
 		if (key == KEY_F3 && !setup_phase) {
 			virtual_joystick_tag_update(vid, pid, 2); // new tag -> core tag
 			if (settings_save(false)) {
-				DialogBox("\n         Saved core\n     joystick mappings.", MENU_DIALOG_OK, NULL);
+				DialogBox("\n         Saved core"
+					"\n     joystick mappings.", MENU_DIALOG_OK, NULL);
 			} else {
 				ErrorMessage("\n   Error writing settings!\n", 0);
 			}
@@ -528,7 +534,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					if (is_a || is_st) {
 						item->active = 0;
 					} else
-						item->item = " Reset";
+						item->item = is_m ? " Reset" : " Reset settings";
 					break;
 				case 4:
 					if (is_m || is_a || is_st) {
@@ -896,9 +902,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->newpage = 3;
 					break;
 				case 3: {
-					DialogBox("\n       Reset system?",
-						MENU_DIALOG_YESNO,
-						OnReset);
+					DialogBox(is_m ? "\n         Reset MiST?" : "\n       Reset settings?",
+						MENU_DIALOG_YESNO, OnReset);
 					break;
 				}
 				case 4:
@@ -1257,15 +1262,14 @@ void HandleUI(uint8_t key)
 			{
 				bool need_menu = (user_io_get_core_features() & FEAT_MENU);
 				bool is_menu_core = !strcmp(user_io_get_core_name(), "MENU");
-				if (core && core->setup_menu) {
-					if (!is_menu_core || need_menu) {
-						// new menu cores does have a settings page
+				if (!is_menu_core || need_menu) {
+					if (core && core->setup_menu) {
 						core->setup_menu();
-					} else {
-						// old menu core
-						SetupSystemMenu();
-						page_idx = 1; // Firmware & Core page
 					}
+				} else {
+					// old menu core
+					SetupSystemMenu();
+					page_idx = 1; // Firmware & Core page
 				}
 				if (user_io_core_type() == CORE_TYPE_8BIT) {
 					// the "menu" core is special in jumps directly to the core selection menu
@@ -1369,7 +1373,7 @@ void HandleUI(uint8_t key)
 				page_timer = GetTimer(menu_page.timer);
 			menustate = MENU_NG2;
 			parentstate = MENU_NG1;
-			menu_debugf("menu_first: %d menu_last: %d menusub: %d menumask: %02x",
+			menu_debugf("menu_first: %d menu_last: %d menusub: %ld menumask: %02lx",
 				menuidx[0], menuidx[menu_last], menusub, menumask);
 		}
 		break;

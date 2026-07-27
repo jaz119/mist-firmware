@@ -264,7 +264,7 @@ uint64_t user_io_8bit_set_status(uint64_t new_status, uint64_t mask)
         status &= ~mask;
 
         // updated masked bits
-        status |= new_status & mask;
+        status |= (new_status & mask);
 
         spi_uio_cmd8(UIO_SET_STATUS, status);
         spi_uio_cmd64(UIO_SET_STATUS2, status);
@@ -340,21 +340,11 @@ static void generic_8bit_init()
     // try to load config
     if (!user_io_create_config_name(s, "CFG", CONFIG_ROOT))
     {
-        debugf("Loading config %s", s);
-
         if (f_open(&file, s, FA_READ) == FR_OK)
         {
-            debugf("Found config");
+            debugf("Loading config %s", s);
 
-            if (f_size(&file) <= 8)
-            {
-                ((unsigned long long*)sector_buffer)[0] = 0;
-                f_read(&file, sector_buffer, f_size(&file), &br);
-                user_io_8bit_set_status(((unsigned long long*)sector_buffer)[0], ~1);
-            } else {
-                settings_load(false);
-            }
-
+            settings_load(false);
             f_close(&file);
         }
         else
@@ -479,7 +469,6 @@ static void generic_8bit_poll()
 static void generic_8bit_reset(bool)
 {
     kbd_reset = 1;
-    user_io_8bit_set_status(arc_get_default(), ~0);
 }
 
 static void eject_all()

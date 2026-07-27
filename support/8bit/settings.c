@@ -85,7 +85,7 @@ unsigned char settings_save(char global)
 		return 0;
 
 	if (!global)
-		status = user_io_8bit_set_status(0,0);
+		status = user_io_8bit_set_status(0, 0);
 
 	virtual_joystick_remap_init(true);
 	ini_save(&core_ini_cfg, global ? 1 : 2);

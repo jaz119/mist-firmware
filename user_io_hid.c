@@ -963,6 +963,10 @@ void user_io_check_reset(uint16_t modifiers, char useKeys)
         if (core && core->reset)
         {
             core->reset(true);
+
+            CloseMenu();
+            ResetMenu();
+            OsdDisable();
         }
     }
     else
