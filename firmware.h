@@ -1,6 +1,8 @@
 #ifndef FIRMWARE_H
 #define FIRMWARE_H
 
+#include <stdbool.h>
+
 typedef struct
 {
     unsigned long flags;
@@ -18,10 +20,10 @@ typedef struct
     unsigned long crc;
 } UPGRADE;
 
-FORCE_ARM unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize);
-unsigned char CheckFirmware(char *name);
+bool CheckFirmware(const char *name);
+const char *GetFirmwareVersion(const char *name);
 
-FORCE_ARM RAMFUNC void WriteFirmware(char *name);
-char *GetFirmwareVersion(char *name);
+FORCE_ARM unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer, unsigned long nSize);
+FORCE_ARM RAMFUNC void WriteFirmware(const char *name);
 
 #endif // FIRMWARE_H

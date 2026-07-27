@@ -1,4 +1,4 @@
- /*
+/*
 Copyright 2008, 2009 Jakub Bednarski
 
 This file is part of Minimig
@@ -19,12 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 #include <string.h>
-#include "errors.h"
-#include "hardware.h"
-#include "irqflags.h"
-#include "barriers.h"
-#include "fat_compat.h"
-#include "firmware.h"
+#include <barriers.h>
+#include <hardware.h>
+#include <irqflags.h>
+#include <fat_compat.h>
+#include <firmware.h>
+#include <errors.h>
 
 #ifndef FW_ID
 #define FW_ID "MNMGUPG"
@@ -47,7 +47,7 @@ FORCE_ARM unsigned long CalculateCRC32(unsigned long crc, unsigned char *pBuffer
    return crc;
 }
 
-unsigned char CheckFirmware(char *name)
+bool CheckFirmware(const char *name)
 {
     unsigned long crc;
     unsigned long size;
@@ -92,7 +92,7 @@ unsigned char CheckFirmware(char *name)
                             iprintf("Flash overflow: %lu > %lu\n",
                                 pUpgrade->rom.size, (unsigned long)IFLASH_SIZE);
                             f_close(&file);
-                            return 0;
+                            return false;
                         }
 
                         crc = -1; // initial CRC32 value
@@ -118,7 +118,7 @@ unsigned char CheckFirmware(char *name)
                             // upgrade file CRC is OK so go back to the beginning of the file
                             f_close(&file);
                             Error = ERROR_NONE;
-                            return 1;
+                            return true;
                         }
                         else iprintf("ROM CRC mismatch! from header: %08lX, calculated: %08lX\n",
                             rom_crc, ~crc);
@@ -137,23 +137,23 @@ unsigned char CheckFirmware(char *name)
         f_close(&file);
     }
     else iprintf("Cannot open firmware file!\n");
-    return 0;
+    return false;
 }
 
-char *GetFirmwareVersion(char *name) {
-  ALIGNED(4) static char v[16];
-  FIL file;
-  UINT br;
+const char *GetFirmwareVersion(const char *name) {
+    static char v[16];
+    FIL file;
+    UINT br;
 
-  if ((f_open(&file, name, FA_READ) != FR_OK) || (f_size(&file) < sizeof(UPGRADE)))
-    return NULL;
+    if ((f_open(&file, name, FA_READ) != FR_OK) || (f_size(&file) < sizeof(UPGRADE)))
+        return NULL;
 
-  f_read(&file, sector_buffer, 512, &br);
-  strncpy(v, ((UPGRADE*)sector_buffer)->version, 16);
-  v[15] = 0;
-  f_close(&file);
+    f_read(&file, sector_buffer, 512, &br);
+    strncpy(v, ((UPGRADE*)sector_buffer)->version, 16);
+    v[15] = 0;
+    f_close(&file);
 
-  return v;
+    return v;
 }
 
 // enable some nasty hacks to prevent gcc calling memset/memcpy during flash as these
@@ -162,7 +162,8 @@ char *GetFirmwareVersion(char *name) {
 #define GCC_OPTIMZES_TOO_MUCH
 
 #pragma section_code_init
-FORCE_ARM RAMFUNC void WriteFirmware(char *name)
+
+FORCE_ARM RAMFUNC void WriteFirmware(const char *name)
 {
     unsigned long read_size;
     unsigned long i;
@@ -172,8 +173,8 @@ FORCE_ARM RAMFUNC void WriteFirmware(char *name)
     unsigned long *pDst;
     FIL file;
 
-    // Since the file may have changed in the meantime, it needs to be
-    // opened again...
+    // Since the file may have changed in the meantime,
+    // it needs to be opened again...
     if (f_open(&file, name, FA_READ) != FR_OK)
         return;
 
@@ -249,6 +250,7 @@ FORCE_ARM RAMFUNC void WriteFirmware(char *name)
     }
 
     DISKLED_OFF;
-    MCUReset(); // restart
+    MCUReset();
 }
+
 #pragma section_no_code_init

@@ -554,8 +554,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					item->active = 0;
 					break;
 				case 8: {
-					char *v = GetFirmwareVersion("/FIRMWARE.UPG");
-					if(v)
+					const char *v = GetFirmwareVersion("/FIRMWARE.UPG");
+					if (v)
 						siprintf(s, "   FILE s/w ver. %s", v);
 					else
 						s[0] = 0;

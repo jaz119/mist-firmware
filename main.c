@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <8bit/core.h>
 #include <osd.h>
 #include <fpga.h>
+#include <firmware.h>
 #include <minimig/fdd.h>
 #include <minimig/config.h>
 #include <menu.h>
@@ -184,6 +185,13 @@ int main()
 
     ChangeDirectoryName("/");
 
+    if (UserButton() && MenuButton())
+    {
+        const char *fname = "FIRMWARE.UPG";
+        if (CheckFirmware(fname))
+            WriteFirmware(fname);
+    }
+
     arc_reset();
     font_load();
     eth_init();
@@ -199,7 +207,7 @@ int main()
     {
         user_io_detect_core_type();
 
-        if(user_io_core_type() != CORE_TYPE_UNKNOWN && !user_io_create_config_name(s, "ARC", CONFIG_ROOT))
+        if (user_io_core_type() != CORE_TYPE_UNKNOWN && !user_io_create_config_name(s, "ARC", CONFIG_ROOT))
         {
             // when loaded from USB, try to load the development ARC file
             iprintf("Load development ARC: %s\n", s);

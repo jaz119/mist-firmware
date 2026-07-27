@@ -224,8 +224,4 @@ void DisableIO();
 #define DEBUG_FUNC_IN()
 #define DEBUG_FUNC_OUT()
 
-unsigned char CheckFirmware(char *name);
-void WriteFirmware(char *name);
-char *GetFirmwareVersion(char *name);
-
 #endif
