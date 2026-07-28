@@ -85,21 +85,21 @@ bool user_io_create_config_name(char *s, const char *ext, uint8_t flags)
     if (p[0])
     {
         if (flags & CONFIG_ROOT)
-            strcpy(s,"/");
+            strcpy(s, "/");
         else
             s[0] = 0;
 
         strcat(s, p);
         if (ext)
         {
-            strcat(s,".");
-            strcat(s,ext);
+            strcat(s, ".");
+            strcat(s, ext);
         }
 
-        return false;
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 char user_io_is_8bit_with_config_string()
@@ -338,7 +338,7 @@ static void generic_8bit_init()
     user_io_8bit_set_status(UIO_STATUS_RESET, ~0);
 
     // try to load config
-    if (!user_io_create_config_name(s, "CFG", CONFIG_ROOT))
+    if (user_io_create_config_name(s, "CFG", CONFIG_ROOT))
     {
         if (f_open(&file, s, FA_READ) == FR_OK)
         {
@@ -367,7 +367,7 @@ static void generic_8bit_init()
 
         for (char root = 0; root <= 1; root++)
         {
-            if (!user_io_create_config_name(s, ext, root))
+            if (user_io_create_config_name(s, ext, root))
             {
                 debugf("Looking for %s", s);
 
@@ -381,7 +381,7 @@ static void generic_8bit_init()
         }
     }
 
-    if (!user_io_create_config_name(s, "RAM", CONFIG_ROOT))
+    if (user_io_create_config_name(s, "RAM", CONFIG_ROOT))
     {
         debugf("Looking for %s", s);
 
@@ -406,7 +406,7 @@ static void generic_8bit_init()
     }
 
     // check if there's a <core>.vhd present
-    if (!user_io_create_config_name(s, "VHD", CONFIG_ROOT | CONFIG_VHD))
+    if (user_io_create_config_name(s, "VHD", CONFIG_ROOT | CONFIG_VHD))
     {
         debugf("Looking for %s", s);
 
@@ -418,7 +418,7 @@ static void generic_8bit_init()
         if (!user_io_is_mounted(0))
         {
             // check for <core>.HD0/1 files
-            if (!user_io_create_config_name(s, "HD0", CONFIG_ROOT | CONFIG_VHD))
+            if (user_io_create_config_name(s, "HD0", CONFIG_ROOT | CONFIG_VHD))
             {
                 for (int i = 0; i < ARRAY_SIZE(sd_image); i++)
                 {

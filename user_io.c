@@ -165,7 +165,7 @@ void user_io_init_core()
 
 static void user_io_send_rtc()
 {
-	uint8_t date[7];
+	ctime_t date;
 
 	if (!GetRTC((uint8_t *)&date))
 		return;
@@ -592,7 +592,7 @@ void user_io_poll()
 	user_io_hid_poll();
 	user_io_send_buttons(false);
 
-	// serial IO - TODO: merge with MiST2
+	// serial IO - TODO: merge with MiSTery
 	if (core_type == CORE_TYPE_8BIT)
 	{
 		uint32_t c = 1, f, p = 0;

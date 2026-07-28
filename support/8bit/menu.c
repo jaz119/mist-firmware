@@ -37,10 +37,13 @@
 extern char s[OSD_BUF_SIZE];
 
 //////////////////////////
-/////// 8-bit menu ///////
+/////// 8BIT menu ///////
 //////////////////////////
 
-typedef enum _RomType {ROM_NORMAL, ROM_PROCESSED} RomType;
+typedef enum _RomType {
+	ROM_NORMAL,
+	ROM_PROCESSED
+} RomType;
 
 static hardfileTYPE *hardfiles = config.hardfiles;
 static unsigned char selected_drive_slot;
@@ -110,16 +113,16 @@ static char* GetExt(const char *ext) {
 }
 
 static unsigned char getIdx(const char *opt) {
-	if ((opt[1]>='0') && (opt[1]<='9')) return opt[1]-'0';    // bits 0-9
-	if ((opt[1]>='A') && (opt[1]<='Z')) return opt[1]-'A'+10; // bits 10-35
-	if ((opt[1]>='a') && (opt[1]<='z')) return opt[1]-'a'+36; // bits 36-61
+	if ((opt[1] >= '0') && (opt[1] <= '9')) return opt[1] - '0';      // bits 0-9
+	if ((opt[1] >= 'A') && (opt[1] <= 'Z')) return opt[1] - 'A' + 10; // bits 10-35
+	if ((opt[1] >= 'a') && (opt[1] <= 'z')) return opt[1] - 'a' + 36; // bits 36-61
 	return 0; // basically 0 cannot be valid because used as a reset. Thus can be used as a error.
 }
 
 static unsigned char getStatus(const char *opt, unsigned long long status) {
 	int idx1 = getIdx(opt);
-	int idx2 = getIdx(opt+1);
-	unsigned char x = !!(status & (1ULL<<idx1));
+	int idx2 = getIdx(opt + 1);
+	unsigned char x = !!(status & (1ULL << idx1));
 
 	if (idx2>idx1) {
 		x = status >> idx1;
@@ -131,10 +134,10 @@ static unsigned char getStatus(const char *opt, unsigned long long status) {
 
 static unsigned long long setStatus(const char *opt, unsigned long long status, unsigned char value) {
 	unsigned char idx1 = getIdx(opt);
-	unsigned char idx2 = getIdx(opt+1);
+	unsigned char idx2 = getIdx(opt + 1);
 	unsigned long long x = 1;
 
-	if (idx2>idx1) x = ~(~0 << (idx2 - idx1 + 1));
+	if (idx2 > idx1) x = ~(~0 << (idx2 - idx1 + 1));
 	x = x << idx1;
 
 	return (status & ~x) | (((unsigned long long)value << idx1) & x);
@@ -161,11 +164,21 @@ static char RomFileSelected(uint8_t, const char *SelectedName) {
 	// this assumes that further file entries only exist if the first one also exists
 	if (IDXOpen(index, SelectedName, FA_READ) == FR_OK) {
 		IDXIndex(index, selected_drive_slot);
+
 		if (romtype == ROM_PROCESSED) {
-			data_io_file_tx_processor(&(index->file), ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName), SelectedName, data_processor_id);
+			data_io_file_tx_processor(
+				&(index->file),
+				ext_idx << 6 | selected_drive_slot,
+				GetExtension(SelectedName),
+				SelectedName,
+				data_processor_id);
 		} else {
-			data_io_file_tx(&(index->file), ext_idx << 6 | selected_drive_slot, GetExtension(SelectedName));
+			data_io_file_tx(
+				&(index->file),
+				ext_idx << 6 | selected_drive_slot,
+				GetExtension(SelectedName));
 		}
+
 		IDXClose(index);
 	}
 
@@ -180,14 +193,14 @@ static char ImageFileSelected(uint8_t idx, const char *SelectedName) {
 	// select image for SD card
 	debugf("Image selected: %s", SelectedName);
 
-	if ((user_io_get_core_features() & (FEAT_IDE0 << (2*selected_drive_slot))) == (FEAT_IDE0_ATA << (2*selected_drive_slot))) {
+	if ((user_io_get_core_features() & (FEAT_IDE0 << (2 * selected_drive_slot))) == (FEAT_IDE0_ATA << (2 * selected_drive_slot))) {
 		debugf("IDE %d: ATA Hard Disk", selected_drive_slot);
 		hardfiles[selected_drive_slot].enabled = HDF_FILE;
 		sniprintf(hardfiles[selected_drive_slot].path, sizeof(hardfiles[0].path), "%s", SelectedName);
 		OpenHardfile(selected_drive_slot, false);
 		SendHDFCfg();
 	} else {
-		data_io_set_index(user_io_ext_idx(SelectedName, fs_pFileExt)<<6 | selected_drive_slot);
+		data_io_set_index(user_io_ext_idx(SelectedName, fs_pFileExt) << 6 | selected_drive_slot);
 		user_io_file_mount(SelectedName, selected_drive_slot);
 	}
 
@@ -199,9 +212,9 @@ static char CueFileSelected(uint8_t idx, const char *SelectedName) {
 	char res;
 	debugf("Cue file selected: %s", SelectedName);
 
-	data_io_set_index(user_io_ext_idx(SelectedName, fs_pFileExt)<<6 | selected_drive_slot);
+	data_io_set_index(user_io_ext_idx(SelectedName, fs_pFileExt) << 6 | selected_drive_slot);
 	res = user_io_cue_mount(SelectedName, selected_drive_slot);
-	if (res) ErrorMessage(cue_error_msg[res-1], res);
+	if (res) ErrorMessage(cue_error_msg[res - 1], res);
 	else     CloseMenu();
 
 	return 0;
@@ -216,8 +229,8 @@ static char GetMenuPage_8bit(uint8_t idx, char action, menu_page_t *page) {
 	else       page->title = p;
 
 	page->flags = OSD_ARROW_RIGHT;
-	page->timer = 0;
 	page->stdexit = MENU_STD_EXIT;
+	page->timer = 0;
 
 	return 0;
 }
@@ -225,7 +238,7 @@ static char GetMenuPage_8bit(uint8_t idx, char action, menu_page_t *page) {
 static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	char *p;
 	char *pos;
-	unsigned long long status = user_io_8bit_set_status(0,0); // 0,0 gets status
+	unsigned long long status = user_io_8bit_set_status(0, 0); // 0,0 gets status
 
 	if (action == MENU_ACT_RIGHT) {
 		SetupSystemMenu();
@@ -290,7 +303,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			// 'P' is to open a submenu
 			if (action == MENU_ACT_GET || action == MENU_ACT_SEL) {
 				s[0] = ' ';
-				substrcpy(s+1, p, 1);
+				substrcpy(s + 1, p, 1);
 				item->newpage = getIdx(p);
 			} else
 				return 0;
@@ -305,7 +318,8 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 				substrcpy(page_plugin_id, p + 3, 0);
 				substrcpy(page_plugin_arg1, p, 1);
 				substrcpy(page_plugin_arg2, p, 2);
-				menu_debugf("Executing Page plugin: %s with args %s, %s\n", page_plugin_id, page_plugin_arg1, page_plugin_arg2);
+				menu_debugf("Executing Page plugin: %s with args %s, %s\n",
+					page_plugin_id, page_plugin_arg1, page_plugin_arg2);
 				menu_page_plugin_t *plugin = get_page_plugin(page_plugin_id);
 				if (plugin) {
 					plugin->init_menu(page_plugin_arg1, page_plugin_arg2);
@@ -329,12 +343,12 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			bool is_cue = false;
 			unsigned char firstline = OsdLines() <= 8 ? 0 : 2;
 			selected_drive_slot = (p[0] == 'F') ? (menusub - firstline + 1) : 0;
-			if (p[0]=='S' && (p[1]=='C' || (p[1] && p[1] != ',' && p[2] == 'C'))) {
+			if (p[0] == 'S' && (p[1] == 'C' || (p[1] && p[1] != ',' && p[2] == 'C'))) {
 				// S[0-9]C - select CUE/ISO file
 				selected_drive_slot = 3;
 				is_cue = true;
 			}
-			if (p[1]>='0' && p[1]<='9') selected_drive_slot = p[1]-'0';
+			if (p[1] >= '0' && p[1] <= '9') selected_drive_slot = p[1] - '0';
 			romtype = ROM_NORMAL;
 			pos = p + 1;
 			while (*pos && *pos != ',') {
@@ -365,13 +379,13 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			if (p[0] == 'S' && p[1] && p[2] == 'U') {
 				// umount image
 				char slot = 0;
-				if (p[1]>='0' && p[1]<='9') slot = p[1]-'0';
+				if (p[1] >= '0' && p[1] <= '9') slot = p[1] - '0';
 				if (user_io_is_mounted(slot)) {
 					user_io_file_mount(0, slot);
 				}
 			}
 
-			if (p[0] == 'S' && (p[1]=='C' || (p[1] && p[1] != ',' && p[2] == 'C'))) {
+			if (p[0] == 'S' && (p[1] == 'C' || (p[1] && p[1] != ',' && p[2] == 'C'))) {
 				// umount cue
 				if (user_io_is_cue_mounted())
 					user_io_cue_mount(NULL, 0);
@@ -380,24 +394,24 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			substrcpy(s, p, 2);
 			if (strlen(s)) {
 				strcpy(s, " ");
-				substrcpy(s+1, p, 2);
+				substrcpy(s + 1, p, 2);
 				strcat(s, " *.");
 			} else {
 				if(p[0] == 'F') strcpy(s, " Load *.");
 				else            strcpy(s, " Mount *.");
 			}
 
-			pos = s+strlen(s);
+			pos = s + strlen(s);
 			substrcpy(pos, p, 1);
 			strcpy(pos, GetExt(pos));
 			if (p[0] == 'S' && p[1] && p[2] == 'U') {
 				char slot = 0;
-				if (p[1]>='0' && p[1]<='9') slot = p[1]-'0';
+				if (p[1] >= '0' && p[1] <= '9') slot = p[1] - '0';
 				if (user_io_is_mounted(slot)) {
 					s[0] = '\x1e';
 				}
 			}
-			if (p[0] == 'S' && (p[1]=='C' || (p[1] && p[1] != ',' && p[2] == 'C'))) {
+			if (p[0] == 'S' && (p[1] == 'C' || (p[1] && p[1] != ',' && p[2] == 'C'))) {
 				if (user_io_is_cue_mounted())
 					s[0] = '\x1f';
 			}
@@ -420,7 +434,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			CloseMenu();
 		} else if (action == MENU_ACT_GET) {
 			s[0] = ' ';
-			substrcpy(s+1, p, 1);
+			substrcpy(s + 1, p, 1);
 		} else {
 			return 0;
 		}
@@ -441,7 +455,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			user_io_8bit_set_status(preset & ~UIO_STATUS_RESET, mask | UIO_STATUS_RESET);
 		} else if (action == MENU_ACT_GET) {
 			s[0] = ' ';
-			substrcpy(s+1, p, 1);
+			substrcpy(s + 1, p, 1);
 		} else {
 			return 0;
 		}
@@ -452,7 +466,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 		if (action == MENU_ACT_SEL) {
 			unsigned char x = getStatus(p, status) + 1;
 			// check if next value available
-			substrcpy(s, p, 2+x);
+			substrcpy(s, p, 2 + x);
 			if (!strlen(s)) x = 0;
 			// menu_debugf("Option %s 0x%llx 0x%llx %x %x", p, status, mask, x2, x);
 			user_io_8bit_set_status(setStatus(p, status, x), ~0);
@@ -461,23 +475,23 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			menu_debugf("Option %s 0x%x 0x%lx", p, x, (uint32_t) status);
 
 			// get currently active option
-			substrcpy(s, p, 2+x);
+			substrcpy(s, p, 2 + x);
 			int l = strlen(s);
 			if (!l) {
 				// option's index is outside of available values.
 				// reset to 0.
 				x = 0;
 				user_io_8bit_set_status(setStatus(p, status, x), ~0);
-				substrcpy(s, p, 2+x);
+				substrcpy(s, p, 2 + x);
 				l = strlen(s);
 			}
 
 			s[0] = ' ';
-			substrcpy(s+1, p, 1);
+			substrcpy(s + 1, p, 1);
 			strcat(s, ":");
-			l = 26-l-strlen(s);
+			l = 26 - l - strlen(s);
 			while (l-- >= 0) strcat(s, " ");
-			substrcpy(s+strlen(s), p, 2+x);
+			substrcpy(s + strlen(s), p, 2 + x);
 		} else {
 			return 0;
 		}
@@ -486,12 +500,12 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 	// check for 'R'AM strings
 	if (p && (p[0] == 'R')) {
 		if (action == MENU_ACT_SEL) {
-			int len = strtol(p+1,0,0);
+			int len = strtol(p + 1, 0, 0);
 			menu_debugf("Option %s %d", p, len);
 			if (len) {
 				FIL file;
 
-				if (!user_io_create_config_name(s, "RAM", CONFIG_ROOT)) {
+				if (user_io_create_config_name(s, "RAM", CONFIG_ROOT)) {
 					menu_debugf("Saving RAM file");
 					if (f_open(&file, s, FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {
 						data_io_file_rx(&file, -1, len);
@@ -504,7 +518,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 			}
 		} else if (action == MENU_ACT_GET) {
 			s[0] = ' ';
-			substrcpy(s+1, p, 1);
+			substrcpy(s + 1, p, 1);
 		} else {
 			return 0;
 		}
@@ -519,6 +533,7 @@ static char GetMenuItem_8bit(uint8_t idx, char action, menu_item_t *item) {
 		item->item = "";
 		item->active = 0;
 	}
+
 	return 1;
 }
 

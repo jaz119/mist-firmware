@@ -353,9 +353,9 @@ static bool key_used_by_osd(uint16_t s)
 
     // in atari mode eat all keys if the OSD is online,
     // else none as it's up to the core to forward keys to the OSD
-    return ((core_type == CORE_TYPE_MISTERY)
-            || (core_type == CORE_TYPE_ARCHIE)
-            || (core_type == CORE_TYPE_8BIT));
+    return ((user_io_core_type() == CORE_TYPE_MISTERY)
+            || (user_io_core_type() == CORE_TYPE_ARCHIE)
+            || (user_io_core_type() == CORE_TYPE_8BIT));
 }
 
 void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority)
@@ -499,9 +499,9 @@ void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority)
                     else if (((mist_cfg.joystick_autofire_combo == 0 && k[i] == 0x62) // KP0
                                 || (mist_cfg.joystick_autofire_combo == 1 && k[i] == 0x2B)) // TAB
                             && (m & 0x05) == 0x05 // LCTR+LALT
-                            && (core_type == CORE_TYPE_8BIT
-                                || core_type == CORE_TYPE_ARCHIE
-                                || core_type == CORE_TYPE_MISTERY))
+                            && (user_io_core_type() == CORE_TYPE_8BIT
+                                || user_io_core_type() == CORE_TYPE_ARCHIE
+                                || user_io_core_type() == CORE_TYPE_MISTERY))
                     {
                         autofire = ((autofire + 1) & 0x03);
                         InfoMessage(config_autofire_msg[autofire]);
@@ -541,7 +541,7 @@ void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority)
     StateKeyboardSet(m, keycodes, keycodes_ps2);
 
     // set the typematic timer to the first delay
-    if (core_type == CORE_TYPE_8BIT)
+    if (user_io_core_type() == CORE_TYPE_8BIT)
     {
         ps2_typematic_timer = GetTimer((((ps2_typematic_rate & 0x60) >> 5) + 1) * 250);
     }

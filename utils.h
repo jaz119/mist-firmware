@@ -26,7 +26,7 @@ static inline int32_t ABS(int32_t value) {
 unsigned char decval(unsigned char in, unsigned char min, unsigned char max);
 unsigned char incval(unsigned char in, unsigned char min, unsigned char max);
 
-unsigned int bin2bcd(unsigned int in);
+unsigned char bin2bcd(unsigned int in);
 unsigned char bcd2bin(unsigned char in);
 
 int _strnicmp(const char *s1, const char *s2, size_t n);

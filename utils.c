@@ -6,22 +6,22 @@
 #include "utils.h"
 #include "attrs.h"
 
-unsigned int bin2bcd(unsigned int in) {
+unsigned char bin2bcd(unsigned int in) {
   unsigned int tens = (in * 205) >> 11;
   unsigned int units = in - (tens * 10);
-  return (tens << 4) | units;
+  return (unsigned char)((tens << 4) | units);
 }
 
 unsigned char bcd2bin(unsigned char in) {
-  return 10*(in >> 4) + (in & 0x0f);
+  return 10 * (in >> 4) + (in & 0x0f);
 }
 
 unsigned char decval(unsigned char in, unsigned char min, unsigned char max) {
-  return (in == min) ? max : in-1;
+  return (in == min) ? max : in - 1;
 }
 
 unsigned char incval(unsigned char in, unsigned char min, unsigned char max) {
-  return (in == max) ? min : in+1;
+  return (in == max) ? min : in + 1;
 }
 
 int _strnicmp(const char *s1, const char *s2, size_t n) {
@@ -47,11 +47,11 @@ void hexdump(const void *data, int size, int offset) {
   while(size>0) {
     iprintf("%04x: ", n + offset);
 
-    b2c = (size>16)?16:size;
-    for(i=0;i<b2c;i++)      iprintf("%02x ", 0xff&ptr[i]);
+    b2c = (size > 16) ? 16 : size;
+    for(i=0; i < b2c; i++) iprintf("%02x ", ptr[i] &  0xff);
     iprintf("  ");
-    for(i=0;i<(16-b2c);i++) iprintf("   ");
-    for(i=0;i<b2c;i++)      iprintf("%c", isprint(ptr[i])?ptr[i]:'.');
+    for(i=0; i < (16 - b2c); i++) iprintf("   ");
+    for(i=0; i < b2c; i++) iprintf("%c", isprint(ptr[i]) ? ptr[i] : '.');
     iprintf("\n");
     ptr  += b2c;
     size -= b2c;

@@ -437,7 +437,7 @@ static char KeyEvent_System(uint8_t key) {
 static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 	if (action == MENU_PAGE_EXIT) return 0;
 
-	page->timer = 1000;
+	page->timer = 500;
 	page->stdexit = MENU_STD_EXIT;
 	page->flags = 0;
 	helptext = helptexts[HELPTEXT_NONE];
@@ -486,7 +486,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 }
 
 static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
-	static uint8_t date[7];
+	static ctime_t date;
 	/* check joystick status */
 	static char joy_string[32];
 	static char joy_string2[32];
@@ -929,7 +929,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 				case 9:
 					if (fat_uses_mmc()) {
 						if (CheckFirmware("/FIRMWARE.UPG"))
-							DialogBox("\n     Update the firmware\n        Are you sure?", MENU_DIALOG_YESNO, FirmwareUpdateDialog);
+							DialogBox("\n     Update the firmware\n"
+								"        Are you sure?", MENU_DIALOG_YESNO, FirmwareUpdateDialog);
 						else
 							FirmwareUpdateError();
 					}
@@ -1329,14 +1330,15 @@ void HandleUI(uint8_t key)
 					}
 				} else {
 					if (idx == 0) {
-						uint8_t date[7];
+						ctime_t date;
 						bool rtc = GetRTC((uint8_t*)&date);
 						if (rtc) {
 							siprintf(s, "%s%04d/%02d/%02d %02d:%02d:%02d %s",
-								date[T_WDAY] == 4 ? "" : " ", 1900+date[T_YEAR], date[T_MONTH], date[T_DAY],
+								date[T_WDAY] == 4 ? "" : " ",
+								1900+date[T_YEAR], date[T_MONTH], date[T_DAY],
 								date[T_HOUR], date[T_MIN], date[T_SEC],
 								(date[T_WDAY] && date[T_WDAY] <= 7) ? days[date[T_WDAY]-1] : "--------");
-							if (!menu_page.timer) menu_page.timer = 1000;
+							if (!menu_page.timer) menu_page.timer = 500;
 						} else {
 							int len = strlen(OsdCoreName());
 							siprintf(s,"%.*s%s", (len>28 ? 0 : (28-len)/2), "                            ", OsdCoreName());

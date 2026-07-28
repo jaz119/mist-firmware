@@ -23,10 +23,11 @@ void console_echo(uint8_t value) {
   }
 }
 
-static serial_sink_t console_sink = {0, 8,
-     &console_start,
-     &console_echo,
-     &console_end
+static serial_sink_t console_sink = {
+  0, 8,
+  &console_start,
+  &console_echo,
+  &console_end
 };
 
 void serial_sink_init() {
