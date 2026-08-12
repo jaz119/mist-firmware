@@ -5,8 +5,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-
-#include "hardware.h"
+#include <hardware.h>
 
 typedef uint32_t msec_t;
 

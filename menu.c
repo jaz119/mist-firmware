@@ -817,10 +817,16 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					}
 					break;
 				case 51: {
-					uint8_t *mac = 0;
+					const uint8_t *mac = NULL;
+					usb_device_t *dev = usb_get_device(USB_NIC);
+					if (dev) {
+						const usb_nic_class_config_t *nic = (usb_nic_class_config_t *) dev->class;
+						mac = nic->get_mac(dev);
 #ifdef USB_ASIX_NET
-					mac = asix_get_mac();
+					} else {
+						mac = asix_get_mac();
 #endif
+					}
 					item->active = false;
 #ifdef CONFIG_CHIP_SAMV71
 					siprintf(s, " Net(USB):");

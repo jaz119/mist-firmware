@@ -96,7 +96,7 @@
 #define FEAT_IDE3           0x0c00 // enable secondary slave IDE
 #define FEAT_IDE3_ATA       0x0400
 #define FEAT_IDE3_CDROM     0x0800
-#define FEAT_IDE_MASK       0x0FF0
+#define FEAT_IDE_MASK       0x0ff0
 #define FEAT_PS2REP         0x1000 // typematic repeat by default
 #define FEAT_BIGOSD         0x2000 // 16 line tall OSD
 #define FEAT_HDMI           0x4000 // HDMI output
@@ -136,6 +136,18 @@
 #define SWITCH_DEBUG        BIT(2)
 #define SWITCH_CORE         BIT(3)
 
+// NIC Status Register layout (NE2000)
+#define NIC_STAT_CODE(s)    (((s) >> 24) & 0xffUL)  // Core Status code
+#define NIC_STAT_TX_RDY     BIT(18)                 // TX DMA is ready
+#define NIC_STAT_ISR_PTX    BIT(17)                 // Packet Transmitted with no error
+#define NIC_STAT_ISR_PRX    BIT(16)                 // Packet Received with no error
+#define NIC_STAT_TBCR(s)    ((s) & 0x0000ffffUL)    // Transmitter Byte Count Register
+
+// NIC Status codes
+#define NIC_STATUS_IDLE     0xfe
+#define NIC_STATUS_TX_PENDING  0xa5
+#define NIC_STATUS_TX_DONE  0x12
+
 extern uint32_t core_type; // current core type
 extern const user_io_core_t *core; // current core support module
 extern bool osd_is_visible;
@@ -173,10 +185,10 @@ char user_io_cue_mount(const unsigned char *, int);
 void user_io_sd_ack(uint8_t drive_index);
 void user_io_sd_set_config();
 
-// io controllers interface for FPGA ethernet emulation using usb ethernet
-// devices attached to the io controller (ethernec emulation)
-void user_io_eth_send_mac(uint8_t *);
+// io controllers interface for FPGA Ethernet emulation
+// using usb devices attached to the io controller
 uint32_t user_io_eth_get_status();
+void user_io_eth_send_mac(const uint8_t *);
 void user_io_eth_send_rx_frame(uint8_t *, uint16_t);
 void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
 
@@ -194,11 +206,9 @@ static inline bool user_io_is_cue_mounted() {
 void user_io_change_into_core_dir();
 
 #ifdef HAVE_HDMI
-
 char user_io_i2c_write(uint8_t addr, uint8_t subaddr, uint8_t data);
 char user_io_i2c_read(uint8_t addr, uint8_t subaddr, uint8_t *data);
 bool user_io_hdmi_detected();
-
 #endif // HAVE_HDMI
 
 #endif // USER_IO_H

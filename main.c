@@ -42,7 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "cdc_control.h"
 #include "storage_control.h"
 #include <FatFs/diskio.h>
-#include "eth.h"
+#include <eth.h>
 #include <timer.h>
 #include <errors.h>
 
@@ -284,11 +284,10 @@ int main()
         }
 
         usb_poll();
-
         cdc_control_poll();
         storage_control_poll();
-        eth_poll();
 
+        eth_poll();
         user_io_poll();
 
         if (user_io_core_type() == CORE_TYPE_8BIT)

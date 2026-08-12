@@ -50,6 +50,9 @@ uint32_t core_type = CORE_TYPE_UNKNOWN;
 #define RTC_FREQ 500
 static uint32_t rtc_timer;
 
+#define NIC_FREQ 1
+static uint32_t nic_timer;
+
 // set by OSD code to suppress forwarding of those keys
 // to the core which may be in use by an active OSD
 bool osd_is_visible = false;
@@ -142,11 +145,18 @@ void user_io_detect_core_type()
 
 void user_io_init_core()
 {
+	usb_device_t *dev = usb_get_device(USB_NIC);
+
 	if (core && core->init) {
 		core->init();
 	}
 
 	user_io_send_buttons(true);
+
+  	if (dev) {
+		usb_nic_class_config_t *nic = (usb_nic_class_config_t *) dev->class;
+		user_io_eth_send_mac(nic->get_mac(dev));
+	}
 
 #ifdef HAVE_HDMI
 	hdmi_detected = false;
@@ -216,15 +226,6 @@ bool user_io_serial_status(
 static inline void user_io_midi_tx(uint8_t c)
 {
 	spi_uio_cmd8(UIO_MIDI_OUT, c);
-}
-
-// send ethernet mac address into FPGA
-void user_io_eth_send_mac(uint8_t *mac)
-{
-	spi_uio_cmd_cont(UIO_ETH_MAC);
-	for (int i = 0; i < 6; i++)
-		spi8(*mac++);
-	DisableIO();
 }
 
 // set SD card info in FPGA (CSD, CID)
@@ -313,11 +314,12 @@ uint32_t user_io_eth_get_status()
 	return s;
 }
 
-// read ethernet frame from FPGAs ethernet tx buffer
-void user_io_eth_receive_tx_frame(uint8_t *d, uint16_t len)
+// send ethernet mac address into FPGA
+void user_io_eth_send_mac(const uint8_t *mac)
 {
-	spi_uio_cmd_cont(UIO_ETH_FRM_IN);
-	while (len--) *d++ = spi_in();
+	spi_uio_cmd_cont(UIO_ETH_MAC);
+	for (int i = 0; i < 6; i++)
+		spi8(*mac++);
 	DisableIO();
 }
 
@@ -329,6 +331,49 @@ void user_io_eth_send_rx_frame(uint8_t *s, uint16_t len)
 	// spi_write(s, len);
 	spi8(0); // one additional byte to allow fpga to store the previous one
 	DisableIO();
+}
+
+// read ethernet frame from FPGAs tx buffer
+void user_io_eth_receive_tx_frame(uint8_t *d, uint16_t len)
+{
+	spi_uio_cmd_cont(UIO_ETH_FRM_IN);
+	while (len--) *d++ = spi_in();
+	DisableIO();
+}
+
+// usb networking
+static void user_io_nic_poll()
+{
+	usb_device_t *dev = usb_get_device(USB_NIC);
+
+	if (!dev)
+		return;
+
+	usb_nic_class_config_t *nic = (usb_nic_class_config_t *) dev->class;
+
+	if (!nic->link_is_up(dev))
+		return;
+
+	const uint32_t status = user_io_eth_get_status();
+	const uint8_t code = NIC_STAT_CODE(status);
+
+	if (code == NIC_STATUS_TX_PENDING)
+	{
+		// packet is ready to transmit
+		nic->send_pkt(
+			dev, user_io_eth_receive_tx_frame,
+			NIC_STAT_TBCR(status));
+	}
+
+	if (status & NIC_STAT_ISR_PRX)
+		return;
+
+	if (code == NIC_STATUS_IDLE || code == NIC_STATUS_TX_DONE)
+	{
+		// core is ready to receive packet (64 bytes minimum)
+		nic->recv_pkt(
+			dev, user_io_eth_send_rx_frame);
+	}
 }
 
 char user_io_cue_mount(const unsigned char *name, int index)
@@ -592,6 +637,18 @@ void user_io_poll()
 	user_io_hid_poll();
 	user_io_send_buttons(false);
 
+	if (CheckTimer(nic_timer))
+	{
+		user_io_nic_poll();
+		nic_timer = GetTimer(NIC_FREQ);
+	}
+
+	if (CheckTimer(rtc_timer))
+	{
+		rtc_timer = GetTimer(RTC_FREQ);
+		user_io_send_rtc();
+	}
+
 	// serial IO - TODO: merge with MiSTery
 	if (core_type == CORE_TYPE_8BIT)
 	{
@@ -822,12 +879,6 @@ void user_io_poll()
 		DisableFpga();
 
 		HandleHDD(c1, 0, 1);
-	}
-
-	if (CheckTimer(rtc_timer))
-	{
-		rtc_timer = GetTimer(RTC_FREQ);
-		user_io_send_rtc();
 	}
 
 	// check for long press > 1 sec on menu button

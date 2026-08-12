@@ -51,7 +51,9 @@ typedef struct {
 #define USB_REQ_GET_DESCR     (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_DEVICE) // get descriptor request type
 #define USB_REQ_GET           (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_DEVICE) // get request type for all but 'get feature' and 'get interface'
 #define USB_REQ_SET           (USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_DEVICE) // set request type for all but 'set feature' and 'set interface'
-#define USB_REQ_CL_GET_INTF   (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE) // get interface request type
+#define USB_REQ_SET_INTF      (USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_STANDARD | USB_SETUP_RECIPIENT_INTERFACE) // set request type for 'set interface'
+#define USB_REQ_CL_GET_INTF   (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS    | USB_SETUP_RECIPIENT_INTERFACE) // get interface request type
+#define USB_REQ_CL_SET_INTF   (USB_SETUP_HOST_TO_DEVICE | USB_SETUP_TYPE_CLASS    | USB_SETUP_RECIPIENT_INTERFACE) // get interface request type
 
 /* USB state machine states */
 #define USB_STATE_MASK                                      0xf0
@@ -103,12 +105,13 @@ struct usb_device_descriptor;
 // usb device type
 typedef enum
 {
-    USB_HUB = 0,
-    USB_NET,
-    USB_STOR,
+    USB_UNK,
+    USB_HUB,
     USB_HID,
+    USB_STOR,
     USB_UART,
     USB_RTC,
+    USB_NIC,
 } usb_dev_type_t;
 
 // generic usb device driver struct
@@ -119,16 +122,17 @@ typedef struct {
   uint8_t (*poll)(struct usb_device_entry *);
 } usb_device_class_config_t;
 
-#include "hub.h"
-#include "hid.h"
+#include <hub.h>
+#include <hid.h>
 #ifdef USB_ASIX_NET
 #include "asix.h"
 #endif
 #ifdef USB_STORAGE
 #include "storage.h"
 #endif
-#include "rtc/i2c-tiny.h"
-#include "rtc/i2c-mcp2221.h"
+#include <rtc/i2c-tiny.h>
+#include <rtc/i2c-mcp2221.h>
+#include <cdc_ecm.h>
 #ifdef USB_PL2303_CDC
 #include "pl2303.h"
 #endif
@@ -140,7 +144,7 @@ typedef struct usb_device_entry {
   uint16_t vid;
   uint16_t pid;
 
-  uint8_t bAddress;	                      // device address
+  uint8_t bAddress;                       // device address
   uint8_t parent;                         // parent device address
   uint8_t port;
   bool lowspeed;
@@ -156,6 +160,7 @@ typedef struct usb_device_entry {
 #ifdef USB_PL2303_CDC
     usb_pl2303_info_t pl2303_info;
 #endif
+    usb_cdc_ecm_info_t ecm_info;
 #ifdef USB_ASIX_NET
     usb_asix_info_t asix_info;
 #endif
@@ -266,7 +271,7 @@ typedef struct {
 typedef struct {
   uint8_t  bLength;            // Length of this descriptor.
   uint8_t  bDescriptorType;    // STRING descriptor type (USB_DESCRIPTOR_STRING).
-  uint16_t bString[];          // Unicode Encoded String
+  uint16_t wString[];          // Unicode Encoded String
 } __attribute__((packed)) usb_string_descriptor_t;
 
 /* Standard Device Requests */
@@ -307,8 +312,8 @@ typedef struct {
 #define USB_DESCRIPTOR_OTHER_SPEED      0x07    // bDescriptorType for a Other Speed Configuration.
 #define USB_DESCRIPTOR_INTERFACE_POWER  0x08    // bDescriptorType for Interface Power.
 #define USB_DESCRIPTOR_INTERFACE_AD     0x0b    // bDescriptorType for Interface Association Descriptor.
-#define USB_DESCRIPTOR_INTERFACE_AUDIO  0x24    // bDescriptorType for Audio Interface Descriptor.
-#define USB_DESCRIPTOR_ENDPOINT_AUDIO   0x25    // bDescriptorType for Audio Endpoint Descriptor.
+#define USB_DESCRIPTOR_CS_INTERFACE     0x24    // bDescriptorType for Class-Specific Descriptor.
+#define USB_DESCRIPTOR_CS_ENDPOINT      0x25    // bDescriptorType for Class-Specific Endpoint Descriptor.
 
 void usb_init();
 
@@ -320,6 +325,7 @@ uint8_t usb_get_other_speed_descr( usb_device_t *, uint16_t nbytes, uint8_t conf
 uint8_t usb_get_string_descr( usb_device_t *dev, uint16_t nbytes, uint8_t index, uint16_t lang_id, usb_string_descriptor_t* dataptr );
 uint8_t usb_get_conf( usb_device_t *dev, uint8_t *conf_value );
 uint8_t usb_set_conf( usb_device_t *dev, uint8_t conf_value );
+uint8_t usb_set_interface( usb_device_t *dev, uint8_t data_iface_num, uint8_t alt_setting );
 uint8_t usb_release_device(uint8_t parent, uint8_t port);
 uint8_t usb_configure(uint8_t parent, uint8_t port, bool lowspeed);
 

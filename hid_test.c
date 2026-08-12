@@ -7,9 +7,22 @@
 
 #include <usb.h>
 #include <hid.h>
+#include <cdc_ecm.h>
 #include <state.h>
 #include <user_io.h>
 #include <mist_cfg.h>
+#include <debug.h>
+
+#define DEFINE_USB_STRING(name, value) \
+    const static struct { \
+        uint8_t  bLength; \
+        uint8_t  bDescriptorType; \
+        uint16_t wString[sizeof(value) / 2 - 1]; \
+    } __attribute__((packed)) name = { \
+        .bLength = sizeof(name), \
+        .bDescriptorType = USB_DESCRIPTOR_STRING, \
+        .wString = { value } \
+    }
 
 uint8_t adc_state = 0;
 uint32_t core_type = CORE_TYPE_UNKNOWN;
@@ -99,21 +112,22 @@ uint8_t usb_out_transfer(usb_device_t *, ep_t *ep, uint16_t nbytes, const uint8_
 
 const uint8_t *get_config_desc(uint8_t conf_idx)
 {
-    const void *p = usb_desc_buf[0] + sizeof(usb_device_descriptor_t);
+    const usb_device_descriptor_t *dev_desc = (usb_device_descriptor_t *) usb_desc_buf[0];
+    const void *p = usb_desc_buf[0] + dev_desc->bLength;
 
-    do {
+    for (int n = 0; n < dev_desc->bNumConfigurations; n++)
+    {
         const usb_configuration_descriptor_t *conf_desc = (usb_configuration_descriptor_t *) p;
 
         if (conf_desc->bDescriptorType != USB_DESCRIPTOR_CONFIGURATION)
             return NULL;
 
-        if (conf_desc->bConfigurationValue == (conf_idx + 1))
+        if (conf_desc->bConfigurationValue == conf_idx)
             return p;
 
         // advance to next descriptor
         p += conf_desc->wTotalLength;
-
-    } while (p < (usb_desc_buf[0] + sizeof(usb_desc_buf[0])));
+    }
 
     return NULL;
 }
@@ -122,6 +136,9 @@ uint8_t usb_ctrl_req(
     usb_device_t *dev, uint8_t bmReqType, uint8_t bRequest,
     uint8_t wValLo, uint8_t wValHi, uint16_t wInd, uint16_t size, uint8_t* buf)
 {
+    debugf("%s: [ 0x%02X,0x%02X,0x%04X,0x%04X,%04d ]",
+        __FUNCTION__, bmReqType, bRequest, (wValLo | wValHi << 8), wInd, size);
+
     if (bRequest == USB_REQUEST_GET_DESCRIPTOR)
     {
         if (bmReqType == USB_REQ_GET_DESCR
@@ -133,7 +150,7 @@ uint8_t usb_ctrl_req(
         else if (bmReqType == USB_REQ_GET_DESCR
                 && wValHi == USB_DESCRIPTOR_CONFIGURATION)
         {
-            const uint8_t *config_desc = get_config_desc(wValLo);
+            const uint8_t *config_desc = get_config_desc(wValLo + 1);
 
             if (config_desc) {
                 memcpy(buf, config_desc, size);
@@ -141,6 +158,13 @@ uint8_t usb_ctrl_req(
             }
 
             return 6;
+        }
+        else if (bmReqType == USB_REQ_GET_DESCR
+                && wValHi == USB_DESCRIPTOR_STRING)
+        {
+            DEFINE_USB_STRING(mac, u"128FCE37A259");
+            memcpy(buf, &mac, sizeof(mac));
+            return 0;
         }
         else if (bmReqType == HID_REQ_HIDREPORT
                 && wValHi == HID_DESCRIPTOR_REPORT)
@@ -180,6 +204,18 @@ uint8_t usb_ctrl_req(
     else if (bRequest == HID_REQUEST_SET_IDLE)
     {
         if (bmReqType == HID_REQ_HIDOUT) {
+            return 0;
+        }
+    }
+    else if (bRequest == USB_REQUEST_SET_INTERFACE)
+    {
+        if (bmReqType == USB_REQ_SET_INTF) {
+            return 0;
+        }
+    }
+    else if (bRequest == USB_REQUEST_SET_ETH_PACKET_FILTER)
+    {
+        if (bmReqType == USB_REQ_CL_SET_INTF) {
             return 0;
         }
     }
@@ -269,10 +305,17 @@ int main(int argc, char *argv[])
     dev->vid = dev_desc.idVendor;
     dev->pid = dev_desc.idProduct;
 
-    // Driver init
+    // Try to HID init
     rcode = usb_hid_class.init(dev, &dev_desc);
     if (rcode) {
-        printf("USB device NOT accepted, error 0x%02x\n", rcode);
+        // Try to CDC-ECM init
+        rcode = usb_cdc_ecm_class.base.init(dev, &dev_desc);
+        if (rcode) {
+            printf("USB device NOT accepted, error 0x%02x\n", rcode);
+        } else {
+            // Driver unload
+            usb_cdc_ecm_class.base.release(dev);
+        }
         return rcode;
     }
 
