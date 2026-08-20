@@ -202,8 +202,6 @@ static uint8_t usb_OutTransfer(
 	if( maxpktsize < 1 || maxpktsize > 64 )
 		return USB_ERROR_INVALID_MAX_PKT_SIZE;
 
-	uint32_t timeout = timer_get_msec();
-
 	do {
 		uint16_t bytes_tosend = MIN( maxpktsize, bytes_left );
 

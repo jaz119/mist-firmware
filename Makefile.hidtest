@@ -2,6 +2,7 @@ PRJ  = hidtest
 
 SRC  = usb/usb.c usb/usbdebug.c usb/hid.c usb/hidparser.c usb/hidquirks.c
 SRC += usb/joystick.c usb/joymapping.c state.c utils.c hid_test.c
+SRC += usb/cdc_ecm.c
 
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)

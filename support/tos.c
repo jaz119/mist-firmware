@@ -3,7 +3,8 @@
 #include <stdbool.h>
 #include <limits.h>
 
-#include "hardware.h"
+#include <hardware.h>
+#include <usb.h>
 #include <usb/timer.h>
 #include <user_io.h>
 #include <user_io_hid.h>
@@ -382,10 +383,15 @@ void tos_upload(const char *name) {
   runtime_ctrl = config.st.system_ctrl;
 
   // adjust for detected ethernet adapter
+  runtime_ctrl &= ~TOS_CONTROL_ETHERNET;
+
+  if (usb_get_device(USB_NIC))
+    runtime_ctrl |= TOS_CONTROL_ETHERNET;
+
 #ifdef USB_ASIX_NET
-  if (!eth_present)
+  if (eth_present)
+    runtime_ctrl |= TOS_CONTROL_ETHERNET;
 #endif
-    runtime_ctrl &= ~TOS_CONTROL_ETHERNET;
 
   fpga_set_control(runtime_ctrl);
 }

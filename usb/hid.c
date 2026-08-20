@@ -289,8 +289,8 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint8_t conf, uint16_t len)
 			break;
 
 		case USB_DESCRIPTOR_INTERFACE_AD:
-		case USB_DESCRIPTOR_INTERFACE_AUDIO:
-		case USB_DESCRIPTOR_ENDPOINT_AUDIO:
+		case USB_DESCRIPTOR_CS_INTERFACE:
+		case USB_DESCRIPTOR_CS_ENDPOINT:
 			break;
 
 		default:
