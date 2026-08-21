@@ -14,6 +14,7 @@
 #define USB_CDC_UNION_TYPE          0x06
 #define USB_CDC_ETHERNET_TYPE       0x0f
 #define USB_CDC_NCM_TYPE            0x1a
+#define USB_CDC_MBIM_TYPE           0x1b
 
 // Table 62: bits in multicast filter
 #define USB_CDC_PACKET_TYPE_DIRECTED    BIT(2)
@@ -167,6 +168,8 @@ static uint8_t usb_ecm_parse_conf(
                     if (!decode_mac(&str.str_desc, info->mac))
                         break;
                 } else if (p->cdc_desc.bDescriptorSubtype == USB_CDC_NCM_TYPE)
+                    return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
+                else if (p->cdc_desc.bDescriptorSubtype == USB_CDC_MBIM_TYPE)
                     return USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
                 break;
 
@@ -343,19 +346,19 @@ static const uint8_t *ecm_get_mac(usb_device_t *dev)
 }
 
 static void ecm_send_pkt(
-    usb_device_t *dev, net_pkt_cb receive_tx_frame, uint16_t size)
+    usb_device_t *dev, net_pkt_cb receive_tx_frame, uint16_t tx_size)
 {
     usb_cdc_ecm_info_t *info = &(dev->ecm_info);
     ALIGNED(4) static unsigned char tx_buf[MAX_FRAME_LEN];
 
-    if (!info->link_is_up || size > sizeof(tx_buf))
+    if (!info->link_is_up || tx_size > MAX_FRAME_LEN)
         return;
 
     // fetch data from fpga
-    receive_tx_frame(tx_buf, size);
+    receive_tx_frame(tx_buf, tx_size);
 
-    // send to network
-    usb_out_transfer(dev, &(info->ep_out), size, tx_buf);
+    // xfer via BULK endpoint
+    usb_out_transfer(dev, &(info->ep_out), tx_size, tx_buf);
 }
 
 static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
@@ -369,15 +372,12 @@ static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
         return;
     }
 
-    uint16_t max_pkt = info->ep_in.maxPktSize;
-    uint16_t read = max_pkt;
-
-    if (rx_count + read > MAX_FRAME_LEN) {
-        read = MAX_FRAME_LEN - rx_count;
-    }
+    const uint16_t max_pkt = info->ep_in.maxPktSize;
+    uint16_t read = MIN(max_pkt, MAX_FRAME_LEN - rx_count);
 
     // poll BULK endpoint
-    uint8_t rcode = usb_in_transfer(dev, &(info->ep_in), &read, rx_buf + rx_count);
+    uint8_t rcode = usb_in_transfer(
+        dev, &(info->ep_in), &read, rx_buf + rx_count);
 
     if (rcode)
     {
@@ -389,30 +389,19 @@ static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
         return;
     }
 
-    if (read == 0)
-    {
-        // zlp, no frame
-        if (rx_count == 0) {
-            return;
-        }
-    }
-    else
-    {
+    if (read > 0)
         rx_count += read;
 
-        if (read == max_pkt && rx_count < MAX_FRAME_LEN) {
-            // frame part again
-            return;
-        }
-    }
+    if (read == max_pkt && rx_count < MAX_FRAME_LEN)
+        return; // frame part
 
     if (rx_count >= ETH_HLEN)
     {
-        // frame is completed
+        // frame is full
         uint16_t eth_type = (rx_buf[12] << 8) | rx_buf[13];
 
-        if ((eth_type == ETH_P_IP || eth_type == ETH_P_ARP) && (rx_count <= 1514)) {
-            // send data to fpga
+        if (eth_type == ETH_P_IP || eth_type == ETH_P_ARP) {
+            // send it to fpga
             send_rx_frame(rx_buf, MAX(64, rx_count));
         }
     }
