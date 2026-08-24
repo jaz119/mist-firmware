@@ -43,13 +43,14 @@ typedef struct {
     };
 } __attribute__((packed)) usb_cdc_header_t;
 
-// Basic CDC notification structure
+// CDC notification structure
 typedef struct {
     uint8_t  bmRequestType;
     uint8_t  bNotification;
     uint16_t wValue;
     uint16_t wIndex;
     uint16_t wLength;
+    uint8_t  bData[];
 } __attribute__((packed)) usb_cdc_notification_t;
 
 #define USB_CDC_NOTIF_NETWORK_CONNECTION        0x00
@@ -297,16 +298,18 @@ static uint8_t usb_ecm_poll(usb_device_t *dev)
     if (!timer_check(info->last_poll, info->ep_int.interval))
         return 0;
 
-    ALIGNED(4) uint8_t buf[16];
-    uint16_t read = sizeof(buf);
+    ALIGNED(4) uint8_t buf[64];
+    uint16_t read = info->ep_in.maxPktSize;
 
     uint8_t rcode = usb_in_transfer(dev, &(info->ep_int), &read, buf);
 
     if (rcode)
     {
-        if (rcode != hrNAK)
+        if (rcode != hrNAK) {
             errorf("%s(%d): error 0x%02x",
                 __FUNCTION__, dev->bAddress, rcode);
+            info->link_is_up = 0;
+        }
     }
     else if (read >= sizeof(usb_cdc_notification_t))
     {
@@ -367,46 +370,53 @@ static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
     ALIGNED(4) static unsigned char rx_buf[MAX_FRAME_LEN];
     static uint16_t rx_count = 0;
 
-    if (!info->link_is_up || rx_count >= MAX_FRAME_LEN) {
-        rx_count = 0;
-        return;
-    }
-
-    const uint16_t max_pkt = info->ep_in.maxPktSize;
-    uint16_t read = MIN(max_pkt, MAX_FRAME_LEN - rx_count);
-
-    // poll BULK endpoint
-    uint8_t rcode = usb_in_transfer(
-        dev, &(info->ep_in), &read, rx_buf + rx_count);
-
-    if (rcode)
+    // collect full frame for fpga
+    while (info->link_is_up)
     {
-        if (rcode != hrNAK) {
-            errorf("%s(%d): error 0x%02x",
-                __FUNCTION__, dev->bAddress, rcode);
+        const uint16_t max_ep_pkt = info->ep_in.maxPktSize;
+        uint16_t read = MIN(max_ep_pkt, MAX_FRAME_LEN - rx_count);
+
+        // poll BULK endpoint
+        uint8_t rcode = usb_in_transfer(
+            dev, &(info->ep_in), &read, rx_buf + rx_count);
+
+        if (rcode)
+        {
+            if (rcode != hrNAK) {
+                errorf("%s(%d): error 0x%02x",
+                    __FUNCTION__, dev->bAddress, rcode);
+                rx_count = 0;
+            }
+            return;
+        }
+
+        if (read > 0)
+            rx_count += read;
+
+        if (read < max_ep_pkt)
+        {
+            // partial packet or zlp
+            if (rx_count >= ETH_HLEN)
+            {
+                // frame is full
+                uint16_t eth_type = (rx_buf[12] << 8) | rx_buf[13];
+
+                if (eth_type == ETH_P_IP || eth_type == ETH_P_ARP) {
+                    // send it to fpga
+                    send_rx_frame(rx_buf, MAX(64, rx_count));
+                }
+            }
+
             rx_count = 0;
+            break;
         }
-        return;
-    }
-
-    if (read > 0)
-        rx_count += read;
-
-    if (read == max_pkt && rx_count < MAX_FRAME_LEN)
-        return; // frame part
-
-    if (rx_count >= ETH_HLEN)
-    {
-        // frame is full
-        uint16_t eth_type = (rx_buf[12] << 8) | rx_buf[13];
-
-        if (eth_type == ETH_P_IP || eth_type == ETH_P_ARP) {
-            // send it to fpga
-            send_rx_frame(rx_buf, MAX(64, rx_count));
+        else if (rx_count == MAX_FRAME_LEN)
+        {
+            // too long frame
+            rx_count = 0;
+            break;
         }
     }
-
-    rx_count = 0;
 }
 
 const usb_nic_class_config_t usb_cdc_ecm_class = {
