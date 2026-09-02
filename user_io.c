@@ -324,20 +324,18 @@ void user_io_eth_send_mac(const uint8_t *mac)
 }
 
 // write ethernet frame to FPGAs rx buffer
-void user_io_eth_send_rx_frame(uint8_t *s, uint16_t len)
+void user_io_eth_send_rx_frame(uint8_t *buf, uint16_t len)
 {
 	spi_uio_cmd_cont(UIO_ETH_FRM_OUT);
-	while (len--) SPI(*s++);
-	// spi_write(s, len);
-	spi8(0); // one additional byte to allow fpga to store the previous one
+	spi_write(buf, len);
 	DisableIO();
 }
 
 // read ethernet frame from FPGAs tx buffer
-void user_io_eth_receive_tx_frame(uint8_t *d, uint16_t len)
+void user_io_eth_receive_tx_frame(uint8_t *buf, uint16_t len)
 {
 	spi_uio_cmd_cont(UIO_ETH_FRM_IN);
-	while (len--) *d++ = spi_in();
+	while (len--) *buf++ = spi_in();
 	DisableIO();
 }
 
@@ -355,25 +353,21 @@ static void user_io_nic_poll()
 		return;
 
 	const uint32_t status = user_io_eth_get_status();
-	const uint8_t code = NIC_STAT_CODE(status);
 
-	if (code == NIC_STATUS_TX_PENDING)
+	if (status & NIC_TX_RDY)
 	{
 		// packet is ready to transmit
 		nic->send_pkt(
 			dev, user_io_eth_receive_tx_frame,
-			NIC_STAT_TBCR(status));
+			NIC_TX_COUNT(status));
 	}
 
-	if (status & NIC_STAT_ISR_PRX)
+	if (status & NIC_RX_BUSY)
 		return;
 
-	if (code == NIC_STATUS_IDLE || code == NIC_STATUS_TX_DONE)
-	{
-		// core is ready to receive packet (64 bytes minimum)
-		nic->recv_pkt(
-			dev, user_io_eth_send_rx_frame);
-	}
+	// core is ready to receive packet (64 bytes minimum)
+	nic->recv_pkt(
+		dev, user_io_eth_send_rx_frame);
 }
 
 char user_io_cue_mount(const unsigned char *name, int index)

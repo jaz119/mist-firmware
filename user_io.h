@@ -136,17 +136,10 @@
 #define SWITCH_DEBUG        BIT(2)
 #define SWITCH_CORE         BIT(3)
 
-// NIC status register layout (NE2000)
-#define NIC_STAT_CODE(s)    (((s) >> 24) & 0xffUL)  // Core Status code
-#define NIC_STAT_TX_RDY     BIT(18)                 // TX DMA is ready
-#define NIC_STAT_ISR_PTX    BIT(17)                 // Packet Transmitted with no error
-#define NIC_STAT_ISR_PRX    BIT(16)                 // Packet Received with no error
-#define NIC_STAT_TBCR(s)    ((s) & 0x0000ffffUL)    // Transmitter Byte Count Register
-
-// NIC status codes
-#define NIC_STATUS_IDLE     0xfe
-#define NIC_STATUS_TX_PENDING  0xa5
-#define NIC_STATUS_TX_DONE  0x12
+// NIC status word layout
+#define NIC_TX_COUNT(s)     ((s) & 0x0000ffffUL)    // Bytes to xmit
+#define NIC_RX_BUSY         BIT(16)                 // RX buffer is busy
+#define NIC_TX_RDY          BIT(18)                 // TX buffer is ready
 
 extern uint32_t core_type; // current core type
 extern const user_io_core_t *core; // current core support module
