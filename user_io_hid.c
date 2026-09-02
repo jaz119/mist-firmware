@@ -956,6 +956,7 @@ void user_io_check_reset(uint16_t modifiers, char useKeys)
         {
             if (mist_cfg.keep_video_mode)
                 VIDEO_KEEP_VAR = VIDEO_KEEP_VALUE;
+
             // HW reset
             MCUReset();
         }
