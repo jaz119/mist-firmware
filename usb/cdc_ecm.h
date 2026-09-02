@@ -3,7 +3,7 @@
 
 /*
  * CDC-ECM driver
- * for many USB dongles
+ * for many USB NIC dongles
  */
 
 #include <stdbool.h>
@@ -12,14 +12,12 @@
 typedef uint8_t net_mac_t[6];
 typedef struct usb_device_entry usb_device_t;
 
-#define MAX_FRAME_LEN   1536
 #define ETH_HLEN        14
+#define ETH_MIN_FLEN    60
+#define ETH_MAX_FLEN    1536
 
 #define ETH_P_IP        0x0800
 #define ETH_P_ARP       0x0806
-
-// CDC-ECM Device Requests
-#define USB_REQUEST_SET_ETH_PACKET_FILTER   0x43
 
 // usb cdc_ecm device context
 typedef struct {
@@ -28,6 +26,7 @@ typedef struct {
 
     ep_t ep_int;
     uint32_t last_poll;
+    uint16_t rx_count;
 
     net_mac_t mac;
     uint8_t link_is_up;

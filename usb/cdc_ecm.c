@@ -16,7 +16,6 @@
 #define USB_CDC_NCM_TYPE            0x1a
 #define USB_CDC_MBIM_TYPE           0x1b
 
-// Table 62: bits in multicast filter
 #define USB_CDC_PACKET_TYPE_DIRECTED    BIT(2)
 #define USB_CDC_PACKET_TYPE_BROADCAST   BIT(3)
 #define USB_CDC_PACKET_TYPE_MULTICAST   BIT(4)
@@ -56,6 +55,8 @@ typedef struct {
 #define USB_CDC_NOTIF_NETWORK_CONNECTION        0x00
 #define USB_CDC_NOTIF_RESPONSE_AVAILABLE        0x01
 #define USB_CDC_NOTIF_CONNECTION_SPEED_CHANGE   0x2a
+
+#define USB_REQUEST_SET_ETH_PACKET_FILTER       0x43
 
 static uint8_t hex_to_int(uint16_t ch, bool *is_ok)
 {
@@ -349,71 +350,71 @@ static const uint8_t *ecm_get_mac(usb_device_t *dev)
 }
 
 static void ecm_send_pkt(
-    usb_device_t *dev, net_pkt_cb receive_tx_frame, uint16_t tx_size)
+    usb_device_t *dev, net_pkt_cb receive_tx_frame, uint16_t tx_count)
 {
     usb_cdc_ecm_info_t *info = &(dev->ecm_info);
-    ALIGNED(4) static unsigned char tx_buf[MAX_FRAME_LEN];
+    ALIGNED(4) static unsigned char tx_buf[ETH_MAX_FLEN];
 
-    if (!info->link_is_up || tx_size > MAX_FRAME_LEN)
+    if (!info->link_is_up || tx_count > ETH_MAX_FLEN)
         return;
 
     // fetch data from fpga
-    receive_tx_frame(tx_buf, tx_size);
+    receive_tx_frame(tx_buf, tx_count);
 
     // xfer via BULK endpoint
-    usb_out_transfer(dev, &(info->ep_out), tx_size, tx_buf);
+    usb_out_transfer(
+        dev, &(info->ep_out), MAX(ETH_MIN_FLEN, tx_count), tx_buf);
 }
 
 static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
 {
     usb_cdc_ecm_info_t *info = &(dev->ecm_info);
-    ALIGNED(4) static unsigned char rx_buf[MAX_FRAME_LEN];
-    static uint16_t rx_count = 0;
+    ALIGNED(4) static unsigned char rx_buf[ETH_MAX_FLEN];
 
     // collect full frame for fpga
     while (info->link_is_up)
     {
         const uint16_t max_ep_pkt = info->ep_in.maxPktSize;
-        uint16_t read = MIN(max_ep_pkt, MAX_FRAME_LEN - rx_count);
+        uint16_t read = MIN(max_ep_pkt, ETH_MAX_FLEN - info->rx_count);
 
         // poll BULK endpoint
         uint8_t rcode = usb_in_transfer(
-            dev, &(info->ep_in), &read, rx_buf + rx_count);
+            dev, &(info->ep_in), &read, rx_buf + info->rx_count);
 
         if (rcode)
         {
             if (rcode != hrNAK) {
                 errorf("%s(%d): error 0x%02x",
                     __FUNCTION__, dev->bAddress, rcode);
-                rx_count = 0;
+                info->rx_count = 0;
             }
             return;
         }
 
         if (read > 0)
-            rx_count += read;
+            info->rx_count += read;
 
         if (read < max_ep_pkt)
         {
             // partial packet or zlp
-            if (rx_count >= ETH_HLEN)
+            if (info->rx_count >= ETH_MIN_FLEN)
             {
                 // frame is full
                 uint16_t eth_type = (rx_buf[12] << 8) | rx_buf[13];
 
                 if (eth_type == ETH_P_IP || eth_type == ETH_P_ARP) {
                     // send it to fpga
-                    send_rx_frame(rx_buf, MAX(64, rx_count));
+                    send_rx_frame(rx_buf, info->rx_count);
                 }
             }
 
-            rx_count = 0;
+            info->rx_count = 0;
             break;
         }
-        else if (rx_count == MAX_FRAME_LEN)
+        else if (info->rx_count == ETH_MAX_FLEN)
         {
             // too long frame
-            rx_count = 0;
+            info->rx_count = 0;
             break;
         }
     }

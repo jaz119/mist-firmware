@@ -594,21 +594,13 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
   // bulk ep polling at fixed 500Hz
   if (timer_check(info->qLastBulkPollTime, 2)) {
     uint8_t rcode;
-    static uint32_t old_status = 0;
     uint32_t status = user_io_eth_get_status();
-
-    if(status != old_status) {
-      asix_debugf("status changed to cmd 0x%x, eq=%d, prx=%d, ptx=%d, len=%d",
-		  status >> 24, (status & 0x40000)?1:0, (status & 0x20000)?1:0,
-		  (status & 0x10000)?1:0, status & 0xffff);
-      old_status = status;
-    }
 
     // --------- poll FPGA for data to be transmitted ------------
 
     // no transmission in progress?
     if(!tx_cnt) {
-      if((status >> 24) == 0xa5) {
+      if(status & NIC_TX_RDY) {
 	uint16_t len = status & 0xffff;
 
 	if(len <= MAX_FRAMELEN) {
@@ -643,8 +635,8 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
 	tx_cnt = 0;
     }
 
-    // poll for rx if receive irq has been cleared (PRX==0)
-    if(!(status & 0x20000)) {
+    // poll for rx
+    if(status & NIC_RX_RDY) {
       // Try to read from bulk in endpoint (ep 2). Raw packets are received this way.
       // The last USB packet being part of an ethernet frame is marked by being shorter
       // than the USB FIFO size. If the last packet is exaclty if FIFO size, then an
@@ -707,7 +699,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
 
 	  // forward frame to FPGA
 	  if(ok2fwd)
-	    user_io_eth_send_rx_frame(rx_buf+4, frame_size);
+	    user_io_eth_send_rx_frame(rx_buf+4, MAX(60, frame_size));
 	  //	  else
 	  //	    iprintf("ASIX: frame dropped\n");
 

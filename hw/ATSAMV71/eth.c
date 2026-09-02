@@ -30,7 +30,6 @@ static char link_changed = 0;
 static unsigned long timerMAC;
 
 #define MAX_FRAMELEN 1536
-static uint32_t old_status;
 
 static void PIOAIrqHandler()
 {
@@ -105,14 +104,7 @@ int eth_poll()
 
 	uint32_t status = user_io_eth_get_status();
 
-	if(status != old_status) {
-		eth_debug("fpga status changed to cmd %x, eq=%d, prx=%d, ptx=%d, len=%d",
-		  status >> 24, (status & 0x40000)?1:0, (status & 0x20000)?1:0,
-		  (status & 0x10000)?1:0, status & 0xffff);
-		old_status = status;
-	}
-
-	if((status >> 24) == 0xa5) {
+	if(status & NIC_TX_RDY) {
 		uint16_t len = status & 0xffff;
 
 		if(len <= MAX_FRAMELEN) {
@@ -123,12 +115,12 @@ int eth_poll()
 		}
 	}
 
-	if(!(status & 0x20000)) {
-
+	if(status & NIC_RX_RDY) {
 		uint32_t recv_size = 0;
+
 		if (ethd_poll(&ethd, 0, sector_buffer, SECTOR_BUFFER_SIZE, &recv_size) == ETH_OK) {
 			if (recv_size) {
-				user_io_eth_send_rx_frame(sector_buffer, recv_size);
+				user_io_eth_send_rx_frame(sector_buffer, MAX(60, recv_size));
 				//iprintf("received packet: %d bytes\n", recv_size);
 				//hexdump(sector_buffer, recv_size, 0);
 			}
