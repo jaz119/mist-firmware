@@ -5,7 +5,7 @@
 #include <hdd.h>
 #include <utils.h>
 
-// FPGA spi commands
+// fpga SPI commands
 #define MIST_WRITE_MEMORY   0x02
 #define MIST_READ_MEMORY    0x03
 #define MIST_SET_CONTROL    0x04
@@ -18,17 +18,17 @@
 
 // System control bits
 // 0     - RESET
-// 1-3   - RAM configuration
-// 4-5   - CPU configuration
-// 6-7   - Floppy A+B write protection
+// 3-1   - RAM configuration
+// 5-4   - CPU configuration
+// 7-6   - Floppy A+B write protection
 // 8     - Color/Monochrome mode
-// 10-17 - ACSI device enable
+// 17-10 - ACSI device enable
 // 19    - Blitter toggle
-// 20-21 - Scanlines mode
+// 21-20 - Scanlines mode
 // 22    - PSG stereo toggle
-// 23-24 - Chipset type
+// 24-23 - Chipset type
 // 25    - Ethernec present
-// 26-27 - USB redirection (0=Nothing, 1=RS232, 2=Printer, 3=MIDI)
+// 27-26 - USB redirection (0=Nothing, 1=RS232, 2=Printer, 3=MIDI)
 // 28    - Viking enable
 // 29    - Blend toggle
 // 30    - Cubase enable
@@ -42,10 +42,10 @@
 #define TOS_MEMCONFIG_14M         (5<<1)
 
 // CPU configurations
-#define TOS_CPUCONFIG_68000       (0<<4)
-#define TOS_CPUCONFIG_68010       (1<<4)    // not used
-#define TOS_CPUCONFIG_RESERVED    (2<<4)    // not used
-#define TOS_CPUCONFIG_68020       (3<<4)
+#define TOS_CPUCONFIG_68000       (0<<4)    // fx68
+#define TOS_CPUCONFIG_68010       (1<<4)    // tg68, not used
+#define TOS_CPUCONFIG_RESERVED    (2<<4)    // tg68, not used
+#define TOS_CPUCONFIG_68020       (3<<4)    // tg68
 
 // Control bits (all control bits have unknown state after core startup)
 #define TOS_CONTROL_CPU_RESET     BIT(0)
@@ -64,14 +64,15 @@
 #define TOS_ACSI7_ENABLE          BIT(17)
 
 #define TOS_CONTROL_BLITTER       BIT(19)
-
 #define TOS_CONTROL_SCANLINES0    BIT(20)   // 0 = off, 1 = 25%, 2 = 50%, 3 = 75%
 #define TOS_CONTROL_SCANLINES1    BIT(21)
 #define TOS_CONTROL_SCANLINES     (TOS_CONTROL_SCANLINES0 | TOS_CONTROL_SCANLINES1)
-
 #define TOS_CONTROL_STEREO        BIT(22)
+
 #define TOS_CONTROL_STE           BIT(23)
 #define TOS_CONTROL_MSTE          BIT(24)
+#define TOS_CONTROL_STEROIDS      (TOS_CONTROL_STE | TOS_CONTROL_MSTE)
+
 #define TOS_CONTROL_ETHERNET      BIT(25)
 #define TOS_CONTROL_CUBASE        BIT(30)
 
