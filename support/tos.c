@@ -289,6 +289,8 @@ static void acsi_poll() {
 }
 
 static inline bool tos_cartridge_is_inserted() {
+  if (config.st.system_ctrl & (TOS_CONTROL_ETHERNET | TOS_CONTROL_CUBASE))
+    return false;
   return config.st.cart_img[0];
 }
 
@@ -381,17 +383,6 @@ void tos_upload(const char *name) {
   // let cpu run (release reset)
   config.st.system_ctrl &= ~TOS_CONTROL_CPU_RESET;
   runtime_ctrl = config.st.system_ctrl;
-
-  // adjust for detected ethernet adapter
-  runtime_ctrl &= ~TOS_CONTROL_ETHERNET;
-
-  if (usb_get_device(USB_NIC))
-    runtime_ctrl |= TOS_CONTROL_ETHERNET;
-
-#ifdef USB_ASIX_NET
-  if (eth_present)
-    runtime_ctrl |= TOS_CONTROL_ETHERNET;
-#endif
 
   fpga_set_control(runtime_ctrl);
 }
@@ -632,6 +623,22 @@ const user_io_core_t mistery_core = {
   .name = "MISTERY",
 };
 
+static inline bool has_ste() {
+  return config.st.system_ctrl & (TOS_CONTROL_STE | TOS_CONTROL_MSTE);
+}
+
+static inline bool has_steroids() {
+  return (config.st.system_ctrl & TOS_CONTROL_STEROIDS) == TOS_CONTROL_STEROIDS;
+}
+
+static inline bool has_viking() {
+  return config.st.system_ctrl & TOS_CONTROL_VIKING;
+}
+
+static inline bool has_color() {
+  return config.st.system_ctrl & TOS_CONTROL_VIDEO_COLOR;
+}
+
 ///////////////////////////
 ////// Atari ST menu //////
 ///////////////////////////
@@ -719,7 +726,7 @@ static char tos_get_menu_page(uint8_t idx, char action, menu_page_t *page) {
 static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
   int page_idx = item->page; // save current page number
   bool is_medium_present = fat_medium_present();
-  bool enable;
+  bool enable = true;
 
   item->stipple = 0;
   item->active = 1;
@@ -864,25 +871,47 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
 
         // Page 6 - Video
         case 29:
+          // only Mono if Viking enabled
+          if (has_viking()) {
+            config.st.system_ctrl &= ~TOS_CONTROL_VIDEO_COLOR;
+            item->active = false;
+            item->stipple = true;
+          }
           strcpy(s, " Screen:        ");
-          strcat(s, (config.st.system_ctrl & TOS_CONTROL_VIDEO_COLOR)
-            ? "Color" : "Mono");
+          strcat(s, has_color() ? "Color" : "Mono");
           item->item = s;
           break;
-        case 30: // Viking card can only be enabled with max 8MB RAM
-          enable = (config.st.system_ctrl & 0xe) <= TOS_MEMCONFIG_8M;
+        case 30:
+          // Viking card can be activated only in Mono with up to 8 MB of memory, or in STEroids mode
+          if (has_color() || (((config.st.system_ctrl & (7 << 1)) == TOS_MEMCONFIG_14M) && !has_steroids())) {
+            config.st.system_ctrl &= ~TOS_CONTROL_VIKING;
+            item->active = false;
+            item->stipple = true;
+          }
           strcpy(s, " Viking/SM194:  ");
-          strcat(s, offon[!!((config.st.system_ctrl & TOS_CONTROL_VIKING) && enable)]);
+          strcat(s, offon[has_viking()]);
           item->item = s;
-          item->active = enable;
-          item->stipple = !enable;
           break;
         case 31:
+          // works only in Color mode
+          if (!has_color() || has_viking()) {
+            config.st.system_ctrl &= ~TOS_CONTROL_SCANLINES;
+            runtime_ctrl &= ~TOS_CONTROL_SCANLINES;
+            item->active = false;
+            item->stipple = true;
+          }
           strcpy(s, " Scanlines:     ");
           strcat(s, scanlines[(config.st.system_ctrl >> 20) & 3]);
           item->item = s;
           break;
         case 32:
+          // works only in Color mode
+          if (!has_color() || has_viking()) {
+            config.st.system_ctrl &= ~TOS_CONTROL_BLEND;
+            runtime_ctrl &= ~TOS_CONTROL_BLEND;
+            item->active = false;
+            item->stipple = true;
+          }
           strcpy(s, " Comp. blend:   ");
           strcat(s, offon[!!(config.st.system_ctrl & TOS_CONTROL_BLEND)]);
           item->item = s;
@@ -896,12 +925,15 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           break;
         case 34:
           // Blitter is always present in >= STE
-          enable = !!(config.st.system_ctrl & (TOS_CONTROL_STE | TOS_CONTROL_MSTE));
+          if (has_ste()) {
+            config.st.system_ctrl |= TOS_CONTROL_BLITTER;
+            runtime_ctrl |= TOS_CONTROL_BLITTER;
+            item->active = false;
+            item->stipple = true;
+          }
           strcpy(s, " Blitter:   ");
-          strcat(s, offon[!!((config.st.system_ctrl & TOS_CONTROL_BLITTER) || enable)]);
+          strcat(s, offon[!!(config.st.system_ctrl & TOS_CONTROL_BLITTER)]);
           item->item = s;
-          item->active = !enable;
-          item->stipple = enable;
           break;
         case 35: {
           uint8_t cartport = ((config.st.system_ctrl & TOS_CONTROL_ETHERNET) ? 1 : 0)
@@ -912,13 +944,13 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           }
           break;
         case 36:
+          if (config.st.system_ctrl & (TOS_CONTROL_ETHERNET | TOS_CONTROL_CUBASE)) {
+            item->active = false;
+            item->stipple = true;
+          }
           strcpy(s, " Cartridge: ");
           strcat(s, tos_get_cartridge_name());
           item->item = s;
-          if (config.st.system_ctrl & (TOS_CONTROL_ETHERNET | TOS_CONTROL_CUBASE)) {
-            item->stipple = 1;
-            item->active = 0;
-          }
           break;
         case 37:
           strcpy(s, " USB I/O:   ");
@@ -927,7 +959,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           break;
 
         default:
-          item->active = 0;
+          item->active = false;
       }
       break;
 
@@ -943,10 +975,11 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         case 2: // Write protect
           {
             uint32_t wr_prot = (config.st.system_ctrl >> 6) & 3;
+            wr_prot = (wr_prot + 1) & 3;
             config.st.system_ctrl &= ~(TOS_CONTROL_FDC_WR_PROT_A | TOS_CONTROL_FDC_WR_PROT_B);
             runtime_ctrl &= ~(TOS_CONTROL_FDC_WR_PROT_A | TOS_CONTROL_FDC_WR_PROT_B);
-            config.st.system_ctrl |= (((wr_prot + 1) & 3) << 6);
-            runtime_ctrl |= (((wr_prot + 1) & 3) << 6);
+            config.st.system_ctrl |= (wr_prot << 6);
+            runtime_ctrl |= (wr_prot << 6);
             fpga_set_control(runtime_ctrl);
           }
           break;
@@ -1011,18 +1044,18 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         // Page 5 - System
         case 25: // Memory
           {
-            uint32_t mem = (config.st.system_ctrl >> 1) & 7; // current RAM config
+            uint32_t mem = (config.st.system_ctrl >> 1) & 7;
             mem++;
-            if (mem > 5) mem = 0;
-            config.st.system_ctrl &= ~0x0e;
+            if (mem > 5) mem = 0; // 512K
+            config.st.system_ctrl &= ~(7 << 1);
             config.st.system_ctrl |= (mem << 1);
           }
           break;
         case 26: // CPU
           {
-            uint32_t cpu = (config.st.system_ctrl >> 4) & 3; // current CPU config
+            uint32_t cpu = (config.st.system_ctrl >> 4) & 3;
             cpu = (cpu + 1) & 3;
-            if (cpu == 2 || cpu == 1) cpu = 3; // skip unused config
+            if (cpu == 1 || cpu == 2) cpu = 3; // skip 68010 and 68EC020
             config.st.system_ctrl &= ~0x30;
             config.st.system_ctrl |= (cpu << 4);
           }
@@ -1083,8 +1116,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
             if (cartport & 1) {
               config.st.system_ctrl |= TOS_CONTROL_ETHERNET;
               runtime_ctrl |= TOS_CONTROL_ETHERNET;
-            }
-            if (cartport & 2) {
+            } else if (cartport & 2) {
               config.st.system_ctrl |= TOS_CONTROL_CUBASE;
               runtime_ctrl |= TOS_CONTROL_CUBASE;
             }
