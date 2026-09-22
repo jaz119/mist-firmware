@@ -6,8 +6,8 @@
 
 //// includes ////
 #include <inttypes.h>
-#include "ini_parser.h"
-#include "misc_cfg.h"
+#include <ini_parser.h>
+#include <misc_cfg.h>
 
 //// type definitions ////
 typedef struct {
@@ -34,6 +34,7 @@ typedef struct {
   uint8_t keep_video_mode;
   uint8_t sdram64;
   uint8_t usb_storage;
+  uint8_t usb_serial;
 } mist_cfg_t;
 
 //// functions ////
