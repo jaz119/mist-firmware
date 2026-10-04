@@ -402,7 +402,7 @@ static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
 
                 if (eth_type == ETH_P_IP || eth_type == ETH_P_ARP) {
                     // send it to fpga
-                    send_rx_frame(rx_buf, MAX(ETH_MIN_FLEN, info->rx_count));
+                    send_rx_frame(rx_buf, info->rx_count);
                 }
             }
 

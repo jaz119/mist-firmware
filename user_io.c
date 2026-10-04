@@ -364,7 +364,7 @@ static void user_io_nic_poll()
 
 	if (status & NIC_RX_RDY)
 	{
-		// core is ready to receive packet (60 bytes minimum) w/o crc
+		// core is ready to receive packet (w/o crc)
 		nic->recv_pkt(
 			dev, user_io_eth_send_rx_frame);
 	}

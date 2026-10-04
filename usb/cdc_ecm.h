@@ -13,7 +13,6 @@ typedef uint8_t net_mac_t[6];
 typedef struct usb_device_entry usb_device_t;
 
 #define ETH_HLEN        14
-#define ETH_MIN_FLEN    60
 #define ETH_MAX_FLEN    1536
 
 #define ETH_P_IP        0x0800

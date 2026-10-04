@@ -699,7 +699,7 @@ static uint8_t usb_asix_poll(usb_device_t *dev) {
 
 	  // forward frame to FPGA
 	  if(ok2fwd)
-	    user_io_eth_send_rx_frame(rx_buf+4, MAX(60, frame_size));
+	    user_io_eth_send_rx_frame(rx_buf+4, frame_size);
 	  //	  else
 	  //	    iprintf("ASIX: frame dropped\n");
 

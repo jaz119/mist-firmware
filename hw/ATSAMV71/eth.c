@@ -120,7 +120,7 @@ int eth_poll()
 
 		if (ethd_poll(&ethd, 0, sector_buffer, SECTOR_BUFFER_SIZE, &recv_size) == ETH_OK) {
 			if (recv_size) {
-				user_io_eth_send_rx_frame(sector_buffer, MAX(60, recv_size));
+				user_io_eth_send_rx_frame(sector_buffer, recv_size);
 				//iprintf("received packet: %d bytes\n", recv_size);
 				//hexdump(sector_buffer, recv_size, 0);
 			}
