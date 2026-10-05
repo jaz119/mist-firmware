@@ -2,6 +2,7 @@
 #define GENERIC_8BIT_CORE_H
 
 #include <user_io_core.h>
+#include <megacd.h>
 
 #define CONF_TBL_MAX 64
 

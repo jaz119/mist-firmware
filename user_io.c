@@ -396,6 +396,13 @@ char user_io_cue_mount(const unsigned char *name, int index)
 
 	// notify core of possible sd image change
 	spi_uio_cmd8(UIO_SET_SDSTAT, 1);
+
+#ifdef HAVE_MEGACD
+	// Mega CD: mount <image>.sav in slot 0 for the backup RAM
+	if (core_features & FEAT_MEGACD)
+		megacd_image_selected((name && toc.valid) ? (const char*)name : NULL);
+#endif
+
 	return res;
 }
 

@@ -458,6 +458,12 @@ static void generic_8bit_poll()
     {
         neocd_poll();
     }
+#ifdef HAVE_MEGACD
+    else if (core_features & FEAT_MEGACD)
+    {
+        megacd_poll();
+    }
+#endif
 
     handle_mouse_events_ps2();
     handle_mouse_commands_ps2();

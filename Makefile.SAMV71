@@ -21,7 +21,7 @@ SRC += usb/usb.c usb/max3421e.c usb/usb-max3421e.c usb/hub.c usb/usbdebug.c usb/
 SRC += FatFs/ff.c FatFs/ffunicode.c
 SRC += fat_compat.c diskio.c
 SRC += support/minimig/core.c support/minimig/boot.c support/minimig/config.c support/minimig/fdd.c support/minimig/menu.c
-SRC += support/8bit/core.c support/8bit/idx_files.c support/pcecd.c support/neocd.c support/psx.c support/snes.c support/8bit/menu.c support/8bit/menu_info.c support/8bit/settings.c
+SRC += support/8bit/core.c support/8bit/idx_files.c support/pcecd.c support/neocd.c support/megacd.c support/psx.c support/snes.c support/8bit/menu.c support/8bit/menu_info.c support/8bit/settings.c
 SRC += support/tos.c support/archie.c support/zx_col.c cdc_control.c storage_control.c
 SRC += support/config_union.c
 SRC += sxmlc/sxmlc.c
@@ -35,7 +35,7 @@ LIBDIR  =
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
 DFLAGS  = -D_GNU_SOURCE -DCONFIG_HAVE_NVIC -DCONFIG_HAVE_ETH -DCONFIG_HAVE_GMAC -DCONFIG_HAVE_GMAC_QUEUES -DGMAC_QUEUE_COUNT=6 -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV7M -DCONFIG_CHIP_SAMV71 -DCONFIG_PACKAGE_100PIN
-DFLAGS += -DCONFIG_FLASH_1024KB -DFW_ID=\"SIDIUPG\" -DSZ_TBL=2048 -DDEFAULT_CORE_NAME=\"SIDI128.RBF\" -DSD_NO_DIRECT_MODE -DJOY_DB9_MD -DHAVE_QSPI -DHAVE_HDMI -DHAVE_PSX -DHAVE_XML
+DFLAGS += -DCONFIG_FLASH_1024KB -DFW_ID=\"SIDIUPG\" -DSZ_TBL=2048 -DDEFAULT_CORE_NAME=\"SIDI128.RBF\" -DSD_NO_DIRECT_MODE -DJOY_DB9_MD -DHAVE_QSPI -DHAVE_HDMI -DHAVE_PSX -DHAVE_MEGACD -DHAVE_XML
 DFLAGS += -DMIST -DVDATE=\"$(TODAY)\" -DUSB_STORAGE -DUSB_ASIX_NET -DUSB_PL2303_CDC -DFF_FS_TINY=0 -DFF_MAX_LFN=160 -DFF_LFN_BUF=160 -DSECTOR_BUFFER_SIZE=8192
 #DFLAGS += -DPROTOTYPE
 CFLAGS  = $(DFLAGS) -mcpu=cortex-m7 -mthumb -I. -Iarch -Icmsis -Iusb -Isupport -Ihw/ATSAMV71
