@@ -139,9 +139,9 @@
 #define SWITCH_CORE         BIT(3)
 
 // NIC status word layout
-#define NIC_TX_COUNT(s)     ((s) & 0x0000ffffUL)    // Bytes to xmit
-#define NIC_RX_RDY          BIT(16)                 // RX buffer is ready
-#define NIC_TX_RDY          BIT(17)                 // TX buffer is ready
+#define NIC_TX_COUNT(s)     ((s) & 0x7ffUL)     // Frame size to xmit
+#define NIC_RX_RDY          BIT(16)             // RX buffer is ready
+#define NIC_TX_RDY          BIT(17)             // TX buffer is ready
 
 extern uint32_t core_type; // current core type
 extern const user_io_core_t *core; // current core support module
