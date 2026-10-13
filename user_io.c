@@ -274,32 +274,87 @@ void user_io_sd_ack(uint8_t drive_index)
 
 // read 8+32 bit sd card status word from FPGA
 static uint8_t user_io_sd_get_status(
-	uint32_t *lba, uint8_t *drive_index, uint8_t *blksz)
+	uint32_t *lba, uint8_t *drive_index, uint8_t *blksz, uint8_t *blocks)
 {
-	uint32_t s;
-	uint8_t c;
-
 	*drive_index = 0;
 	*blksz = 0;
+	*blocks = 1;
 
 	spi_uio_cmd_cont(UIO_GET_SDSTAT);
-	c = spi_in();
+	uint8_t c = spi_in();
 
-	if ((c & 0xf0) == 0x60)
+	uint8_t api_sgn = c & 0xf0;
+	if (api_sgn == 0x60 || api_sgn == 0x80)
 	{
 		uint8_t tmp = spi_in();
 		*drive_index = tmp & 0x03;
 		*blksz = (tmp >> 4) & 0x01;
 	}
 
-	s = spi_in();
+	uint32_t s = spi_in();
 	s = (s << 8) | spi_in();
 	s = (s << 8) | spi_in();
 	s = (s << 8) | spi_in();
+
+	if (api_sgn == 0x80)
+	{
+		uint8_t tmp = spi_in();
+		if (tmp) *blocks = tmp;
+	}
+
 	DisableIO();
 
 	if (lba) *lba = s;
+
 	return c;
+}
+
+static uint8_t sd_index(int index);
+
+static bool user_io_read_sd(
+	uint8_t drive_index, uint8_t *buffer, uint8_t buffer_size,
+	uint32_t lba, uint8_t blocks, uint8_t blksz, bool sendtofpga)
+{
+	// block size in bytes == 512 << blksize
+	bool retval = false;
+
+	if (sendtofpga) {
+		spi_uio_cmd_cont(UIO_SECTOR_RD);
+	}
+
+	while (blocks)
+	{
+		uint8_t blockstoread = MIN(blocks, buffer_size >> blksz);
+
+		if (sd_image[sd_index(drive_index)].valid)
+		{
+			UINT br;
+			if ((f_size(&sd_image[sd_index(drive_index)].file) >> (9 + blksz)) >= (lba + blockstoread))
+			{
+				IDXSeek(&sd_image[sd_index(drive_index)], lba << blksz);
+				f_read(&sd_image[sd_index(drive_index)].file, buffer, blockstoread << (9 + blksz), &br);
+				retval = true;
+			}
+		}
+		else if (!drive_index && !umounted)
+		{
+			disk_read(fs.pdrv, buffer, lba, blockstoread << blksz);
+			retval = true;
+		}
+
+		if (sendtofpga) {
+			spi_write(buffer, blockstoread << (9 + blksz));
+		}
+
+		blocks -= blockstoread;
+		lba += blockstoread;
+	}
+
+	if (sendtofpga) {
+		DisableIO();
+	}
+
+	return retval;
 }
 
 // read 32 bit ethernet status word from FPGA
@@ -406,7 +461,7 @@ char user_io_cue_mount(const unsigned char *name, int index)
 	return res;
 }
 
-static inline uint8_t sd_index(int index)
+static uint8_t sd_index(int index)
 {
 	if (core_type == CORE_TYPE_ARCHIE) {
 		return (index + 2) & 3;
@@ -699,12 +754,12 @@ void user_io_poll()
 	{
 		uint32_t lba;
 		uint8_t drive_index;
-		uint8_t blksz;
-		uint8_t c = user_io_sd_get_status(&lba, &drive_index, &blksz);
+		uint8_t blksz, blocks;
+		uint8_t c = user_io_sd_get_status(&lba, &drive_index, &blksz, &blocks);
 
 		// valid sd commands start with "5x" (old API), or "6x" (new API)
 		// to avoid problems with cores that don't implement this command
-		if ((c & 0xf0) == 0x50 || (c & 0xf0) == 0x60)
+		if ((c & 0xf0) == 0x50 || (c & 0xf0) == 0x60 || (c & 0xf0) == 0x80)
 		{
 #if 0
 			// debug: If the io controller reports and non-sdhc card, then
@@ -740,6 +795,7 @@ void user_io_poll()
 								" SDHC cards. Using them may\n"
 								" lead to data corruption.\n\n"
 								" Please use an SD card <2GB!", 0);
+
 							using_sdhc = false;
 						}
 					} else
@@ -756,36 +812,46 @@ void user_io_poll()
 				if ((!MMC_IsSDHC()) || (c & 0x04))
 				{
 					if (is_dip_switch1_on())
-						debugf("SD WR (%d) %lu/%d", drive_index, lba, 512<<blksz);
+						debugf("SD WR (%d) %d/%d(%d)", drive_index, lba, blocks, 512 << blksz);
 
-					// if we write the sector stored in the read buffer, then
-					// invalidate the cache
-					if (buffer_lba == lba && buffer_drive_index == drive_index)
+					// if we write the sector stored in the read buffer,
+					// then invalidate the cache
+					if ((buffer_lba == lba && buffer_drive_index == drive_index) || blocks != 1)
 					{
 						buffer_lba = 0xffffffff;
 					}
 
 					user_io_sd_ack(drive_index);
-
-					// Fetch sector data from FPGA ...
+					// fetch sector data from FPGA ...
 					spi_uio_cmd_cont(UIO_SECTOR_WR);
-					spi_read(sector_buffer, 512 << blksz);
-					DisableIO();
 
 					// ... and write it to disk
-#if 1
-					if (sd_image[sd_index(drive_index)].valid)
+					while (blocks)
 					{
-						if (((f_size(&sd_image[sd_index(drive_index)].file) - 1) >> (9 + blksz)) >= lba)
+						uint8_t blockstowrite = MIN(blocks, SECTOR_BUFFER_SIZE / (512 << blksz));
+						spi_read(sector_buffer, blockstowrite << (9 + blksz));
+#if 1
+						if (sd_image[sd_index(drive_index)].valid)
 						{
-							IDXSeek(&sd_image[sd_index(drive_index)], (lba << blksz));
-							IDXWrite(&sd_image[sd_index(drive_index)], sector_buffer, blksz);
+							UINT bw;
+							if ((f_size(&sd_image[sd_index(drive_index)].file) >> (9 + blksz)) >= (lba + blockstowrite))
+							{
+								IDXSeek(&sd_image[sd_index(drive_index)], lba << blksz);
+								f_write(&sd_image[sd_index(drive_index)].file, sector_buffer, blockstowrite << (9 + blksz), &bw);
+							}
 						}
-					} else if (!drive_index && !umounted)
-						disk_write(fs.pdrv, sector_buffer, lba, 1 << blksz);
+						else if (!drive_index && !umounted)
+						{
+							disk_write(fs.pdrv, sector_buffer, lba, blockstowrite << blksz);
+						}
 #else
-					hexdump(sector_buffer, 32, 0);
+						hexdump(sector_buffer, 32, 0);
 #endif
+						blocks -= blockstowrite;
+						lba += blockstowrite;
+					}
+
+					DisableIO();
 				}
 			}
 
@@ -793,7 +859,7 @@ void user_io_poll()
 			if ((c & 0x03) == 0x01)
 			{
 				if (is_dip_switch1_on())
-					debugf("SD RD (%d) %lu/%d", drive_index, lba, 512 << blksz);
+					debugf("SD RD (%d) %d/%d(%d)", drive_index, lba, blocks, 512 << blksz);
 
 				// invalidate cache if it stores data from another drive
 				if (drive_index != buffer_drive_index)
@@ -804,63 +870,39 @@ void user_io_poll()
 					psx_read_cd(drive_index, lba);
 				} else {
 #endif
-				// are we using a file as the sd card image?
-				// (C64 floppy does that ...)
-				if (buffer_lba != lba)
-				{
-					if (sd_image[sd_index(drive_index)].valid)
+					if (blocks == 1)
 					{
-						if (((f_size(&sd_image[sd_index(drive_index)].file) - 1) >> (9 + blksz)) >= lba)
+						if (buffer_lba != lba)
 						{
-							IDXSeek(&sd_image[sd_index(drive_index)], lba << blksz);
-							IDXRead(&sd_image[sd_index(drive_index)], cache_buffer, blksz);
+							user_io_read_sd(drive_index, cache_buffer, sizeof(cache_buffer) / 512, lba, 1, blksz, false);
+							buffer_lba = lba;
 						}
+
+						if (buffer_lba == lba)
+						{
+							// hexdump(cache_buffer, 512<<blksz, 0);
+							user_io_sd_ack(drive_index);
+							// data is now stored in buffer. send it to fpga
+							spi_uio_cmd_cont(UIO_SECTOR_RD);
+							spi_write(cache_buffer, 512 << blksz);
+							DisableIO();
+							// the end of this transfer acknowledges the FPGA internal
+							// sd card emulation
+						}
+
+						// just load the next sector now, so it may be prefetched
+						// for the next request already
+						if (user_io_read_sd(drive_index, cache_buffer, sizeof(cache_buffer) / 512, lba + 1, 1, blksz, false))
+							buffer_lba = lba + 1;
+
+						buffer_drive_index = drive_index;
 					}
-					else if (!drive_index && !umounted)
+					else
 					{
-						// sector read
-						// read sector from sd card if it is not already present in
-						// the buffer
-						disk_read(fs.pdrv, cache_buffer, lba, 1 << blksz);
+						// blocks > 1
+						user_io_sd_ack(drive_index);
+						user_io_read_sd(drive_index, sector_buffer, sizeof(sector_buffer) / 512, lba, blocks, blksz, true);
 					}
-
-					buffer_lba = lba;
-				}
-
-				if (buffer_lba == lba)
-				{
-					// hexdump(cache_buffer, 512 << blksz, 0);
-					user_io_sd_ack(drive_index);
-
-					// data is now stored in buffer. send it to fpga
-					spi_uio_cmd_cont(UIO_SECTOR_RD);
-					spi_write(cache_buffer, 512 << blksz);
-					DisableIO();
-
-					// the end of this transfer acknowledges the FPGA internal
-					// sd card emulation
-				}
-
-				// just load the next sector now, so it may be prefetched
-				// for the next request already
-				if (sd_image[sd_index(drive_index)].valid)
-				{
-					// but check if it would overrun on the file
-					if (((f_size(&sd_image[sd_index(drive_index)].file) - 1) >> (9 + blksz)) > lba)
-					{
-						IDXSeek(&sd_image[sd_index(drive_index)], (lba + 1) << blksz);
-						IDXRead(&sd_image[sd_index(drive_index)], cache_buffer, blksz);
-						buffer_lba = lba + 1;
-					}
-				} else {
-					// sector read
-					// read sector from sd card if it is not already present in
-					// the buffer
-					disk_read(fs.pdrv, cache_buffer, lba + 1, 1 << blksz);
-					buffer_lba = lba + 1;
-				}
-
-				buffer_drive_index = drive_index;
 #ifdef HAVE_PSX
 				}
 #endif
@@ -878,7 +920,6 @@ void user_io_poll()
 		SPI(0);
 		SPI(0);
 		DisableFpga();
-
 		HandleHDD(c1, 0, 1);
 	}
 
