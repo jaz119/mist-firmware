@@ -882,7 +882,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
           item->item = s;
           break;
         case 30:
-          // Viking card can be activated only in Mono with up to 8 MB of memory, or in STEroids mode
+          // Viking card requires either Mono mode (up to 8 MB RAM) or STEroids mode
           if (has_color() || (((config.st.system_ctrl & (7 << 1)) == TOS_MEMCONFIG_14M) && !has_steroids())) {
             config.st.system_ctrl &= ~TOS_CONTROL_VIKING;
             item->active = false;

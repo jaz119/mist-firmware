@@ -3,7 +3,7 @@
 
 /*
  * CDC-ECM driver
- * for many USB NIC dongles
+ * supports multiple USB NIC dongles
  */
 
 #include <stdbool.h>

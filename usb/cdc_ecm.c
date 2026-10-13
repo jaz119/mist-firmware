@@ -355,7 +355,7 @@ static void ecm_send_pkt(
     usb_cdc_ecm_info_t *info = &(dev->ecm_info);
     ALIGNED(4) static unsigned char tx_buf[ETH_MAX_FLEN];
 
-    if (!info->link_is_up || tx_count > ETH_MAX_FLEN)
+    if (!info->link_is_up || tx_count > ETH_MAX_FLEN || tx_count == 0)
         return;
 
     // fetch data from fpga
@@ -369,6 +369,7 @@ static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
 {
     usb_cdc_ecm_info_t *info = &(dev->ecm_info);
     ALIGNED(4) static unsigned char rx_buf[ETH_MAX_FLEN];
+    bool drop = false;
 
     // collect full frame for fpga
     while (info->link_is_up)
@@ -387,16 +388,16 @@ static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
                     __FUNCTION__, dev->bAddress, rcode);
                 info->rx_count = 0;
             }
+            if (drop) info->rx_count = 0;
             return;
         }
 
-        if (read > 0)
-            info->rx_count += read;
+        info->rx_count += read;
 
         if (read < max_ep_pkt)
         {
             // last part or zlp
-            if (info->rx_count >= ETH_HLEN)
+            if (!drop && info->rx_count >= ETH_HLEN)
             {
                 uint16_t eth_type = (rx_buf[12] << 8) | rx_buf[13];
 
@@ -411,9 +412,10 @@ static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)
         }
         else if (info->rx_count == ETH_MAX_FLEN)
         {
-            // too long frame
+            // force complete frame read
+            if (!drop) eth_debug("cdc_ecm: too long frame");
             info->rx_count = 0;
-            break;
+            drop = true;
         }
     }
 }
