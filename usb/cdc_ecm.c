@@ -355,14 +355,16 @@ static void ecm_send_pkt(
     usb_cdc_ecm_info_t *info = &(dev->ecm_info);
     ALIGNED(4) static unsigned char tx_buf[ETH_MAX_FLEN];
 
-    if (!info->link_is_up || tx_count > ETH_MAX_FLEN || tx_count == 0)
+    if (tx_count > ETH_MAX_FLEN || tx_count == 0)
         return;
 
     // fetch data from fpga
     receive_tx_frame(tx_buf, tx_count);
 
     // xfer via BULK endpoint
-    usb_out_transfer(dev, &(info->ep_out), tx_count, tx_buf);
+    if (info->link_is_up) {
+        usb_out_transfer(dev, &(info->ep_out), tx_count, tx_buf);
+    }
 }
 
 static void ecm_recv_pkt(usb_device_t *dev, net_pkt_cb send_rx_frame)

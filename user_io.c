@@ -404,9 +404,6 @@ static void user_io_nic_poll()
 
 	usb_nic_class_config_t *nic = (usb_nic_class_config_t *) dev->class;
 
-	if (!nic->link_is_up(dev))
-		return;
-
 	uint32_t status = user_io_eth_get_status();
 	uint16_t tx_count = NIC_TX_COUNT(status);
 

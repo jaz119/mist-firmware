@@ -100,22 +100,23 @@ int eth_poll()
 		timerMAC = GetTimer(2000);
 	}
 
-	if (!link) return 0;
-
 	uint32_t status = user_io_eth_get_status();
 
-	if(status & NIC_TX_RDY) {
+	if (status & NIC_TX_RDY) {
 		uint16_t len = status & 0xffff;
 
-		if(len <= MAX_FRAMELEN) {
+		if (len <= MAX_FRAMELEN) {
 			user_io_eth_receive_tx_frame(sector_buffer, len);
-			//iprintf("sending packet: %d bytes\n", len);
-			//hexdump(sector_buffer, len, 0);
-			ethd_send(&ethd, 0, sector_buffer, len, 0);
+
+			if (link) {
+				//iprintf("sending packet: %d bytes\n", len);
+				//hexdump(sector_buffer, len, 0);
+				ethd_send(&ethd, 0, sector_buffer, len, 0);
+			}
 		}
 	}
 
-	if(status & NIC_RX_RDY) {
+	if ((status & NIC_RX_RDY) && link) {
 		uint32_t recv_size = 0;
 
 		if (ethd_poll(&ethd, 0, sector_buffer, SECTOR_BUFFER_SIZE, &recv_size) == ETH_OK) {
