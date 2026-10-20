@@ -77,6 +77,7 @@ void send_digital_joystick(uint8_t joy, uint32_t map);
 
 uint16_t keycode_ps2(uint8_t key);
 uint16_t modify_keycode_ps2(uint8_t key);
+bool get_capslock_toggle();
 
 void handle_kbd_commands_ps2();
 void handle_typematic_repeat_ps2();

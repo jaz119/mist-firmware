@@ -255,7 +255,7 @@ static void archie_kbd(unsigned short code) {
   }
 
   // select prefix for up or down event
-  unsigned char prefix = (code & 0x8000) ? KUDA : KDDA;
+  unsigned char prefix = (code & BREAK) ? KUDA : KDDA;
 
   archie_kbd_send(STATE_WAIT4ACK1, prefix | (code >> 4));
   archie_kbd_send(STATE_WAIT4ACK2, prefix | (code & 0x0f));

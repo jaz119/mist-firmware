@@ -67,7 +67,7 @@ typedef enum {
 } ps2_kbd_state_t;
 
 int ps2_kbd_scan_set = 2;
-static ps2_kbd_state_t ps2_kbd_state;
+static ps2_kbd_state_t ps2_kbd_state = 0;
 
 // mouse position
 // for storage rate limitation
@@ -96,9 +96,14 @@ static uint32_t autofire_timer;
 static uint32_t autofire_mask;
 static uint32_t autofire_map;
 
+bool get_capslock_toggle()
+{
+    return caps_lock_toggle;
+}
+
 uint16_t keycode_ps2(uint8_t key)
 {
-    //  replace MENU key by RGUI e.g.
+    // replace MENU key by RGUI e.g.
     // to allow using RGUI on reduced keyboards
     // without physical key (it also disables the use of Menu for OSD)
     if (mist_cfg.key_menu_as_rgui && mist_cfg.keyrah_mode == 0 && key == 0x65)
@@ -121,8 +126,6 @@ uint16_t modify_keycode_ps2(uint8_t key)
 
     return (ps2_kbd_scan_set == 1) ? ps2_modifier_set1[key] : ps2_modifier[key];
 }
-
-#define BREAK   0x8000
 
 void send_keycode_ps2(uint16_t code)
 {
@@ -304,7 +307,7 @@ void handle_typematic_repeat_ps2()
             {
                 uint16_t code = core->keycode(pressed[i]);
 
-                if (!osd_is_visible && !(code & CAPS_LOCK_TOGGLE) && !(code & NUM_LOCK_TOGGLE))
+                if (!osd_is_visible && !(code & NUM_LOCK_TOGGLE))
                     core->send_keycode(code);
                 break;
             }
@@ -436,7 +439,6 @@ void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority)
             int j;
             for (j = 0; j < 6 && pressed[i] != k[j]; j++);
 
-            // don't send break for caps lock
             if (j == 6)
             {
                 // If OSD is visible, then all keys are sent into the OSD
@@ -457,7 +459,7 @@ void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority)
                 if (!key_used_by_osd(code))
                 {
                     // key is not used by OSD
-                    if (!(code & CAPS_LOCK_TOGGLE) && !(code & NUM_LOCK_TOGGLE))
+                    if (!(code & NUM_LOCK_TOGGLE))
                     {
                         core->send_keycode(BREAK | code);
                     }
@@ -512,18 +514,14 @@ void user_io_kbd(uint8_t m, uint8_t *k, uint8_t priority)
                 // that is currently redirected to the OSD
                 if (!key_used_by_osd(code))
                 {
-                    // key is not used by OSD
                     if (code & CAPS_LOCK_TOGGLE)
                     {
-                        // send alternating make and break codes for caps lock
-                        core->send_keycode((code & 0xff) | (caps_lock_toggle ? BREAK : 0));
                         caps_lock_toggle ^= 1;
                         hid_set_kbd_led(HID_LED_CAPS_LOCK, caps_lock_toggle);
                     }
-                    else
-                    {
-                        core->send_keycode(code);
-                    }
+
+                    // key is not used by OSD
+                    core->send_keycode(code);
                 }
             }
         }
@@ -979,12 +977,24 @@ void user_io_check_reset(uint16_t modifiers, char useKeys)
 void user_io_hid_reset()
 {
     ps2_kbd_state = PS2_KBD_IDLE;
+    ps2_typematic_rate = 0x80;
     ps2_kbd_scan_set = 2;
+
     ps2_mouse_status = 0;
     ps2_mouse_state = PS2_MOUSE_IDLE;
     ps2_mouse_resolution = 0;
     ps2_mouse_samplerate = 0;
-    ps2_typematic_rate = 0x80;
+
+    memset(pressed, 0, sizeof(pressed));
+    hid_set_kbd_led(HID_LED_CAPS_LOCK | HID_LED_NUM_LOCK | HID_LED_SCROLL_LOCK, false);
+    latest_kbd_priority = 0;
+
+    caps_lock_toggle = 0;
+    keyboard_leds = 0;
+    caps_status = 0;
+    scrl_status = 0;
+    num_status = 0;
+
     autofire_joy = -1;
     autofire = 0;
 }

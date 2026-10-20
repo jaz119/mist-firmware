@@ -777,7 +777,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 }
 
 static bool set_kbd_led(usb_device_t *dev, void *arg) {
-	const uint8_t kbd_led_state = *(uint8_t *)arg;
+	const uint8_t led_state = *(uint8_t *)arg;
 
 	if (!(dev->hid_info.device_types & HID_DEVICE_KEYBOARD))
 		return true;
@@ -795,10 +795,10 @@ static bool set_kbd_led(usb_device_t *dev, void *arg) {
 
 		if (report_id != 0) {
 			report[0] = report_id;
-			report[1] = kbd_led_state;
+			report[1] = led_state;
 			size = 2;
 		} else {
-			report[0] = kbd_led_state;
+			report[0] = led_state;
 		}
 
 		hid_set_report(dev, iface->iface_idx, 2, report_id, size, report);
@@ -808,15 +808,11 @@ static bool set_kbd_led(usb_device_t *dev, void *arg) {
 }
 
 void hid_set_kbd_led(unsigned char led, bool on) {
-	// check if led state has changed
-	if ((on && !(kbd_led_state & led)) || (!on && (kbd_led_state & led)))
-	{
-		if (on) kbd_led_state |=  led;
-		else    kbd_led_state &= ~led;
+	if (on) kbd_led_state |=  led;
+	else    kbd_led_state &= ~led;
 
-		// update leds for all keyboards
-		visit_devices(USB_HID, set_kbd_led, &kbd_led_state);
-	}
+	// update leds for all keyboards
+	visit_devices(USB_HID, set_kbd_led, &kbd_led_state);
 }
 
 const usb_device_class_config_t usb_hid_class = {

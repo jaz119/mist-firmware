@@ -73,6 +73,13 @@ static void kbd_fifo_poll()
 
 static void io_kbd_minimig(uint16_t code)
 {
+    // caps lock trigger
+    if (code & CAPS_LOCK_TOGGLE) {
+        code &= 0xff;
+        if (!get_capslock_toggle())
+            code |= BREAK;
+    }
+
     // amiga has "break" marker in msb
     if (code & BREAK)
         code = (code & 0xff) | 0x80;

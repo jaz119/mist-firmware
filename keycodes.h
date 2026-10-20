@@ -19,6 +19,7 @@
 #define CAPS_LOCK_TOGGLE  0x0400     // caps lock toggle behaviour
 #define NUM_LOCK_TOGGLE   0x0800
 #define EXT               0x1000     // extended PS/2 keycode
+#define BREAK             0x8000
 
 // amiga unmapped:
 // 0x5a KP-( (mapped on Keyrah)
@@ -84,7 +85,7 @@ static const unsigned short usb2ami[] = {
   0x38,  // 36: ,
   0x39,  // 37: .
   0x3a,  // 38: /
-  0x62 | CAPS_LOCK_TOGGLE,  // 39: Caps Lock
+  0x62 | CAPS_LOCK_TOGGLE, // 39: Caps Lock
   0x50,  // 3a: F1
   0x51,  // 3b: F2
   0x52,  // 3c: F3
@@ -200,7 +201,7 @@ static const unsigned short usb2ps2[] = {
   0x41,  // 36: ,
   0x49,  // 37: .
   0x4a,  // 38: /
-  0x58,  // 39: Caps Lock
+  0x58 | CAPS_LOCK_TOGGLE, // 39: Caps Lock
   0x05,  // 3a: F1
   0x06,  // 3b: F2
   0x04,  // 3c: F3
@@ -316,7 +317,7 @@ static const unsigned short usb2ps2_set1[] = {
   0x33,  // 36: ,
   0x34,  // 37: .
   0x35,  // 38: /
-  0x3a,  // 39: Caps Lock
+  0x3a | CAPS_LOCK_TOGGLE, // 39: Caps Lock
   0x3b,  // 3a: F1
   0x3c,  // 3b: F2
   0x3d,  // 3c: F3
@@ -441,7 +442,7 @@ static const unsigned short usb2archie[] = {
   0x55, // 36: ,
   0x56, // 37: .
   0x57, // 38: /
-  0x5d, // 39: Caps Lock
+  0x5d | CAPS_LOCK_TOGGLE, // 39: Caps Lock
   0x01, // 3a: F1
   0x02, // 3b: F2
   0x03, // 3c: F3
