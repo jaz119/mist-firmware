@@ -140,17 +140,17 @@ static const ini_var_t mist_ini_vars[] = {
   // [MINIMIG_CONFIG]
   {"KICK1X_MEMORY_DETECTION_PATCH", (void*)(&(minimig_cfg.kick1x_memory_detection_patch)), UINT8, 0, 1, 2},
   {"CLOCK_FREQ", (void*)(&(minimig_cfg.clock_freq)), UINT8, 0, 2, 2},
-  {"CONF_DEFAULT", (void*)(&(minimig_cfg.conf_name[0])), STRING, 1, 10, 2},
-  {"CONF_1", (void*)(&(minimig_cfg.conf_name[1])), STRING, 1, 10, 2},
-  {"CONF_2", (void*)(&(minimig_cfg.conf_name[2])), STRING, 1, 10, 2},
-  {"CONF_3", (void*)(&(minimig_cfg.conf_name[3])), STRING, 1, 10, 2},
-  {"CONF_4", (void*)(&(minimig_cfg.conf_name[4])), STRING, 1, 10, 2},
+  {"CONF_DEFAULT", (void*)(&(minimig_cfg.conf_name[0])), STRING, 1, 12, 2},
+  {"CONF_1", (void*)(&(minimig_cfg.conf_name[1])), STRING, 1, 12, 2},
+  {"CONF_2", (void*)(&(minimig_cfg.conf_name[2])), STRING, 1, 12, 2},
+  {"CONF_3", (void*)(&(minimig_cfg.conf_name[3])), STRING, 1, 12, 2},
+  {"CONF_4", (void*)(&(minimig_cfg.conf_name[4])), STRING, 1, 12, 2},
   // [ATARIST_CONFIG]
-  {"CONF_DEFAULT", (void*)(&(atarist_cfg.conf_name[0])), STRING, 1, 10, 3},
-  {"CONF_1", (void*)(&(atarist_cfg.conf_name[1])), STRING, 1, 10, 3},
-  {"CONF_2", (void*)(&(atarist_cfg.conf_name[2])), STRING, 1, 10, 3},
-  {"CONF_3", (void*)(&(atarist_cfg.conf_name[3])), STRING, 1, 10, 3},
-  {"CONF_4", (void*)(&(atarist_cfg.conf_name[4])), STRING, 1, 10, 3}
+  {"CONF_DEFAULT", (void*)(&(atarist_cfg.conf_name[0])), STRING, 1, 12, 3},
+  {"CONF_1", (void*)(&(atarist_cfg.conf_name[1])), STRING, 1, 12, 3},
+  {"CONF_2", (void*)(&(atarist_cfg.conf_name[2])), STRING, 1, 12, 3},
+  {"CONF_3", (void*)(&(atarist_cfg.conf_name[3])), STRING, 1, 12, 3},
+  {"CONF_4", (void*)(&(atarist_cfg.conf_name[4])), STRING, 1, 12, 3}
 };
 
 // mist ini config

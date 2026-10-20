@@ -458,7 +458,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 					SetConfigurationFilename(idx-21);
 					if (!ConfigurationExists(0)) item->active = 0;
 					item->stipple = !item->active;
-					strcpy(s,"          ");
+					strcpy(s, "         ");
 					strcat(s, minimig_cfg.conf_name[idx-21]);
 					item->item = s;
 					break;
@@ -469,7 +469,7 @@ static char GetMenuItem_Minimig(uint8_t idx, char action, menu_item_t *item) {
 				case 29:
 				case 30:
 				case 31:
-					strcpy(s,"          ");
+					strcpy(s, "         ");
 					strcat(s, minimig_cfg.conf_name[idx-27]);
 					item->item = s;
 					break;

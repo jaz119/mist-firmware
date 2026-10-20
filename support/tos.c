@@ -831,7 +831,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
             item->stipple = 1;
             item->active = 0;
           }
-          strcpy(s,"          ");
+          strcpy(s, "         ");
           strcat(s, atarist_cfg.conf_name[idx-15]);
           item->item = s;
           break;
@@ -842,7 +842,7 @@ static char tos_get_menu_item(uint8_t idx, char action, menu_item_t *item) {
         case 22:
         case 23:
         case 24:
-          strcpy(s, "          ");
+          strcpy(s, "         ");
           strcat(s, atarist_cfg.conf_name[idx-20]);
           item->item = s;
           break;

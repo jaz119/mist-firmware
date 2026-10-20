@@ -9,11 +9,11 @@
 typedef struct {
   uint8_t kick1x_memory_detection_patch;
   uint8_t clock_freq;
-  char conf_name[5][11];
+  char conf_name[5][13];
 } minimig_cfg_t;
 
 typedef struct {
-  char conf_name[5][11];
+  char conf_name[5][13];
 } atarist_cfg_t;
 
 
