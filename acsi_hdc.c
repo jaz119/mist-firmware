@@ -171,7 +171,7 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
 
     if (count > (int)sizeof(inquiry_bytes))
     {
-        memcpy(&buf[36], "ATA" VDATE "  ", 11);
+        memcpy(&buf[36], "rev:" GIT_REV " ", 11);
         buf[4] = count - 5;
     }
 

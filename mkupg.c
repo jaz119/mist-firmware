@@ -79,9 +79,9 @@ int main(int argc, char **argv) {
     printf("Usage: mkupg <infile>.bin <outfile>.upg> <6-digit date code>\n");
     return -1;
   }
-  if(strlen(argv[3])!=6)
+  if(strlen(argv[3])>7)
   {
-    printf("Date code should be a 6-digit code in the form YYMMDD\n");
+    printf("Version code must not exceed 7 chars\n");
     return -1;
   }
 
@@ -112,8 +112,7 @@ int main(int argc, char **argv) {
 
   // create upgrade header
   memset(&upgrade, 0, sizeof(upgrade));
-  strcpy(upgrade.version,"ATA");
-  strncpy(upgrade.version+3,argv[3],6);
+  strcpy(upgrade.version, argv[3]);
   strcpy(upgrade.id, FW_ID);
   upgrade.rom.size = size;
   upgrade.rom.crc = ~CalculateCRC32(-1, bin, size);

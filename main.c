@@ -54,7 +54,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #error "newlib lacks support of long long type in IO functions. Please use a toolchain that was compiled with option --enable-newlib-io-long-long."
 #endif
 
-const char version[] = { "$VER:ATA" VDATE };
+const char version[] = { "$VER:" GIT_REV };
 
 unsigned char Error;
 
@@ -135,7 +135,7 @@ int main()
 
     iprintf("\nMinimig by Dennis van Weeren\n");
     iprintf("ARM Controller by Jakub Bednarski\n\n");
-    infof("Version %s\n", version + 5);
+    infof("FW rev: %s\n", version + 5);
 
     spi_init();
 #ifdef HAVE_QSPI

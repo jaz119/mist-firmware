@@ -1,6 +1,5 @@
 /*
   cdc_control.c
-
 */
 
 #include <stdio.h>
@@ -78,7 +77,7 @@ void cdc_control_poll(void) {
 	  switch(data[i]) {
 	  case '\r':
 	    cdc_puts("\n\033[7m <<< MIST board controller >>> \033[0m");
-	    cdc_puts("Firmware version ATA" VDATE);
+	    cdc_puts("Firmware version:" GIT_REV);
 	    cdc_puts("Commands:");
 	    cdc_puts("\033[7mR\033[0meset");
 	    cdc_puts("\033[7mC\033[0moldreset");

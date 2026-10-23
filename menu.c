@@ -448,7 +448,7 @@ static char GetMenuPage_System(uint8_t idx, char action, menu_page_t *page) {
 			page->flags = OSD_ARROW_LEFT;
 			break;
 		case 1:
-			page->title = "FW & Core";
+			page->title = "Fw & Core";
 			break;
 		case 2:
 			page->title = "Clock";
@@ -551,47 +551,30 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					break;
 
 				// page 1 - Firmware & Core
-				case 7:
-					siprintf(s, "   ARM  s/w ver. %s", version + 5);
+				case 8:
+					siprintf(s, "       FW rev: %s", version + 5);
 					item->item = s;
 					item->active = 0;
 					break;
-				case 8: {
-					const char *v = GetFirmwareVersion("/FIRMWARE.UPG");
-					if (v)
-						siprintf(s, "   FILE s/w ver. %s", v);
-					else
-						s[0] = 0;
-					item->item = s;
-					item->active = 0;
-					}
-					break;
-				case 9:
+				case 9: {
+					const char *upg_rev = GetFirmwareVersion("/FIRMWARE.UPG");
 					item->item = "           Update";
-					item->active = fat_uses_mmc();
+					item->active = fat_uses_mmc() && upg_rev != NULL && strcmp(upg_rev, version + 5) != 0;
 					item->stipple = !item->active;
 					break;
-				case 10:
-					item->active = 0;
-					break;
-				case 11:
-					if (strlen(OsdCoreName()) < 26) {
+				} case 11:
+					strcpy(s, OsdCoreName());
+					if (arc_get_rbfname() && *arc_get_rbfname()) {
+						siprintf(s, "%*s%s.RBF", (29-strlen(arc_get_rbfname()))/2-2, " ", arc_get_rbfname());
+					} else if (strlen(OsdCoreName()) < 26) {
 						siprintf(s, "%*s%s", (29-strlen(OsdCoreName()))/2, " ", OsdCoreName());
 					}
-					else strcpy(s, OsdCoreName());
 					s[28] = 0;
 					item->item = s;
 					item->active = 0;
 					break;
 				case 12:
-					if (arc_get_rbfname() && *arc_get_rbfname()) {
-						siprintf(s, "%*s%s.RBF", (29-strlen(arc_get_rbfname()))/2-2, " ", arc_get_rbfname());
-						item->item = s;
-					}
-					item->active = 0;
-					break;
-				case 13:
-					item->item = "      Change FPGA core";
+					item->item = "          Swap core";
 					break;
 
 				// page 2 - RTC
@@ -935,15 +918,14 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 
 				// page 1 - firmware & core
 				case 9:
-					if (fat_uses_mmc()) {
-						if (CheckFirmware("/FIRMWARE.UPG"))
-							DialogBox("\n     Update the firmware\n"
-								"        Are you sure?", MENU_DIALOG_YESNO, FirmwareUpdateDialog);
-						else
-							FirmwareUpdateError();
+					if (CheckFirmware("/FIRMWARE.UPG")) {
+						DialogBox("\n     Update the firmware\n"
+							"        Are you sure?", MENU_DIALOG_YESNO, FirmwareUpdateDialog);
+					} else {
+						FirmwareUpdateError();
 					}
 					break;
-				case 13:
+				case 12:
 					SelectFileNG("RBFARC", SCAN_LFN | SCAN_SYSDIR, CoreFileSelected, 0);
 					break;
 				case 21:

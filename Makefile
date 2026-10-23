@@ -7,7 +7,7 @@ OBJCOPY = $(BASE)-objcopy
 OBJDUMP = $(BASE)-objdump
 SIZE    = $(BASE)-size
 
-TODAY = $(shell date +"%y%m%d")
+GIT_REV = $(shell git rev-parse --short HEAD)
 PRJ = firmware
 
 SRC = hw/AT91SAM/Cstartup_SAM7.c hw/AT91SAM/hardware.c hw/AT91SAM/spi.c hw/AT91SAM/mmc.c hw/AT91SAM/at91sam_usb.c hw/AT91SAM/usbdev.c
@@ -32,7 +32,7 @@ LIBDIR  =
 
 # Commandline options for each tool.
 # for ESA11 add -DEMIST
-DFLAGS  = -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV4TE -DVDATE=\"$(TODAY)\"
+DFLAGS  = -DCONFIG_ARCH_ARM -DCONFIG_ARCH_ARMV4TE -DGIT_REV=\"$(GIT_REV)\"
 DFLAGS += -DMIST -DFF_FS_TINY=1 -DFF_MAX_LFN=80 -DFF_LFN_BUF=80 -DSECTOR_BUFFER_SIZE=4096
 CFLAGS  = $(DFLAGS) -I. -Iusb -Iarch -Isupport -Ihw/AT91SAM -mcpu=arm7tdmi -mthumb-interwork -mthumb
 CFLAGS += -Os --std=gnu99 -Wdouble-promotion -Wformat=2 -fsigned-char -fno-common
@@ -89,7 +89,7 @@ $(PRJ).elf: crt.o $(OBJ)
 	$(SIZE) -B $@
 
 $(PRJ).upg: $(PRJ).bin $(MKUPG)
-	./$(MKUPG) $< $@ $(TODAY)
+	./$(MKUPG) $< $@ $(GIT_REV)
 
 # Compile the C runtime.
 crt.o: hw/AT91SAM/Cstartup.S
