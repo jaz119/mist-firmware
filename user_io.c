@@ -407,18 +407,21 @@ static void user_io_nic_poll()
 	uint32_t status = user_io_eth_get_status();
 	uint16_t tx_count = NIC_TX_COUNT(status);
 
-	if (status & NIC_TX_RDY)
+	if (NIC_ID(status) == 0xa8)
 	{
-		// nic ready to transmit packet
-		nic->send_pkt(
-			dev, user_io_eth_receive_tx_frame, tx_count);
-	}
+		if (status & NIC_TX_RDY)
+		{
+			// nic ready to transmit packet
+			nic->send_pkt(
+				dev, user_io_eth_receive_tx_frame, tx_count);
+		}
 
-	if (status & NIC_RX_RDY)
-	{
-		// nic ready to receive packet (w/o crc)
-		nic->recv_pkt(
-			dev, user_io_eth_send_rx_frame);
+		if (status & NIC_RX_RDY)
+		{
+			// nic ready to receive packet (w/o crc)
+			nic->recv_pkt(
+				dev, user_io_eth_send_rx_frame);
+		}
 	}
 }
 

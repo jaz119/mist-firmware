@@ -19,31 +19,30 @@
 #define UIO_BUT_SW          0x01
 
 // codes as used by Minimig
-#define UIO_JOYSTICK0       0x02  // also used by 8 bit
+#define UIO_JOYSTICK0       0x02  // also used by 8BIT
 #define UIO_JOYSTICK1       0x03  // -"-
 #define UIO_MOUSE           0x04  // -"-
 #define UIO_KEYBOARD        0x05  // -"-
 #define UIO_KBD_OSD         0x06  // keycodes used by OSD only
 
 // codes as used by MiSTery
-// directions (in/out) are from an io controller view
+// directions (in/out) are from an i/o controller view
 #define UIO_PARALLEL_IN     0x06
 #define UIO_MIDI_OUT        0x07
 #define UIO_MIDI_IN         0x08
-#define UIO_ETH_MAC         0x09
-#define UIO_ETH_STATUS      0x0a
-#define UIO_ETH_FRM_IN      0x0b
-#define UIO_ETH_FRM_OUT     0x0c
+#define UIO_ETH_MAC         0x09  // also used by Minimig
+#define UIO_ETH_STATUS      0x0a  // -"-
+#define UIO_ETH_FRM_IN      0x0b  // -"-
+#define UIO_ETH_FRM_OUT     0x0c  // -"-
 #define UIO_SERIAL_STAT     0x0d
 #define UIO_KEYBOARD_IN     0x0e  // PS2 keyboard cmd
 #define UIO_MOUSE_IN        0x0f  // PS2 mouse cmd
-
-#define UIO_JOYSTICK2       0x10  // also used by minimig and 8 bit
+#define UIO_JOYSTICK2       0x10  // also used by Minimig and 8BIT
 #define UIO_JOYSTICK3       0x11  // -"-
 #define UIO_JOYSTICK4       0x12  // -"-
 #define UIO_JOYSTICK5       0x13  // -"-
 
-// general codes used by 8bit, archie and MiSTery
+// general codes used by 8BIT, Archie and MiSTery
 #define UIO_GET_STRING      0x14
 #define UIO_SET_STATUS      0x15
 #define UIO_GET_SDSTAT      0x16  // read status of sd card emulation
@@ -61,13 +60,13 @@
 #define UIO_SET_RTC         0x22  // send real-time-clock data
 #define UIO_SD_ACK          0x23  // send ack for sector read/write
 #define UIO_GET_STR_EXT     0x24  // get config string from dedicated position
-#define UIO_SET_MOD2        0x25  // send core variant from metadata (ARC) file (64 bit)
+#define UIO_SET_MOD2        0x25  // send core variant from metadata (ARC) file (64-bit)
 
-// I2C bridge
+// i2c bridge
 #define UIO_I2C_SEND        0x30  // start i2c transaction on the FPGA side
 #define UIO_I2C_GET         0x31  // get i2c status and result from the FPGA
 
-// extended joystick control (32 bit value)
+// extended joystick control (32-bit value)
 #define UIO_JOYSTICK0_EXT   0x60
 #define UIO_JOYSTICK1_EXT   0x61
 #define UIO_JOYSTICK2_EXT   0x62
@@ -101,7 +100,7 @@
 #define FEAT_PS2REP         0x01000 // typematic repeat by default
 #define FEAT_BIGOSD         0x02000 // 16 line tall OSD
 #define FEAT_HDMI           0x04000 // HDMI output
-#define FEAT_PSX            0x08000 // PSX-specific CD image handling
+#define FEAT_PSX            0x08000 // PSX specific CD image handling
 #define FEAT_MEGACD         0x10000 // MegaCD specific CD image handling
 
 #define CONF_SCANDBL_DIS    BIT(4)
@@ -112,15 +111,15 @@
 // core type value should be unlikely to be returned by broken cores
 #define CORE_TYPE_UNKNOWN   0x55
 #define CORE_TYPE_DUMB      0xa0   // core without any io controller interaction
-#define CORE_TYPE_MINIMIG   0xa1   // legacy Minimig Amiga core
+#define CORE_TYPE_MINIMIG   0xa1   // legacy Minimig V1 core
 #define CORE_TYPE_PACE      0xa2   // core from pacedev.net (joystick only)
 #define CORE_TYPE_MIST      0xa3   // legacy Atari ST core
 #define CORE_TYPE_8BIT      0xa4   // generic core type
-#define CORE_TYPE_MINIMIG_V2 0xa5  // Minimig Amiga with AGA
+#define CORE_TYPE_MINIMIG_V2 0xa5  // Minimig with AGA core
 #define CORE_TYPE_ARCHIE    0xa6   // Acorn Archimedes core
-#define CORE_TYPE_MISTERY   0xa7   // MiSTery, modern Atari ST core
+#define CORE_TYPE_MISTERY   0xa7   // MiSTery Atari ST core
 
-// user io status bits (currently only used by 8bit)
+// user io status bits (currently only used by 8BIT)
 #define UIO_STATUS_RESET    0x01
 
 #define UIO_STOP_BIT_1      0
@@ -142,6 +141,7 @@
 #define NIC_TX_COUNT(s)     ((s) & 0x7ffUL)     // Frame size to xmit
 #define NIC_RX_RDY          BIT(16)             // RX buffer is ready
 #define NIC_TX_RDY          BIT(17)             // TX buffer is ready
+#define NIC_ID(s)           ((s) >> 24)         // Hardware Id
 
 extern uint32_t core_type; // current core type
 extern const user_io_core_t *core; // current core support module
@@ -180,7 +180,7 @@ char user_io_cue_mount(const unsigned char *, int);
 void user_io_sd_ack(uint8_t drive_index);
 void user_io_sd_set_config();
 
-// io controllers interface for FPGA Ethernet emulation
+// i/o controllers interface for FPGA Ethernet emulation
 // using usb devices attached to the io controller
 uint32_t user_io_eth_get_status();
 void user_io_eth_send_mac(const uint8_t *);
