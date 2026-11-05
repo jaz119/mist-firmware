@@ -122,7 +122,7 @@ void user_io_detect_core_type()
 	core_name[0] = 0;
 	core_type &= 0xef;
 
-	warningf("Core Id: 0x%02lx", core_type);
+	iprintf("Core Id: 0x%02lx\n", core_type);
 
 	for (int i = 0; i < ARRAY_SIZE(cores_list); i++)
 	{
@@ -135,7 +135,7 @@ void user_io_detect_core_type()
 			break;
 
 		strncpy(core_name, core->name, sizeof(core_name));
-		iprintf("Identified %s core\n", core_name);
+		warningf("Identified %s core", core_name);
 		return;
 	}
 
@@ -145,18 +145,11 @@ void user_io_detect_core_type()
 
 void user_io_init_core()
 {
-	usb_device_t *dev = usb_get_device(USB_NIC);
-
 	if (core && core->init) {
 		core->init();
 	}
 
 	user_io_send_buttons(true);
-
-  	if (dev) {
-		usb_nic_class_config_t *nic = (usb_nic_class_config_t *) dev->class;
-		user_io_eth_send_mac(nic->get_mac(dev));
-	}
 
 #ifdef HAVE_HDMI
 	hdmi_detected = false;
@@ -171,6 +164,13 @@ void user_io_init_core()
 		if (hdmi_detected) HDMITX_ChangeVideoTiming(1);
 	}
 #endif
+
+	usb_device_t *dev = usb_get_device(USB_NIC);
+
+  	if (dev) {
+		usb_nic_class_config_t *nic = (usb_nic_class_config_t *) dev->class;
+		user_io_eth_send_mac(nic->get_mac(dev));
+	}
 }
 
 static void user_io_send_rtc()
@@ -379,15 +379,15 @@ void user_io_eth_send_mac(const uint8_t *mac)
 }
 
 // write ethernet frame to FPGAs rx buffer
-void user_io_eth_send_rx_frame(uint8_t *buf, uint16_t len)
+RAMFUNC void user_io_eth_send_rx_frame(uint8_t *buf, uint32_t len)
 {
 	spi_uio_cmd_cont(UIO_ETH_FRM_OUT);
-	spi_write(buf, len);
+	while (len--) spi8(*buf++);
 	DisableIO();
 }
 
 // read ethernet frame from FPGAs tx buffer
-void user_io_eth_receive_tx_frame(uint8_t *buf, uint16_t len)
+RAMFUNC void user_io_eth_receive_tx_frame(uint8_t *buf, uint32_t len)
 {
 	spi_uio_cmd_cont(UIO_ETH_FRM_IN);
 	while (len--) *buf++ = spi_in();

@@ -35,7 +35,7 @@ typedef struct {
     uint8_t alt_setting;
 } usb_cdc_ecm_info_t;
 
-typedef void (*net_pkt_cb)(uint8_t *, uint16_t);
+typedef void (*net_pkt_cb)(uint8_t *, uint32_t);
 
 // nic driver iface
 typedef struct {

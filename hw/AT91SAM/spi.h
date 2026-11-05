@@ -65,7 +65,12 @@ static inline void DisableDMode() {
   *AT91C_PIOA_SODR = FPGA2;    // disable FPGA2 output
 }
 
-RAMFUNC unsigned char SPI(unsigned char);
+static inline unsigned char SPI(unsigned char outByte) {
+  while (!(*AT91C_SPI_SR & AT91C_SPI_TDRE));
+  *AT91C_SPI_TDR = outByte;
+  while (!(*AT91C_SPI_SR & AT91C_SPI_RDRF));
+  return((unsigned char)*AT91C_SPI_RDR);
+}
 
 /* generic helper */
 static inline unsigned char spi_in() {

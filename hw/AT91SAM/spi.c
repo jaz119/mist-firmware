@@ -152,13 +152,6 @@ void spi_set_speed(unsigned char speed) {
   }
 }
 
-RAMFUNC unsigned char SPI(unsigned char outByte) {
-  while (!(*AT91C_SPI_SR & AT91C_SPI_TDRE));
-  *AT91C_SPI_TDR = outByte;
-  while (!(*AT91C_SPI_SR & AT91C_SPI_RDRF));
-  return((unsigned char)*AT91C_SPI_RDR);
-}
-
 /* OSD related SPI functions */
 void spi_osd_cmd_cont(unsigned char cmd) {
   EnableOsd();

@@ -184,8 +184,8 @@ void user_io_sd_set_config();
 // using usb devices attached to the io controller
 uint32_t user_io_eth_get_status();
 void user_io_eth_send_mac(const uint8_t *);
-void user_io_eth_send_rx_frame(uint8_t *, uint16_t);
-void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
+RAMFUNC void user_io_eth_send_rx_frame(uint8_t *, uint32_t);
+RAMFUNC void user_io_eth_receive_tx_frame(uint8_t *, uint32_t);
 
 #define CONFIG_ROOT 1   // create config filename in the root directory
 #define CONFIG_VHD  2   // create config filename according to VHD= in arc file
