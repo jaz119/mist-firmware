@@ -763,8 +763,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 						   MMC_GetCardType() == CARDTYPE_SD   ? "SD card" :
 						   MMC_GetCardType() == CARDTYPE_SDHC ? "SDHC card" : "None")
 						: "USB storage");
-					item->active = fat_medium_present();
-					item->stipple = !item->active;
+					item->stipple = !fat_medium_present();
+					item->active = false;
 					item->item = s;
 					break;
 				case 48:
@@ -775,8 +775,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 						siprintf(s, " Medium:      %6s / %3luMB",
 							fs_type_to_string(), storage_size);
 					}
-					item->active = fat_medium_present();
-					item->stipple = !item->active;
+					item->stipple = !fat_medium_present();
+					item->active = false;
 					item->item = s;
 					break;
 				case 49: {
@@ -784,8 +784,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s, " Keyboard:");
 					keyboard_count ? siprintf(s + 10, " %8u", keyboard_count) : siprintf(s + 10, "     none");
 					siprintf(s + 19, " detected");
-					item->active = keyboard_count;
-					item->stipple = !item->active;
+					item->stipple = !keyboard_count;
+					item->active = false;
 					item->item = s;
 					}
 					break;
@@ -794,8 +794,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s, " Mouse:");
 					mouse_count ? siprintf(s + 7, " %11u", mouse_count) : siprintf(s + 7, "        none");
 					siprintf(s + 19, " detected");
-					item->active = mouse_count;
-					item->stipple = !item->active;
+					item->stipple = !mouse_count;
+					item->active = false;
 					item->item = s;
 					}
 					break;
@@ -812,7 +812,6 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 						mac = asix_get_mac();
 #endif
 					}
-					item->active = false;
 #ifdef CONFIG_CHIP_SAMV71
 					siprintf(s, " Net(USB):");
 #else
@@ -822,11 +821,12 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 						siprintf(s + 10, " %02x:%02x:%02x:%02x:%02x:%02x",
 							mac[0], mac[1], mac[2],
 							mac[3], mac[4], mac[5]);
-						item->active = true;
+						item->stipple = is_stippled;
 					} else {
 						siprintf(s + 10, "     none detected");
+						item->stipple = true;
 					}
-					item->stipple = (!item->active || is_stippled);
+					item->active = false;
 					item->item = s;
 					break;
 				}
@@ -834,8 +834,8 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					bool have_uart = !!usb_get_device(USB_UART);
 					siprintf(s, " Serial: %10s detected",
 						have_uart ? "USB UART" : "none");
-					item->active = have_uart;
-					item->stipple = !item->active;
+					item->stipple = !have_uart;
+					item->active = false;
 					item->item = s;
 					break;
 				}
@@ -847,6 +847,7 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s + 9, "  %02x:%02x:%02x:%02x:%02x:%02x",
 						mac[0], mac[1], mac[2],
 						mac[3], mac[4], mac[5]);
+					item->active = false;
 					item->item = s;
 					break;
 				}
@@ -855,10 +856,12 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s, " Network link:");
 					if (!link) {
 						siprintf(s + 14, "  not detected");
+						item->stipple = true;
 					} else {
 						siprintf(s+14, "    %sMBps", link & 0x02 ? "100" : " 10");
 						siprintf(s+25, "/%s", link & 0x04 ? "FD" : "HD");
 					}
+					item->active = false;
 					item->item = s;
 					break;
 				}
@@ -868,9 +871,11 @@ static char GetMenuItem_System(uint8_t idx, char action, menu_item_t *item) {
 					siprintf(s, " Digital video:");
 					if (!user_io_hdmi_detected()) {
 						siprintf(s + 15, "  not detected");
+						item->stipple = true;
 					} else {
 						siprintf(s + 15, " %s", HPD ? (bHDMIMode ? "        HDMI" : "         DVI") : "disconnected");
 					}
+					item->active = false;
 					item->item = s;
 					break;
 				}
