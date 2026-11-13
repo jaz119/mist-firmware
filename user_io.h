@@ -31,7 +31,8 @@
 #define UIO_MIDI_OUT        0x07
 #define UIO_MIDI_IN         0x08
 #define UIO_ETH_MAC         0x09  // also used by Minimig
-#define UIO_ETH_STATUS      0x0a  // -"-
+#define UIO_ETH_UNUSED      0x0a  // deprecated
+#define UIO_ETH_STATUS      0x2a  // ethernet status
 #define UIO_ETH_FRM_IN      0x0b  // -"-
 #define UIO_ETH_FRM_OUT     0x0c  // -"-
 #define UIO_SERIAL_STAT     0x0d
