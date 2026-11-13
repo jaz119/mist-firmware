@@ -1042,7 +1042,7 @@ void SelectFile(char *pFileExt, unsigned char Options, unsigned char MenuSelect,
 	// this function displays file selection menu
 	menu_debugf("%s - %s", pFileExt, fs_pFileExt);
 
-	if (strncmp(pFileExt, fs_pFileExt, 12) != 0) // check desired file extension
+	if (strncmp(pFileExt, fs_pFileExt, 24) != 0) // check desired file extension
 	{ // if different from the current one go to the root directory and init entry buffer
 		ChangeDirectoryName("/");
 
