@@ -165,8 +165,8 @@ void USART_Write(unsigned char c);
 unsigned char USART_Read();
 
 void Timer_Init();
-RAMFUNC unsigned long GetTimer(unsigned long offset);
-RAMFUNC unsigned long CheckTimer(unsigned long t);
+unsigned long GetTimer(unsigned long offset);
+unsigned long CheckTimer(unsigned long t);
 void WaitTimer(unsigned long time);
 
 void USART_Poll();
