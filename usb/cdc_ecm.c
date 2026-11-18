@@ -56,8 +56,6 @@ typedef struct {
 #define USB_CDC_NOTIF_RESPONSE_AVAILABLE        0x01
 #define USB_CDC_NOTIF_CONNECTION_SPEED_CHANGE   0x2a
 
-#define USB_REQUEST_SET_ETH_PACKET_FILTER       0x43
-
 static uint8_t hex_to_int(uint16_t ch, bool *is_ok)
 {
     if (ch >= '0' && ch <= '9')

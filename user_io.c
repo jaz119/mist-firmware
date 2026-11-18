@@ -50,9 +50,6 @@ uint32_t core_type = CORE_TYPE_UNKNOWN;
 #define RTC_FREQ 500
 static uint32_t rtc_timer;
 
-#define NIC_FREQ 1
-static uint32_t nic_timer;
-
 // set by OSD code to suppress forwarding of those keys
 // to the core which may be in use by an active OSD
 bool osd_is_visible = false;
@@ -358,7 +355,7 @@ static bool user_io_read_sd(
 }
 
 // read 32 bit ethernet status word from FPGA
-uint32_t user_io_eth_get_status()
+RAMFUNC uint32_t user_io_eth_get_status()
 {
 	spi_uio_cmd_cont(UIO_ETH_STATUS);
 	uint32_t s = spi_in();
@@ -402,16 +399,20 @@ static void user_io_nic_poll()
 	if (!dev)
 		return;
 
+	uint32_t status = user_io_eth_get_status();
 	usb_nic_class_config_t *nic = (usb_nic_class_config_t *) dev->class;
 
-	uint32_t status = user_io_eth_get_status();
-	uint16_t tx_count = NIC_TX_COUNT(status);
+	if (NIC_ID(status) != 0xa8)
+	{
+		// unknown status format
+		return;
+	}
 
 	if (status & NIC_TX_RDY)
 	{
 		// nic ready to transmit packet
 		nic->send_pkt(
-			dev, user_io_eth_receive_tx_frame, tx_count);
+			dev, user_io_eth_receive_tx_frame, NIC_TX_COUNT(status));
 	}
 
 	if (status & NIC_RX_RDY)
@@ -689,12 +690,7 @@ void user_io_poll()
 
 	user_io_hid_poll();
 	user_io_send_buttons(false);
-
-	if (CheckTimer(nic_timer))
-	{
-		user_io_nic_poll();
-		nic_timer = GetTimer(NIC_FREQ);
-	}
+	user_io_nic_poll();
 
 	if (CheckTimer(rtc_timer))
 	{

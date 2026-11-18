@@ -287,6 +287,9 @@ typedef struct {
 #define USB_REQUEST_SET_INTERFACE               11      // Standard Device Request - SET INTERFACE
 #define USB_REQUEST_SYNCH_FRAME                 12      // Standard Device Request - SYNCH FRAME
 
+/* CDC Network Requests */
+#define USB_REQUEST_SET_ETH_PACKET_FILTER       0x43
+
 #define USB_FEATURE_ENDPOINT_HALT               0       // CLEAR/SET FEATURE - Endpoint Halt
 #define USB_FEATURE_DEVICE_REMOTE_WAKEUP        1       // CLEAR/SET FEATURE - Device remote wake-up
 #define USB_FEATURE_TEST_MODE                   2       // CLEAR/SET FEATURE - Test mode
