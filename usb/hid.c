@@ -130,7 +130,7 @@ uint8_t hid_set_report(usb_device_t *dev, uint8_t iface,
 static bool hid_get_report_descr(
 	usb_device_t *dev, usb_hid_iface_info_t *iface, uint16_t size) {
 
-	if (size > USB_MAX_CONFIG_DESC_SIZE)
+	if (size > USB_MAX_REPORT_DESC_SIZE)
 		return false;
 
 	ALIGNED(4) uint8_t buf[size];
