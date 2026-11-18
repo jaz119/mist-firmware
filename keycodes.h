@@ -98,7 +98,7 @@ static const unsigned short usb2ami[] = {
   0x59,  // 43: F10
   0x5f,  // 44: F11
   KEY_MENU | OSD,  // 45: F12 (OSD)
-  0x6e | OSD,  // 46: Print Screen (OSD)
+  0x5d,  // 46: Print Screen
   NUM_LOCK_TOGGLE,  // 47: Scroll Lock (OSD)
   0x6f | OSD,  // 48: Pause
   0x0d,  // 49: backslash to avoid panic in Germany ;)
@@ -362,7 +362,7 @@ static const unsigned short usb2ps2_set1[] = {
   0x53,  // 63: KP .
   0x56,  // 64: Europe 2
   OSD_OPEN | EXT | 0x2f, // 65: App
-  MISS, // 66: Power
+  MISS,  // 66: Power
   MISS,  // 67: KP =
   0x45,  // 68: Num Lock
   0x46,  // 69: Scroll Lock
@@ -455,7 +455,7 @@ static const unsigned short usb2archie[] = {
   0x0a, // 43: F10
   0x0b, // 44: F11
   0x0c, // 45: F12 - Used heavily by the archie... OSD moved to printscreen.
-  //  0x0d, // 46: Print Screen
+  // 0x0d, // 46: Print Screen
   OSD_OPEN, // 46: Print Screen
   0x0e, // 47: Scroll Lock
   0x0f, // 48: Pause
