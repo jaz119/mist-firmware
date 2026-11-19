@@ -69,7 +69,7 @@ static inline unsigned char SPI(unsigned char outByte) {
   while (!(*AT91C_SPI_SR & AT91C_SPI_TDRE));
   *AT91C_SPI_TDR = outByte;
   while (!(*AT91C_SPI_SR & AT91C_SPI_RDRF));
-  return((unsigned char)*AT91C_SPI_RDR);
+  return ((unsigned char)*AT91C_SPI_RDR);
 }
 
 /* generic helper */
@@ -112,7 +112,7 @@ static inline void spi32le(unsigned long parm) {
 }
 
 static inline void spi_n(unsigned char value, unsigned short cnt) {
-  while(cnt--)
+  while (cnt--)
     SPI(value);
 }
 

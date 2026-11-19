@@ -296,21 +296,6 @@ void Timer_Init(void) {
   *AT91C_PITC_PIMR = AT91C_PITC_PITEN | ((MCLK / 16 / 1000 - 1) & AT91C_PITC_PIV); // counting period 1ms
 }
 
-// 12 bits accuracy at 1ms = 4096 ms
-RAMFUNC unsigned long GetTimer(unsigned long offset)
-{
-    unsigned long systimer = (*AT91C_PITC_PIIR & AT91C_PITC_PICNT);
-    systimer += offset << 20;
-    return (systimer); // valid bits [31:20]
-}
-
-RAMFUNC unsigned long CheckTimer(unsigned long time)
-{
-    unsigned long systimer = (*AT91C_PITC_PIIR & AT91C_PITC_PICNT);
-    time -= systimer;
-    return(time > (1UL << 31));
-}
-
 void WaitTimer(unsigned long time)
 {
     time = GetTimer(time);
@@ -332,7 +317,7 @@ volatile unsigned char adc_state = 0;
 AT91PS_ADC a_pADC = AT91C_BASE_ADC;
 AT91PS_PMC a_pPMC = AT91C_BASE_PMC;
 
-RAMFUNC static void PollOneADC() {
+static void PollOneADC() {
   static unsigned char adc_cnt = 0xff;
 
   // fetch result from previous run

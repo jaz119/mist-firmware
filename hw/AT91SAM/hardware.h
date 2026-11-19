@@ -131,8 +131,22 @@ unsigned char USART_Read(void);
 void USART_Poll(void);
 
 void Timer_Init(void);
-RAMFUNC unsigned long GetTimer(unsigned long offset);
-RAMFUNC unsigned long CheckTimer(unsigned long time);
+
+// 12 bits accuracy at 1ms = 4096 ms
+static inline unsigned long GetTimer(unsigned long offset)
+{
+    unsigned long systimer = (*AT91C_PITC_PIIR & AT91C_PITC_PICNT);
+    systimer += offset << 20;
+    return (systimer); // valid bits [31:20]
+}
+
+static inline unsigned long CheckTimer(unsigned long time)
+{
+    unsigned long systimer = (*AT91C_PITC_PIIR & AT91C_PITC_PICNT);
+    time -= systimer;
+    return(time > (1UL << 31));
+}
+
 void WaitTimer(unsigned long time);
 
 static inline void MCUReset() {
