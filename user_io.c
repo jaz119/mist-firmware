@@ -903,19 +903,6 @@ void user_io_poll()
 		}
 	}
 
-	if (core_features & FEAT_IDE_MASK)
-	{
-		EnableFpga();
-		uint8_t c1 = SPI(0); // cmd request
-		SPI(0);
-		SPI(0);
-		SPI(0);
-		SPI(0);
-		SPI(0);
-		DisableFpga();
-		HandleHDD(c1, 0, 1);
-	}
-
 	// check for long press > 1 sec on menu button
 	// and toggle scandoubler on/off then
 	static uint32_t timer = 1;

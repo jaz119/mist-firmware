@@ -465,6 +465,19 @@ static void generic_8bit_poll()
     }
 #endif
 
+    if (core_features & FEAT_IDE_MASK)
+    {
+        EnableFpga();
+        uint8_t c1 = SPI(0); // cmd request
+        SPI(0);
+        SPI(0);
+        SPI(0);
+        SPI(0);
+        SPI(0);
+        DisableFpga();
+        HandleHDD(c1, 0, 1);
+    }
+
     handle_mouse_events_ps2();
     handle_mouse_commands_ps2();
 

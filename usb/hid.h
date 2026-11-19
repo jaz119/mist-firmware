@@ -38,7 +38,7 @@
 #define HID_REQ_HIDIN         (USB_SETUP_DEVICE_TO_HOST | USB_SETUP_TYPE_CLASS | USB_SETUP_RECIPIENT_INTERFACE)
 
 #define MAX_IFACES            3  // max supported interfaces per device
-#define REPORT_BUF_SZ         64
+#define MAX_REPORT_SIZE       64
 
 #define HID_DEVICE_UNKNOWN    0
 #define HID_DEVICE_MOUSE      BIT(0)

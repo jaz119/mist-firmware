@@ -747,7 +747,7 @@ FORCE_ARM static uint8_t usb_hid_poll(usb_device_t *dev) {
 		return 0;
 
 	uint8_t rcode = 0;
-	ALIGNED(4) uint8_t buf[REPORT_BUF_SZ];
+	ALIGNED(4) uint8_t buf[MAX_REPORT_SIZE];
 
 	for (int i=0; i<info->num_ifaces; i++)
 	{
