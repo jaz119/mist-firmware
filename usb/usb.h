@@ -258,7 +258,7 @@ typedef struct {
   uint8_t bEndpointAddress;    // Endpoint address. Bit 7 indicates direction (0=OUT, 1=IN).
   uint8_t bmAttributes;        // Endpoint transfer type.
   uint8_t wMaxPacketSize[2];   // Maximum packet size.
-  uint8_t bInterval;           // Polling interval in frames.
+  uint8_t bInterval;           // Polling interval in ms.
 } __attribute__((packed)) usb_endpoint_descriptor_t;
 
 /* String index 0 descriptor structure */

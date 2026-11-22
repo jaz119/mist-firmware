@@ -200,7 +200,7 @@ static uint8_t usb_ecm_parse_conf(
                 ep->addr       = (p->ep_desc.bEndpointAddress & 0x0f);
                 ep->type       = ep_type;
                 ep->maxPktSize = (p->ep_desc.wMaxPacketSize[1] << 8) | p->ep_desc.wMaxPacketSize[0];
-                ep->interval   = p->ep_desc.bInterval;
+                ep->interval   = MAX(250, p->ep_desc.bInterval);
 
                 iprintf(" -> %s endpoint %d, packet size: %d\n",
                     (is_in) ? "IN" : "OUT", ep->addr, ep->maxPktSize);

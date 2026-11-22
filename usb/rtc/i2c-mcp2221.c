@@ -15,7 +15,7 @@
 #include "debug.h"
 
 #define TIMEOUT_MS      10
-#define REPORT_INTL     500
+#define POLLING_INTL    500
 #define REPORT_SIZE     64
 
 #define MCP2221_VID     0x04d8
@@ -313,7 +313,7 @@ static uint8_t usb_hid_parse_conf(usb_device_t *dev, uint16_t len)
                 ep->interval   = p->ep_desc.bInterval;
 
                 iprintf(" -> %s endpoint %d, interval: %d ms\n",
-                    (is_in) ? "IN" : "OUT", ep->addr, REPORT_INTL);
+                    (is_in) ? "IN" : "OUT", ep->addr, POLLING_INTL);
                 break;
         }
 
@@ -519,7 +519,7 @@ static uint8_t mcp_poll(usb_device_t *dev)
     usb_mcp_info_t *info = &(dev->mcp_info);
     info->usb_error = 0;
 
-    if (timer_check(info->time.updated, REPORT_INTL))
+    if (timer_check(info->time.updated, POLLING_INTL))
     {
         const rtc_chip_t *rtc = rtc_chips[info->chip_type];
 
