@@ -314,6 +314,7 @@ static bool user_io_read_sd(
 {
 	// block size in bytes == 512 << blksize
 	bool retval = false;
+	FRESULT res;
 
 	if (sendtofpga) {
 		spi_uio_cmd_cont(UIO_SECTOR_RD);
@@ -326,10 +327,21 @@ static bool user_io_read_sd(
 		if (sd_image[sd_index(drive_index)].valid)
 		{
 			UINT br;
-			if ((f_size(&sd_image[sd_index(drive_index)].file) >> (9 + blksz)) >= (lba + blockstoread))
+			if ((f_size(&sd_image[sd_index(drive_index)].file) >> (9 + blksz)) >= lba)
 			{
 				IDXSeek(&sd_image[sd_index(drive_index)], lba << blksz);
-				f_read(&sd_image[sd_index(drive_index)].file, buffer, blockstoread << (9 + blksz), &br);
+
+				UINT btr = blockstoread << (9 + blksz);
+				res = f_read(&sd_image[sd_index(drive_index)].file, buffer, btr, &br);
+
+				// pad partial reads with 0
+				if (res == FR_OK && br < btr) {
+					memset(buffer + br, 0, btr - br);
+
+					debugf("Reading beyond file end (lba: %d - %d bytes)",
+						lba, btr - br);
+				}
+
 				retval = true;
 			}
 		}
@@ -827,10 +839,20 @@ void user_io_poll()
 						if (sd_image[sd_index(drive_index)].valid)
 						{
 							UINT bw;
-							if ((f_size(&sd_image[sd_index(drive_index)].file) >> (9 + blksz)) >= (lba + blockstowrite))
+							FSIZE_t fs = f_size(&sd_image[sd_index(drive_index)].file);
+
+							if ((fs >> (9 + blksz)) >= lba)
 							{
+								UINT btw = blockstowrite << (9 + blksz);
+								FSIZE_t write_start = (FSIZE_t) lba << (9 + blksz);
+								FSIZE_t write_max = fs - write_start;
+
+								if (btw > write_max)
+									debugf("Write truncated to %llu bytes", write_max);
+
+								btw = MIN(write_max, btw);
 								IDXSeek(&sd_image[sd_index(drive_index)], lba << blksz);
-								f_write(&sd_image[sd_index(drive_index)].file, sector_buffer, blockstowrite << (9 + blksz), &bw);
+								f_write(&sd_image[sd_index(drive_index)].file, sector_buffer, btw, &bw);
 							}
 						}
 						else if (!drive_index && !umounted)

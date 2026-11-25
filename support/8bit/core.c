@@ -185,7 +185,7 @@ char *user_io_8bit_get_string(uint8_t index)
         }
     }
 
-    while ((i != 0) && (i != 0xff) && (j < sizeof(config.buffer)))
+    while ((i != 0) && (i != 0xff) && (j < sizeof(config.buffer) - 1))
     {
         if (i == ';')
         {
@@ -211,7 +211,7 @@ char *user_io_8bit_get_string(uint8_t index)
             {
                 if (lidx == index)
                 {
-                    config.buffer[j++] = 0;
+                    config.buffer[j] = 0;
                     break;
                 }
                 lidx++;
