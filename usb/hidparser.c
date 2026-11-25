@@ -371,6 +371,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 					conf->report_size = 0;
 					conf->report_id = value;
+					conf->joystick_mouse.hat.size = 0;
 					conf->joystick_mouse.button_count = 0;
 					for (int a=0; a<MAX_AXES; a++) {
 						conf->joystick_mouse.axis[a].offset = 0;
