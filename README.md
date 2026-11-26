@@ -1,6 +1,6 @@
 [![Build firmware](https://github.com/jaz119/mist-firmware/actions/workflows/test-build.yaml/badge.svg)](https://github.com/jaz119/mist-firmware/actions/workflows/test-build.yaml)
 
-**MiST** and **SiDi128** firmware source code fork
+**MiST** and **SiDi128** firmware fork
 =========================
 
 The purpose of this fork is to get rid of outdated code and further improve it.
@@ -34,13 +34,15 @@ The purpose of this fork is to get rid of outdated code and further improve it.
 - *Minimig core*:
     - Disk images and ROMs can be loaded from any directories;
     - Speed rate of SD card has been increased (slightly);
-    - *Removed legacy V1 core support*;
+    - Removed legacy V1 core support;
+    - *Network support (X-Surf 10)*.
 
 - *MiSTery core*:
     - Redesigned menu structure (Minimig-style);
     - Disk images and ROMs can be loaded from any directories;
-    - *ACSI: full ICD/SCSI-2 support with hot-swappable images and Read-Only mode*;
-    - *Removed legacy ST core support*;
-    - *Removed direct SD card mode*;
+    - ACSI: full ICD/SCSI-2 support with hot-swappable images and Read-Only mode;
+    - *Network support (EtherNEC/NetUSBee)*.
+    - Removed legacy ST core support;
+    - Removed direct SD card mode;
 
 Binaries can be found in [Latest Build](https://github.com/jaz119/mist-firmware/releases/tag/latest-build).
