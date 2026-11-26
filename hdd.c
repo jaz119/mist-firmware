@@ -17,10 +17,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// 2009-11-22 - read/write multiple implemented
-
-// 2020-11-14 - AMR: Simplified and combined read / readm + write / writem.  AROS IDE now works.
-
 
 #include <stdio.h>
 #include <string.h>
@@ -1417,11 +1413,11 @@ static void ATA_WriteSectors(unsigned char* tfr,
 
   // write sectors
   WriteStatus(IDE_STATUS_REQ); // pio out (class 2) command type
-  hdd_debugf("IDE%d: write %s, %d.%d.%d:%lu, %d", unit, (lbamode ? "LBA" : "CHS"), cylinder, head, sector, lba, sector_count);
+  hdd_debugf("IDE%d: write %s, %d.%d.%d:%lu, %d",
+    unit, (lbamode ? "LBA" : "CHS"), cylinder, head, sector, lba, sector_count);
 
-  lba+=hdf[unit].offset;
   if (hdf[unit].type & HDF_FILE) {
-    HardFileSeek(&hdf[unit], (lba>-1) ? lba : 0);
+    HardFileSeek(&hdf[unit], (lba+hdf[unit].offset>-1) ? lba+hdf[unit].offset : 0);
   }
 
   while (sector_count) {
@@ -1452,7 +1448,7 @@ static void ATA_WriteSectors(unsigned char* tfr,
       switch(hdf[unit].type) {
         case HDF_FILE | HDF_SYNTHRDB:
         case HDF_FILE:
-          if (f_size(&hdf[unit].idxfile->file) && (lba>-1)) {
+          if (f_size(&hdf[unit].idxfile->file) && (lba+hdf[unit].offset>-1)) {
             // Don't attempt to write to fake RDB
             f_write(&hdf[unit].idxfile->file, sector_buffer, 512*block_size, &bw);
           }
@@ -1463,7 +1459,7 @@ static void ATA_WriteSectors(unsigned char* tfr,
         case HDF_CARDPART1:
         case HDF_CARDPART2:
         case HDF_CARDPART3:
-          disk_write(fs.pdrv, sector_buffer, lba, block_size);
+          disk_write(fs.pdrv, sector_buffer, lba+hdf[unit].offset, block_size);
           lba+=block_size;
           break;
       }
