@@ -253,7 +253,7 @@ static char GetMenuPage_Minimig(uint8_t idx, char action, menu_page_t *page) {
 		switch (idx) {
 			case 0:
 				// set helptext with core display on top of basic info
-				page->title = "Amiga";
+				page->title = "\x1c Amiga";
 				strcpy(helptext_custom, HELPTEXT_SPACER);
 				strcat(helptext_custom, OsdCoreName());
 				siprintf(s, "%s v%d.%d.%d", minimig_ver_beta ? " BETA" : "", minimig_ver_major, minimig_ver_minor, minimig_ver_minion);
